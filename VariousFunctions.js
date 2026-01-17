@@ -8,8 +8,12 @@ const scripts = [
 "https://raw.githubusercontent.com/Porterturkeys/TurkeyColorCalculator/refs/heads/main/Sounds.js",
 "https://raw.githubusercontent.com/Porterturkeys/TurkeyColorCalculator/refs/heads/main/SocialShare.js",
 "https://raw.githubusercontent.com/Porterturkeys/TurkeyColorCalculator/refs/heads/main/LatestFunctions.js",
-https://raw.githubusercontent.com/Porterturkeys/TurkeyColorCalculator/refs/heads/main/phenotypeMapping1.js,
-https://raw.githubusercontent.com/Porterturkeys/TurkeyColorCalculator/refs/heads/main/phenotypeMapping2.js,
+"https://raw.githubusercontent.com/Porterturkeys/TurkeyColorCalculator/refs/heads/main/phenotypeMapping1.js",
+"https://raw.githubusercontent.com/Porterturkeys/TurkeyColorCalculator/refs/heads/main/phenotypeMapping1A.js", 
+"https://raw.githubusercontent.com/Porterturkeys/TurkeyColorCalculator/refs/heads/main/phenotypeMapping2.js"
+
+
+
 
 ];
 
