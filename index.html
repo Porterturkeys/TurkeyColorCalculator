@@ -2703,5 +2703,1954 @@ paypal.Buttons({
 
 </script>
 
+
+<style>
+
+/* CSS styles for layout and appearance */
+        h1 {
+            text-align: center;
+            margin-top: 20px; /* Adds some space at the top */
+        }
+
+        .header-container {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 5px; /* Adjust padding as needed */
+        }
+
+        .logo {
+            max-width: 225px; /* Adjust the size of the logo */
+            border: 4px solid black; /* Add a black border */
+        }
+
+        .container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+            margin-top: 50px; /* Adjust margin-top as needed */
+        }
+
+        
+        
+
+        .horizontal-images-container {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 5px;
+        }
+
+        .container {
+            display: flex;
+            justify-content: space-between;
+            margin: 0 auto;
+        }
+
+        .genotype-container {
+            text-align: center;
+        }
+
+        .genotype-selection {
+            margin-top: 40px; /* Add this line to create space above the genotype selections */
+        }
+
+        .genotype-image {
+            height: auto;
+            object-fit: contain;
+            display: inline-block;
+            margin-bottom: 5px;
+            overflow: hidden;
+        }
+
+        .genotype-image img {
+            display: block;
+            width: 200px;
+            height: 200px;
+            border: 7px solid blue;
+            border-radius: 8px;
+            box-sizing: border-box;
+        }
+
+        .genotype-value {
+            color: blue;
+        }
+
+        .genotype-label, .variety-name {
+            display: block;
+            margin-bottom: 10px;
+        }
+
+        .genotype-value {
+            display: block;
+            margin-bottom: 20px;
+        }
+
+        .buttons-container {
+            text-align: center;
+            margin-top: 20px;
+        }
+
+        .results-container {
+            display: flex;
+            justify-content: space-between;
+            align-items: stretch;
+            gap: 3px;
+            margin-top: 3px;
+        }
+
+        .offspring-title {
+            width: 50%;
+            text-align: center;
+            margin-bottom: 3px;
+            font-size: 20px;
+        }
+
+        .offspring-container {
+            text-align: center;
+            border: 2px solid blue;
+            padding: 1px;
+            border-radius: 3px;
+            background-color: #D3D3D3;
+            width: 49%;
+            box-sizing: border-box;
+            min-height: 80%;
+        }
+
+        .offspring-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .offspring-item {
+            margin-bottom: 2px;
+            padding: 1px;
+            border-bottom: 5px solid black;
+            font-size: 16px;
+        }
+
+        .offspring-item:last-child {
+            border-bottom: none;
+        }
+
+        .offspring-item strong,
+        .offspring-item span,
+        .offspring-item p,
+        .offspring-item img {
+            margin: 0;
+            padding: 0;
+            line-height: 1.2;
+        }
+
+        .offspring-item img {
+            display: inline-block;
+            margin: 0 auto;
+        }
+
+        .image-wrapper {
+            margin-top: 5px;
+        }
+
+        .offspring-item br {
+            line-height: 0.8;
+        }
+
+      
+
+        /* Ensure horizontal layout on mobile and landscape */
+        @media (max-width: 768px) {
+            .results-container {
+                flex-direction: row;
+                flex-wrap: nowrap;
+            }
+
+            .offspring-container {
+    width: 50%;          /* Adjust width relative to parent */
+    min-height: unset;   /* Reset any minimum height */
+    margin: 0 auto;      /* Center horizontally if block */
+    display: block;      /* Ensure block-level context */
+}
+
+
+
+            .offspring-title {
+                width: 50%;
+                font-size: 14px;
+            }
+        }
+
+        .genotypes-note {
+            text-align: center;
+            font-weight: bold;
+            border: 10px solid teal;
+            padding: 2px;
+            
+          }
+          
+         
+    @media (max-width: 768px) {
+        /* Adjust font size for mobile devices */
+        .genotypes-note {
+            font-size: 14px; /* Smaller font size for mobile */
+        }
+    }
+        
+            body {
+            background-color: #f5e1c1;
+            font-size: 18px;
+        }
+        
+         /* Title Section */
+        html, body {
+        margin: 0; 
+        padding: 0; 
+        width: 100%; 
+        overflow-x: hidden; 
+       }
+
+        .site-title {
+            font-size: 3em;
+            font-weight: bold;
+            color: black;
+            background-color: #1E82E6;
+            text-shadow: -2px -2px 0 tan, 2px 2px 8px rgba(0, 0, 0, 0.7);
+            padding: 20px;
+            margin: 0;
+            width: 100%;
+            box-sizing: border-box;
+        }
+
+        /* Mobile Title Styles */
+        @media screen and (max-width: 768px) {
+            .site-title {
+                font-size: 2em;
+                padding: 15px;
+            }
+        }
+        /* Navbar Styles */
+        .navbar {
+            width: 100%;
+            background-image: url("https://porters-rare-heritage-turkeys.neocities.org/Pictures/wood%20background.jpg");
+            background-size: cover;
+            background-repeat: no-repeat;
+            background-position: center;
+            padding:5px 0;
+        }
+
+        .menu-bar {
+            list-style-type: none;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+        }
+
+        .menu-bar li {
+            margin: 0 5px;
+        }
+
+        .menu-bar a {
+            text-decoration: none;
+            color: white;
+            padding: 5px 10px;
+        }
+      
+        
+      
+        .image-container {
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .image-wrapper {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin: 0 10px;
+        }
+
+        @media only screen and (orientation: portrait) {
+            .image-container {
+                flex-direction: column;
+                align-items: center;
+            }
+
+            .image-wrapper {
+                margin-bottom: 20px;
+            }
+
+            img {
+                width: 100%;
+                max-width: 300px;
+                height: auto;
+            }
+
+            .variety-name {
+                color: blue;
+                font-weight: bold;
+            }
+
+            .summary-chart {
+                width: 100%;
+                max-width: 1000px;
+                border-collapse: collapse;
+                border: 2px solid blue;
+            }
+
+            .summary-chart th,
+            .summary-chart td {
+                border: 3px solid blue;
+                padding: 8px;
+            }
+
+            .summary-chart th {
+                background-color: lightgreen;
+                color: black;
+            }
+
+            .summary-chart td {
+                background-color: white;
+            }
+
+            .return-to-top {
+                display: block;
+                margin: 20px auto;
+                padding: 10px 20px;
+                background-color: #206ef5;
+                color: white;
+                text-align: center;
+                border: none;
+                border-radius: 5px;
+                cursor: pointer;
+                text-decoration: none;
+            }
+
+            .return-to-top:hover {
+                background-color: #0b4bc9;
+            }
+        }
+
+        /* Media query for landscape orientation */
+        @media only screen and (orientation: landscape) {
+            .image-container {
+                flex-direction: row;
+                justify-content: space-around;
+            }
+
+           
+
+
+            img {
+                max-width: 250px;
+                height: auto;
+            }
+
+            .summary-chart-container {
+                margin-top: 20px;
+                display: flex;
+                justify-content: center;
+                text-align: center;
+                overflow-x: auto;
+            }
+
+            .summary-chart {
+                width: 100%;
+                max-width: 1000px;
+                border-collapse: collapse;
+                border: 2px solid blue;
+                display: table;
+            }
+
+            .summary-chart th,
+            .summary-chart td {
+                border: 3px solid blue;
+                padding: 8px;
+                display: table-cell;
+            }
+
+            .summary-chart th {
+                background-color: lightgreen;
+                color: black;
+            }
+
+            .summary-chart td {
+                background-color: white;
+            }
+
+            .return-to-top {
+                display: block;
+                margin: 20px auto;
+                padding: 10px 20px;
+                background-color: #206ef5;
+                color: white;
+                text-align: center;
+                border: none;
+                border-radius: 5px;
+                cursor: pointer;
+                text-decoration: none;
+            }
+
+            .return-to-top:hover {
+                background-color: #0b4bc9;
+            }
+        }
+
+        .genotype-label {
+            font-weight: bold;
+            text-align: center;
+            margin-bottom: 10px;
+            font-size: 18px;
+        }
+
+        .variety-name {
+            font-size: 18px;
+            color: #1202E8;
+            font-weight: bold;
+        }
+
+        /* Basic Navbar Styling */
+        .navbar {
+            width: 100%;
+            background-color: #333;
+            padding: 14px 0; /* Padding for the navbar */
+            
+        }
+        .menu-bar {
+        list-style-type: none;
+        margin: 0;
+        padding: 0;
+        display: flex;
+        justify-content: center;
+    }
+
+    .menu-bar li {
+        margin: 0 8px;
+    }
+
+    .menu-bar a {
+        text-decoration: none;
+        color: white;
+        padding: 10px 20px;
+    }
+
+  @media (max-width: 1024px) {
+    .menu-toggle {
+        display: block;
+        font-size: 1.125em;
+        cursor: pointer;
+        color: white;
+        padding: 12px 20px;
+        background-color: rgba(0, 0, 0, 0.7);
+        border: none;
+        text-align: center;
+    }
+
+    .menu-bar {
+        display: none;
+        flex-direction: column;
+        text-align: center;
+        background-color: rgba(0, 0, 0, 0.7);
+        width: 100%;
+    }
+
+    .menu-bar.active {
+        display: flex;
+    }
+
+    .menu-bar li {
+        width: 100%;
+        padding: 15px 0;  /* Increased padding for more space between items */
+    }
+
+    .menu-bar a {
+        width: 110%;
+        font-size: 1.125em;  /* Slightly smaller text for portrait */
+        text-decoration: none;
+        color: white;
+        
+        text-shadow: 1px 1px 4px rgba(0, 0, 0, 0.5);
+    }
+
+    .navbar a:hover {
+        background-color: #575757;
+        color: yellow;
+        border-radius: 4px;
+    }
+}
+
+/* Mobile Portrait Mode Adjustments */
+@media only screen and (max-width: 1024px) and (orientation: portrait) {
+    .menu-toggle {
+        display: block;
+        cursor: pointer;
+        color: white;
+        padding: 18px 24px;
+        background-color: rgba(0, 0, 0, 0.7);
+        border: none;
+        text-align: center;
+    }
+
+    .menu-bar {
+        display: none;
+        flex-direction: column;
+        text-align: center;
+        background-color: rgba(0, 0, 0, 0.7);
+        width: 100%;
+    }
+
+    .menu-bar.active {
+        display: flex;
+    }
+
+    .menu-bar li {
+        width: 100%;
+        padding: 20px 0; /* Increased space between items */
+    }
+
+    .menu-bar a {
+        width: 100%;
+        font-size: 1.125em;  /* Larger text for portrait */
+        text-decoration: none;
+        color: white;
+        white-space: nowrap; /* Keep menu items on one line */
+    }
+
+    .navbar a:hover {
+        background-color: #575757;
+        color: yellow;
+        border-radius: 4px;
+    }
+}
+
+
+/* Mobile Menu Styling for Landscape (orientation: landscape) */
+@media (orientation: landscape) and (max-width: 1024px) {
+    .menu-toggle {
+        display: block;
+        font-size: 1.4em;
+        cursor: pointer;
+        color: white;
+        padding: 12px 20px;
+        background-color: rgba(0, 0, 0, 0.7);
+        border: none;
+        text-align: center;
+    }
+
+    .menu-bar {
+        display: none;
+        flex-direction: column;
+        text-align: center;
+        background-color: rgba(0, 0, 0, 0.7);
+        width: 100%;
+    }
+
+    .menu-bar.active {
+        display: flex;
+    }
+
+    .menu-bar li {
+        width: 100%;
+        padding: 18px 0; /* Space between items */
+    }
+
+    .menu-bar a {
+        font-size: 1.4em;  /* Text size for landscape */
+        width: 100%;
+        text-decoration: none;
+        color: white;
+        text-shadow: 1px 1px 4px rgba(0, 0, 0, 0.5);
+    }
+}
+
+
+/* Mobile Portrait Mode Adjustments - One logo at the top */
+@media only screen and (max-width: 1024px) and (orientation: portrait) {
+    .header-container {
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        text-align: center;
+        padding: 0 10px;
+    }
+
+    .logo:first-child {
+        display: block;
+        max-width: 150px; /* Adjust size of the remaining logo */
+        height: auto;
+        margin-bottom: 10px; /* Space between logo and title */
+    }
+
+    .logo:last-child {
+        display: none; /* Hide the second logo */
+    }
+
+    .header-container h1 {
+        margin: 10px 0;
+        font-size: 1.8em; /* Adjust font size for portrait */
+        line-height: 1.5;
+    }
+}
+
+/* Mobile Portrait Mode Adjustments */
+@media only screen and (max-width: 768px) and (orientation: portrait) {
+    .menu-toggle {
+        display: block;
+        cursor: pointer;
+        color: white;
+        padding: 18px 24px;
+        background-color: rgba(0, 0, 0, 0.7);
+        border: none;
+        text-align: center;
+    }
+
+    .menu-bar {
+        display: none;
+        flex-direction: column;
+        text-align: center;
+        background-color: rgba(0, 0, 0, 0.7);
+        width: 100%;
+    }
+
+    .menu-bar.active {
+        display: flex;
+    }
+
+    .menu-bar li {
+        width: 100%;
+        padding: 20px 0; /* Increased space between items */
+    }
+
+    .menu-bar a {
+        width: 100%;
+        font-size: 1.125em;  /* Larger text for portrait */
+        text-decoration: none;
+        color: white;
+        white-space: nowrap; /* Keep menu items on one line */
+    }
+
+    .navbar a:hover {
+        background-color: #575757;
+        color: yellow;
+        border-radius: 4px;
+    }
+}
+
+/* Mobile Portrait Mode Adjustments */
+@media only screen and (max-width: 1024px) and (orientation: portrait) {
+    .menu-toggle {
+        display: block;
+        cursor: pointer;
+        color: white;
+        padding: 18px 24px;
+        background-color: rgba(0, 0, 0, 0.7);
+        border: none;
+        text-align: center;
+    }
+
+    .menu-bar {
+        display: none;
+        flex-direction: column;
+        text-align: center;
+        background-color: rgba(0, 0, 0, 0.7);
+        width: 100%;
+    }
+
+    .menu-bar.active {
+        display: flex;
+    }
+
+    .menu-bar li {
+        width: 100%;
+        padding: 20px 0; /* Increased space between items */
+    }
+
+    .menu-bar a {
+        width: 100%;
+        font-size: 1.125em;  /* Larger text for portrait */
+        text-decoration: none;
+        color: white;
+        white-space: nowrap; /* Keep menu items on one line */
+    }
+
+    .navbar a:hover {
+        background-color: #575757;
+        color: yellow;
+        border-radius: 4px;
+    }
+}
+
+
+/* Hide menu toggle on desktop (min-width: 769px) */
+@media (min-width: 1024px) {
+    .menu-toggle {
+        display: none;
+    }
+}
+
+/* Active Link Styling */
+        .navbar a.active {
+            background-color: #575757; 
+            color: yellow; 
+            padding: 10px;
+            border-radius: 5px; /* Rounded corners */
+        }
+
+/* Footer Styles */
+        footer {
+            text-align: center;
+            margin-top: 40px;
+            padding: 20px;
+            color: black;
+            font-weight: bold; 
+        }
+        
+     
+
+.offspring-item img {
+    width: auto; 
+    height: 150px; 
+    max-width: 100%; 
+    object-fit: contain; 
+    margin: auto; 
+    padding: 10px; 
+    border: 2px solid black; 
+    box-sizing: border-box; 
+    transition: transform 0.3s ease; 
+    cursor: pointer; 
+    background-color: white; 
+}
+
+
+/* Default enlarged image styling (applies to desktop) */
+.enlarged {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%) scale(3.5); /* Larger scale for desktop */
+    z-index: 1000;
+    cursor: zoom-out;
+    background-color: rgba(0, 0, 0, 0.8);
+    padding: 10px;
+    border-radius: 10px;
+    max-width: 80vw; /* Limits size on wide screens */
+    max-height: 80vh;
+}
+
+/* Mobile-specific enlarged image styling */
+@media (max-width: 768px) {
+    .enlarged {
+        transform: translate(-50%, -50%) scale(2.7); /* Smaller scale for mobile */
+        max-width: 95vw; /* Fits within the viewport width */
+        max-height: 95vh; /* Fits within the viewport height */
+        padding: 5px; /* Less padding for smaller screens */
+    }
+}
+
+    
+.offspring-item img {
+    width: 100%;
+    height: auto; /* Maintains aspect ratio */
+    object-fit: contain; /* Ensures the whole image fits within the container */
+    max-width: 100%;
+    max-height: 100%;
+}
+
+.bold-black {
+    font-weight: bold;
+    color: black;
+}
+
+
+
+.offspring-item .ratio {
+    color: blue 
+}
+
+@media (max-width: 768px) {
+    .genotype-selection select {
+        width: auto; /* Keep the same layout */
+        margin: 0 1px; /* Add space between boxes */
+        padding: 2px; /* Slightly increase padding for touch usability */
+        font-size: 1.1em; /* Slightly larger font for readability */
+    }
+
+    .genotype-selection {
+        margin: 1px 0; /* Add subtle space around the container */
+    }
+}
+
+
+@media (max-width: 768px) {
+    .buttons-container button {
+        font-size: 1.1em; /* Slightly increase font size */
+        padding: 8px 16px; /* Add padding around the text for touch usability */
+        margin: 5px; /* Add subtle space between the buttons */
+        border-radius: 5px; /* Add rounded corners for a modern look */
+    }
+}
+
+#donationPopup {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background-color: #1E82E6;
+    color: white;
+    padding: 20px;
+    border-radius: 10px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+    z-index: 2000;
+    text-align: center;
+    max-width: 90%;
+    display: none; /* Hidden by default */
+}
+
+
+/* Data Loading Popup */
+#loading-container {
+    position: fixed;
+    top: 50%; /* Center vertically */
+    left: 50%; /* Center horizontally */
+    transform: translate(-50%, -50%); /* Adjust for center alignment */
+    z-index: 3000; /* Ensure it appears above other elements */
+    background-color: gray; /* Optional: adds a background */
+    padding: 30px;
+    border-radius: 15px;
+    box-shadow: 0px 8px 10px rgba(0, 0, 0, 0.3); /* adds a shadow */
+}
+
+
+
+
+
+/* Style the input field */
+#searchInput {
+    width: 300px;
+    padding: 10px;
+    margin: 10px 0;
+    border: 2px solid #1E82E6; /* Blue border */
+    border-radius: 5px;
+    font-size: 16px;
+    outline: none;
+}
+
+#searchInput:focus {
+    border-color: #007BFF; /* Highlight border on focus */
+    box-shadow: 0 0 8px rgba(0, 123, 255, 0.6);
+}
+
+/* Style the buttons */
+.button-container {
+    margin-top: 10px;
+}
+
+.search-btn,
+.reset-btn {
+    padding: 10px 20px;
+    margin: 5px;
+    font-size: 16px;
+    color: white;
+    background-color: #1E82E6; /* Blue background */
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+}
+
+.search-btn:hover,
+.reset-btn:hover {
+    background-color: #0056b3; /* Darker blue on hover */
+}
+
+
+
+
+
+/* Style the results container */
+#results {
+    margin-top: 20px;
+    padding: 15px;
+    border: 3px solid #1E82E6; /* Blue border */
+    border-radius: 10px;
+    background-color: #f9f9f9; /* Light gray background */
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); /* Subtle shadow */
+    max-width: 600px;
+    margin-left: auto;
+    margin-right: auto;
+    font-family: Arial, sans-serif;
+}
+
+/* Headers for each category (Male, Female, Shared) */
+#results li strong {
+    display: block;
+    font-size: 18px;
+    margin-bottom: 10px;
+    color: #1E82E6; /* Blue text for headers */
+}
+
+/* Styling for each list item */
+#results li {
+    font-size: 16px;
+    color: #333; /* Dark gray text */
+    padding: 8px;
+    border-bottom: 1px solid #ddd; /* Light gray divider */
+}
+
+#results li:last-child {
+    border-bottom: none; /* Remove divider from the last item */
+}
+
+/* Highlight search term in results */
+#results span {
+    background-color: yellow; /* Highlight color */
+    font-weight: bold;
+}
+
+/* Add spacing between categories */
+#results li + li strong {
+    margin-top: 15px;
+}
+
+/* Style for "No matches found" message */
+#results li[style="color: blue;"] {
+    font-size: 16px;
+    font-style: italic;
+    color: #007BFF; /* Slightly different blue for error message */
+    text-align: center;
+}
+
+
+
+
+
+/*  New DNA loader */
+
+@keyframes rotate {
+        0% { transform: rotateX(0deg); }
+        100% { transform: rotateX(360deg); }
+    }
+
+     /* Fix for Mobile Portrait Mode (ONLY Black Background & Helix Size) */
+@media screen and (max-width: 768px) and (orientation: portrait) {
+    #loading-container {
+        width: 70vw;  /* Reduce width so it fits */
+        height: 80px; /* Reduce height to fit on screen */
+        padding: 5px; /* Adjust padding */
+        overflow: hidden; /* Ensure nothing goes off-screen */
+    }
+    .helix-wrapper {
+        height: 60px; /* Reduce helix height */
+    }
+    .dna-strand {
+        transform: scale(0.75); /* Scale down helix */
+    }
+}
+
+
+
+
+
+    #loading-container {
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        text-align: center;
+        background-color: black;
+        padding: 20px;
+        border-radius: 15px;
+        z-index: 9999;
+        width: 650px; /* Desktop width */
+        height: 200px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        overflow: hidden;
+    }
+
+    .helix-wrapper {
+        position: relative;
+        width: 100%;
+        height: 110px;
+        perspective: 800px;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+    }
+
+    .dna-strand {
+        position: relative;
+        width: 100%;
+        height: 100%;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        transform-style: preserve-3d;
+        animation: rotate 3s linear infinite;
+    }
+
+    .cell {
+        position: absolute;
+        width: 16px;
+        height: 16px;
+        border-radius: 50%;
+    }
+
+    #loading-text {
+        color: white;
+        font-weight: bold;
+        margin-top: 12px;
+        font-size: 1.5rem;
+    }
+
+
+
+/* Responsive Paywall Layout Fix for Portrait Mobile */
+@media (max-width: 700px) and (orientation: portrait) {
+  .paywall-row {
+    flex-direction: column !important;   /* stack vertically */
+    align-items: center !important;
+  }
+
+  .pay-option {
+    width: 100% !important;
+    max-width: 360px !important;         /* keep them readable size */
+    margin: 6px 0 !important;
+  }
+
+  #donationPopup {
+    max-width: 95vw !important;
+    max-height: 90vh !important;
+    overflow-y: auto !important;
+    padding-bottom: 60px !important;
+  }
+
+  .sticky-close {
+    position: static !important;
+    margin-top: 12px !important;
+  }
+}
+
+/* -----New stuff-----  */
+
+
+/* horizontal paywall layout and button polish */
+#donationPopup {
+  max-width: 760px; width: 95vw;
+  max-height: 90vh; overflow-y: auto;
+  padding: 18px 20px; box-sizing: border-box;
+  text-align: center; border-radius: 10px;
+}
+.paywall-row {
+  display: flex; justify-content: space-between;
+  gap: 10px; flex-wrap: nowrap; width: 100%;
+}
+.pay-option {
+  flex: 1; background: #f9f9f9;
+  border: 1px solid #ccc; border-radius: 8px;
+  padding: 8px; text-align: center;
+  font-size: 13px; box-sizing: border-box;
+}
+.pay-option strong {
+  display: block; margin-bottom: 6px;
+  color: #1E82E6; font-size: 14px;
+}
+.amount-btn {
+  background: #f0f0f0; border: 1px solid #ccc;
+  border-radius: 20px; padding: 4px 10px;
+  cursor: pointer; font-size: 13px;
+}
+.amount-btn:hover { background: #1E82E6; color: white; border-color: #1E82E6; }
+
+#donationPopup input[type="email"] {
+  width: 100%; max-width: 320px;
+  font-size: 14px; padding: 6px;
+}
+#unlockEmailBtn {
+  background: #1E82E6; color: #fff;
+}
+#donationPopup button[onclick="resetUnlockEmail()"] {
+  background: #ccc; color: #000;
+}
+.sticky-close button {
+  background: #000; color: #fff;
+  border: none; border-radius: 6px;
+  padding: 6px 12px; cursor: pointer;
+  font-size: 13px; box-shadow: 0 0 10px rgba(0,0,0,0.15);
+}
+
+/*  Larger paywall text for all mobile orientations */
+@media (max-device-width: 900px) {
+  #donationPopup {
+    font-size: 18px !important;
+    line-height: 1.4;
+  }
+  #donationPopup strong {
+    font-size: 18px !important;
+  }
+  #donationPopup p,
+  #donationPopup input,
+  #donationPopup button {
+    font-size: 18px !important;
+  }
+}
+
+
+/*  Mobile-only: refined layout for PayPal containers and logos (balanced fit) */
+@media (max-width: 768px) {
+  /* Hide empty PayPal containers by default */
+  [id*="paypal-button-container"] {
+    display: none !important;
+    height: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  /* When PayPal is rendered (iframe or button present) */
+  [id*="paypal-button-container"]:has(iframe),
+  [id*="paypal-button-container"]:has(.paypal-buttons) {
+    display: block !important;
+    width: 100% !important;
+    height: auto !important;
+    margin-top: 12px !important;
+    margin-bottom: 45px !important;   
+    padding-bottom: 55px !important;  
+    overflow: hidden !important;      
+    position: relative;
+    border-radius: 10px !important;
+    box-sizing: border-box !important;
+  }
+
+  /* Slightly reduced scale  */
+  #donationPopup iframe[src*="paypal.com"],
+  #donationPopup .paypal-buttons,
+  #donationPopup .paypal-powered-by,
+  #donationPopup div[class*="powered-by"],
+  #donationPopup img[alt*="PayPal"] {
+    width: 100% !important;
+    max-width: 100% !important;
+    transform: scale(1.12);           
+    transform-origin: top center;
+    display: block !important;
+    margin-top: 8px !important;
+  }
+
+  /* Enlarge credit-card input fields */
+  #donationPopup input[type="text"],
+  #donationPopup input[type="email"],
+  #donationPopup input[type="number"],
+  #donationPopup select {
+    font-size: 1.5rem !important;
+    padding: 0.7em !important;
+  }
+
+  /* Keep form comfortable on Safari/iOS */
+  #donationPopup form {
+    zoom: 1.07;
+  }
+
+
+/*  Landscape mobile refinement: makes popup wider */
+@media (orientation: landscape) and (max-height: 500px) {
+  #donationPopup {
+    max-width: 95vw !important;       /* nearly full width */
+    left: 50% !important;
+    transform: translateX(-50%) translateY(-50%) !important;
+    font-size: 1.05rem;
+  }
+
+  [id*="paypal-button-container"]:has(iframe),
+  [id*="paypal-button-container"]:has(.paypal-buttons) }
+    margin-bottom: 60px !important;
+    padding-bottom: 60px !important;
+    overflow: hidden !important;
+    border-radius: 10px !important;
+  }
+
+  /* Landscape scale balanced to match */
+  #donationPopup iframe[src*="paypal.com"] {
+    transform: scale(1.08) !important; 
+    transform-origin: top center !important;
+    margin: 0 auto !important;
+    display: block !important;
+  }
+}
+
+/* Mobile portrait: widens the light gray PayPal area */
+@media (max-width: 768px) and (orientation: portrait) {
+  #donationPopup {
+    width: 94vw !important;           
+    max-width: 94vw !important;
+    margin: 0 auto !important;
+    border-radius: 12px !important;
+  }
+
+  /* Gives the PayPal container more breathing room inside */
+  [id*="paypal-button-container"]:has(iframe),
+  [id*="paypal-button-container"]:has(.paypal-buttons) {
+    padding-left: 4vw !important;      /* side space proportional to screen */
+    padding-right: 4vw !important;
+  }
+
+  /* Slightly shrinks iframe  */
+  #donationPopup iframe[src*="paypal.com"] {
+    transform: scale(1.1) !important;
+    transform-origin: top center !important;
+  }
+}
+
+/*  Landscape: widens gray area across the screen */
+@media (orientation: landscape) and (max-height: 500px) {
+  #donationPopup {
+    width: 97vw !important;            
+    max-width: 97vw !important;
+    left: 50% !important;
+    transform: translateX(-50%) translateY(-50%) !important;
+  }
+
+  [id*="paypal-button-container"]:has(iframe),
+  [id*="paypal-button-container"]:has(.paypal-buttons) {
+    padding-left: 3vw !important;
+    padding-right: 3vw !important;
+  }
+
+  #donationPopup iframe[src*="paypal.com"] {
+    transform: scale(1.08) !important;
+    transform-origin: top center !important;
+  }
+}
+
+
+/*  Make donation message fonts larger on mobile screens */
+@media (max-width: 768px) {
+  #donationPopup #donationMessage {
+    font-size: 22px !important;
+    line-height: 1.5 !important;
+  }
+
+  #donationPopup #donationMessage span {
+    font-size: 24px !important;
+  }
+
+  #donationPopup #donationMessage strong {
+    font-size: 24px !important;
+  }
+}
+
+
+/* Make donation message fonts larger in mobile LANDSCAPE */
+@media screen and (orientation: landscape) and (max-height: 500px) {
+  #donationPopup #donationMessage {
+    font-size: 22px !important;
+    line-height: 1.5 !important;
+  }
+
+  #donationPopup #donationMessage span,
+  #donationPopup #donationMessage strong {
+    font-size: 24px !important;
+  }
+}
+
+
+
+/* Base matches theme */
+#switchBeginnerBtn {
+  border: 3px solid black;
+  background: blue;
+  color: white;
+  border-radius: 8px;
+  padding: 4px 4px;          
+  font-size: 15px;          
+  font-weight: bold;
+  cursor: pointer;
+  transition: background 0.25s ease, border-color 0.25s ease, color 0.25s ease;
+  display: inline-block;
+}
+
+/* Portrait Mobile */
+@media screen and (max-width: 768px) and (orientation: portrait) {
+  #switchBeginnerBtn {
+    font-size: 18px !important;
+    padding: 6px 6px !important;
+  }
+}
+
+/* Landscape Mobile */
+@media screen and (max-width: 1024px) and (orientation: landscape) {
+  #switchBeginnerBtn {
+    font-size: 18px !important;
+    padding: 6px 6px !important;
+  }
+}
+
+
+
+/* Hover */
+#switchBeginnerBtn:hover {
+  background: lime;
+  color: black;
+  border-color: blue;
+}
+
+
+
+
+
+/* DNA Helix Loader (v27 final line pause for "Now Ready to Calculate") */
+
+#dnaLoaderContainer {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 600px;
+  height: 320px;
+  background: black;
+  border-radius: 16px;
+  box-shadow: 0 0 28px rgba(30,130,230,0.6);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  transition: opacity 1s ease;
+  overflow: hidden;
+  border: 4px solid transparent;
+}
+
+#dnaLoaderContainer::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 16px;
+  padding: 4px;
+  background: linear-gradient(130deg,#1E82E6,#00ffc6,#b84dff,#1E82E6);
+  background-size: 400% 400%;
+  animation: dnaBorderFlow 6s linear infinite;
+  z-index: -1;
+  filter: blur(4px);
+}
+
+@keyframes dnaBorderFlow {
+  0%{background-position:0% 50%;}
+  50%{background-position:100% 50%;}
+  100%{background-position:0% 50%;}
+}
+
+#dnaLoaderContainer canvas {
+  width: 380px;
+  height: 200px;
+  transform-origin: center center;
+}
+
+#dnaLoaderContainer .loadingText {
+  color:white;
+  font-family:Arial,sans-serif;
+  font-size:1.6rem;
+  font-weight:bold;
+  margin-top:18px;
+  text-shadow:0 0 10px #1E82E6;
+  letter-spacing:0.6px;
+  opacity:0;
+  transition:opacity 0.8s ease;
+  text-align:center;
+}
+
+#dnaLoaderContainer .visible { opacity:1; }
+
+.dot {
+  opacity:0;
+  display:inline-block;
+  animation:dnaDotFade 3s ease-in-out infinite;
+}
+@keyframes dnaDotFade {
+  0%,15%{opacity:0;}
+  30%,70%{opacity:1;}
+  85%,100%{opacity:0;}
+}
+
+@media screen and (max-width:768px) and (orientation:portrait){
+  #dnaLoaderContainer{
+    width:95vw;
+    height:300px;
+    left:50%;               
+    transform:translate(-50%, -50%);
+  }
+  #dnaLoaderContainer canvas{width:85%;height:auto;}
+  #dnaLoaderContainer .loadingText{font-size:1.5rem;}
+}
+
+
+/*  Landscape */
+@media screen and (max-height:480px) and (orientation:landscape){
+  #dnaLoaderContainer{width:70vw;height:330px;}
+  #dnaLoaderContainer canvas{width:63%;height:auto;}
+  #dnaLoaderContainer .loadingText{font-size:1.6rem;margin-top:30px;}
+}
+
+
+.instructionBox {
+    font-size: 1.2rem;
+    font-weight: bold;
+
+    padding: 4px 8px;          
+    border-radius: 4px;
+
+    display: inline-block;
+    width: auto;
+    max-width: 95%;
+    text-align: center;
+    white-space: normal;
+
+    box-shadow: 0 0 6px rgba(0,0,0,0.25);
+}
+
+
+
+#sireVarietyInput,
+#damVarietyInput,
+#searchInput {
+    font-size: 18px !important;
+    
+    color: blue !important;
+    -webkit-text-fill-color: blue !important;
+    background-color: white !important;     
+    border: 2px solid black; 
+    border-radius: 5px;
+}
+
+
+  /* Centered results list */
+#results {
+  position: absolute !important;
+  left: 50% !important;
+  transform: translateX(-50%) !important; /* centers the box */
+  
+  z-index: 99999 !important;
+  background: white !important;
+
+  width: max-content !important;   /* shrink to contents */
+  max-width: 100% !important;      /* prevent overflow */
+
+  max-height: 200px !important;
+  overflow-y: auto !important;
+
+  padding: 4px 8px;
+  border: 2px solid blue;
+  border-radius: 6px;
+  text-align: center;
+}
+
+/* Leave headers unmodified but safe */
+#resultsHeader,
+#resultsAdditionalText {
+  overflow: visible !important;
+}
+
+
+
+
+/* ==============================
+   Variety suggestion dropdowns
+   ============================== */
+.varSuggestionBox {
+    position: absolute;
+    left: 0;
+    right: 0;
+    margin-top: 4px;
+    background: white;
+    border: 2px solid blue;
+    border-radius: 6px;
+    max-height: 160px;
+    overflow-y: auto;
+    font-size: 0.95rem;
+    z-index: 50;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.25);
+    display: none; /* shown via JS when have matches */
+    
+}
+
+.varSuggestionItem {
+    padding: 4px 8px;
+    cursor: pointer;
+    white-space: nowrap;
+    
+    
+}
+
+.varSuggestionItem:hover {
+    background: #e8f1ff;
+}
+
+/* In portrait, let the browser's native horizontal bar do the work */
+@media (orientation: portrait) {
+    .varSuggestionBox {
+        display: none !important;
+    }
+}
+
+
+
+.varSuggestionItem {
+    font-size: 20px !important;
+    font-weight: bold;
+    padding: 10px 12px;
+    color: blue;
+}
+
+#sireSuggestionsBox,
+#damSuggestionsBox {
+    font-size: 20px !important;
+    font-weight: bold;
+    color: blue;
+    
+}
+
+
+/* ===== MOBILE LANDSCAPE: SMART SPLIT SUGGESTION PLACEMENT ===== */
+@media screen and (orientation: landscape) and (max-width: 1024px) {
+
+  /* ===== SIRE: SHOW BOX ON RIGHT SIDE ===== */
+  #sireSuggestionsBox {
+    position: fixed !important;
+    bottom: 120px !important;   /* above keyboard */
+    right: 10px !important;
+    left: auto !important;
+
+    width: auto !important;
+    min-width: 220px !important;
+    max-width: 42vw !important;
+
+    max-height: 40vh !important;
+    overflow-y: auto !important;
+
+    background: white !important;
+    z-index: 999999 !important;
+
+    border: 2px solid #1E82E6 !important;
+    border-radius: 10px !important;
+    box-shadow: 0 6px 20px rgba(0,0,0,0.35) !important;
+  }
+
+  /* ===== DAM: SHOW BOX ON LEFT SIDE ===== */
+  #damSuggestionsBox {
+    position: fixed !important;
+    bottom: 120px !important;   /* above keyboard */
+    left: 10px !important;
+    right: auto !important;
+
+    width: auto !important;
+    min-width: 220px !important;
+    max-width: 42vw !important;
+
+    max-height: 40vh !important;
+    overflow-y: auto !important;
+
+    background: white !important;
+    z-index: 999999 !important;
+
+    border: 2px solid #1E82E6 !important;
+    border-radius: 10px !important;
+    box-shadow: 0 6px 20px rgba(0,0,0,0.35) !important;
+  }
+}
+
+
+
+/* ========================================================= */
+/* MOBILE LANDSCAPE  2-ROW ALLELES  */
+/* ========================================================= */
+@media screen and (orientation: landscape) and (max-width: 1024px) {
+
+  /* Turn ONLY the select elements into inline blocks with fixed width */
+  .genotype-selection.sire-genotypes select,
+  .genotype-selection.dam-genotypes select {
+    display: inline-block !important;
+    width: 17% !important;     /* controls compactness */
+    max-width: 17% !important;
+    box-sizing: border-box !important;
+    margin: 2px 1px !important;
+    padding: 2px 3px !important;
+    font-size: 1.2rem !important;
+    vertical-align: top;
+  }
+
+  /* Keep the label centered normally */
+  .genotype-selection.sire-genotypes .genotype-label,
+  .genotype-selection.dam-genotypes .genotype-label {
+    display: block !important;
+    text-align: center;
+  }
+}
+
+
+
+
+
+/* Center sire & dam images without distortion */
+.genotype-image {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+/* Make images fill container as much as possible WITHOUT warping or cropping */
+.genotype-image img {
+    max-width: 220px;
+    max-height: 220px;
+    width: auto;
+    height: auto;
+    object-fit: contain;
+    display: block;
+}
+
+/* Force offspring images to center and not stretch */
+.offspring-item img {
+    max-width: 180px !important;
+    max-height: 180px !important;
+    width: auto !important;
+    height: auto !important;
+    object-fit: contain !important;
+    display: block !important;
+    margin: 0 auto !important;
+}
+
+
+/* FORCE sire & dam enlarge to be smaller than offspring */
+.genotype-image img.enlarged {
+    position: fixed !important;
+    top: 50% !important;
+    left: 50% !important;
+    transform: translate(-50%, -50%) scale(1.2) !important; /* smaller size */
+    z-index: 3000 !important;
+    cursor: zoom-out !important;
+    background-color: rgba(0, 0, 0, 0.85) !important;
+    padding: 6px !important;
+    border-radius: 10px !important;
+    max-width: 80vw !important;
+    max-height: 80vh !important;
+}
+
+
+
+
+
+/* Save button layout */
+  button[onclick="saveSireGenotype()"],
+  button[onclick="saveDamGenotype()"] {
+    max-width: 88px;
+    width: 50%;
+    padding: 3px 3px 3px 3px;
+    font-size: 15px;
+    white-space: nowrap;
+    border: 2px solid blue;
+    border-radius: 4px;
+    cursor: pointer;
+    box-sizing: border-box;
+    background: white;
+     
+}
+
+
+
+
+#sireFavoritesDropdown,
+#damFavoritesDropdown {
+    max-width: 180px;
+    width: 75%;
+    padding: 3px 3px 3px 3px;
+    font-size: 15px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    border: 2px solid blue;
+    border-radius: 4px;
+    cursor: pointer;
+    box-sizing: border-box;
+    background: white;
+    
+
+}
+
+
+/* =======================================
+   PORTRAIT ONLY (phones & tablets in portrait)
+   ======================================= */
+@media (max-width: 1200px) and (orientation: portrait) {
+  /* Stack vertically: save button on top, dropdown below */
+  #sireGenotypeContainer .favorites-wrapper,
+  #damGenotypeContainer .favorites-wrapper {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;                  /* Space between save button and dropdown */
+    align-items: stretch;
+  }
+
+  /* Save button - full width on top */
+  button[onclick="saveSireGenotype()"],
+  button[onclick="saveDamGenotype()"] {
+    width: 45%;
+    padding: 2px 2px;
+    font-size: 1.1rem;
+    border: 2px solid blue;
+    border-radius: 4px;
+    background: white;
+    cursor: pointer;
+    box-sizing: border-box;
+  }
+
+/* Select dropdown - full width so all saved names show completely */
+#sireFavoritesDropdown,
+#damFavoritesDropdown {
+flex: 1 1 80%; 
+min-width: 80%; 
+padding: 2px 2px;
+font-size: 1.1rem;
+
+border: 2px solid blue;
+border-radius: 4px;
+box-sizing: border-box;
+white-space: nowrap;
+overflow: hidden;
+text-overflow: ellipsis;
+background: white;
+}
+
+
+}
+
+
+
+
+/* =======================================
+   LANDSCAPE ONLY (phones in landscape)
+   ======================================= */
+@media (max-height: 600px) and (orientation: landscape) and (max-width: 1200px) {
+  /* Stack vertically: save button on top, dropdown below */
+  #sireGenotypeContainer .favorites-wrapper,
+  #damGenotypeContainer .favorites-wrapper {
+    display: flex;
+    flex-direction: column;
+    gap: 10px; /* Slightly less gap in landscape to save vertical space */
+    align-items: stretch;
+  }
+
+  /* Save button - 45% width on top (same as portrait) */
+  button[onclick="saveSireGenotype()"],
+  button[onclick="saveDamGenotype()"] {
+    width: 45%;
+    padding: 2px 2px;
+    font-size: 1.1rem;
+    border: 2px solid blue;
+    border-radius: 5px;
+    background: white;
+    cursor: pointer;
+    box-sizing: border-box;
+  }
+
+  /* Select dropdown - wide to show full names */
+  #sireFavoritesDropdown,
+  #damFavoritesDropdown {
+    flex: 1 1 40%;
+    min-width: 40%;
+    padding: 2px 2px;
+    font-size: 1.1rem;
+    border: 2px solid blue;
+    border-radius: 5px;
+    box-sizing: border-box;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    background: white;
+  }
+}
+
+
+
+/* Delete buttons - controls size, color, border */
+.trash-btn {
+  padding: 3px 3px;                
+  font-size: .80rem;               
+  color: red;                     
+  border: 2px solid blue;
+  border-radius: 5px;
+  background: white;
+  
+ 
+}
+
+.trash-btn:hover {
+  background: blue;            
+  border-color: white;
+  color: darkred;
+}
+
+
+
+#summaryChartContainer h2 {
+  text-align: center !important;
+  width: 100%;
+  margin: 20px 0;
+}
+
+/* Extra safety for mobile portrait */
+@media (max-width: 768px) and (orientation: portrait) {
+  #summaryChartContainer h2 {
+    font-size: 1.5em; 
+    padding: 0 10px;
+  }
+}  
+
+
+#resultsCloseBtn {
+  position: absolute;
+  top: -10px;
+  right: -10px;
+  font-weight: bold;
+  font-size: 18px;
+  cursor: pointer;
+  background: white;
+  border: 1px solid #888;
+  border-radius: 50%;
+  padding: 2px 6px;
+  z-index: 100000;
+}
+
+
+button {
+  cursor: pointer !important;  
+}
+
+button:disabled {
+  cursor: default; 
+}
+
+
+/* Make hand cursor on all allele dropdowns*/
+.sire-genotypes select,
+.dam-genotypes select {
+    cursor: pointer !important;
+}
+
+
+.sire-genotypes option,
+.dam-genotypes option {
+    cursor: pointer;
+}
+
+
+
+
+/* ================================
+   Summary Chart Breeding Display
+   ================================ */
+
+/* The outer box now SHRINK-WRAPS content */
+#summaryBreedingLabel{
+  display: none;                 /* JS controls visibility */
+  background: #fff;
+  border: 2px solid blue;
+  border-radius: 8px;
+
+  padding: 10px 10px;             /* tighter padding */
+  margin: 8px auto 10px;
+
+  text-align: center;
+
+  width: fit-content;            /* <<< key: hug content */
+  max-width: 95%;                /* safety for very long lines */
+  box-sizing: border-box;
+}
+
+/* Each line wraps cleanly if needed */
+#summaryBreedingLabel .breed-line{
+  line-height: 1.3;
+  margin: 2px 0;
+
+  white-space: normal;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+/* Sire / Dam labels */
+#summaryBreedingLabel .breed-role{
+  font-weight: bold;
+}
+
+/* Independent colors */
+#summaryBreedingLabel .breed-role.sire{
+  color: black;
+}
+
+#summaryBreedingLabel .breed-role.dam{
+  color: black;
+}
+
+/* Variety name */
+#summaryBreedingLabel .breed-name{
+  color: blue;
+}
+
+/* Genotype */
+#summaryBreedingLabel .breed-geno{
+  color: maroon;
+  font-family: monospace;
+}
+
+/* Cross symbol */
+#summaryBreedingLabel .breed-x{
+  color: black;
+  font-weight: bold;
+  font-size: 1.50em;
+  margin: 4px 0;
+  line-height: 1;
+  
+}
+
+
+
+
+.variety-dd{
+  position:absolute;
+  z-index:9999999;
+  background:#fff;
+  border:2px solid blue;
+  border-radius:8px;
+  box-shadow:0 6px 16px rgba(0,0,0,.15);
+  max-height:260px;
+  overflow-y:auto;
+  padding:4px;
+}
+
+.variety-dd-item{
+  padding:6px 8px;
+  border-radius:6px;
+  cursor:pointer;
+  user-select:none;
+  font-size:16px;
+  line-height:1.2;
+}
+
+.variety-dd-item:hover,
+.variety-dd-item.active{
+  background:#eaf2ff;
+}
+
+.variety-dd mark{
+  background: #fff3a0;
+  padding:0 2px;
+  border-radius:3px;
+}
+
+
+    
+</style>
+
+    
+
 </body>
 </html
