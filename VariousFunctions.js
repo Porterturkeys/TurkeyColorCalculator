@@ -11,7 +11,7 @@ const scripts = [
   "https://cdn.jsdelivr.net/gh/Porterturkeys/TurkeyColorCalculator@main/phenotypeMapping1.js",
   "https://cdn.jsdelivr.net/gh/Porterturkeys/TurkeyColorCalculator@main/phenotypeMapping1A.js",
   "https://cdn.jsdelivr.net/gh/Porterturkeys/TurkeyColorCalculator@main/phenotypeMapping2.js"
-];
+]; 
 
 function loadScript(src) {
   return new Promise((resolve, reject) => {
