@@ -1,32 +1,34 @@
 const scripts = [
-"https://raw.githubusercontent.com/Porterturkeys/TurkeyColorCalculator/refs/heads/main/SplitFunction.js",
-"https://raw.githubusercontent.com/Porterturkeys/TurkeyColorCalculator/refs/heads/main/AlleleCombos-Ratios.js",
-"https://raw.githubusercontent.com/Porterturkeys/TurkeyColorCalculator/refs/heads/main/CalculateOffspring.js",
-"https://raw.githubusercontent.com/Porterturkeys/TurkeyColorCalculator/refs/heads/main/DisplayResults.js",
-"https://raw.githubusercontent.com/Porterturkeys/TurkeyColorCalculator/refs/heads/main/TransfertoParent.js",
-"https://raw.githubusercontent.com/Porterturkeys/TurkeyColorCalculator/refs/heads/main/SaveSirenDamFav.js",
-"https://raw.githubusercontent.com/Porterturkeys/TurkeyColorCalculator/refs/heads/main/Sounds.js",
-"https://raw.githubusercontent.com/Porterturkeys/TurkeyColorCalculator/refs/heads/main/SocialShare.js",
-"https://raw.githubusercontent.com/Porterturkeys/TurkeyColorCalculator/refs/heads/main/LatestFunctions.js",
-"https://raw.githubusercontent.com/Porterturkeys/TurkeyColorCalculator/refs/heads/main/phenotypeMapping1.js",
-"https://raw.githubusercontent.com/Porterturkeys/TurkeyColorCalculator/refs/heads/main/phenotypeMapping1A.js", 
-"https://raw.githubusercontent.com/Porterturkeys/TurkeyColorCalculator/refs/heads/main/phenotypeMapping2.js"
-
-
-
-
+  "https://cdn.jsdelivr.net/gh/Porterturkeys/TurkeyColorCalculator@main/SplitFunction.js",
+  "https://cdn.jsdelivr.net/gh/Porterturkeys/TurkeyColorCalculator@main/AlleleCombos-Ratios.js",
+  "https://cdn.jsdelivr.net/gh/Porterturkeys/TurkeyColorCalculator@main/CalculateOffspring.js",
+  "https://cdn.jsdelivr.net/gh/Porterturkeys/TurkeyColorCalculator@main/DisplayResults.js",
+  "https://cdn.jsdelivr.net/gh/Porterturkeys/TurkeyColorCalculator@main/TransfertoParent.js",
+  "https://cdn.jsdelivr.net/gh/Porterturkeys/TurkeyColorCalculator@main/SaveSirenDamFav.js",
+  "https://cdn.jsdelivr.net/gh/Porterturkeys/TurkeyColorCalculator@main/Sounds.js",
+  "https://cdn.jsdelivr.net/gh/Porterturkeys/TurkeyColorCalculator@main/SocialShare.js",
+  "https://cdn.jsdelivr.net/gh/Porterturkeys/TurkeyColorCalculator@main/LatestFunctions.js",
+  "https://cdn.jsdelivr.net/gh/Porterturkeys/TurkeyColorCalculator@main/phenotypeMapping1.js",
+  "https://cdn.jsdelivr.net/gh/Porterturkeys/TurkeyColorCalculator@main/phenotypeMapping1A.js",
+  "https://cdn.jsdelivr.net/gh/Porterturkeys/TurkeyColorCalculator@main/phenotypeMapping2.js"
 ];
 
+function loadScript(src) {
+  return new Promise((resolve, reject) => {
+    const s = document.createElement("script");
+    s.src = src;
+    s.async = false; // IMPORTANT: preserves execution order
+    s.onload = () => { console.log("Loaded:", src); resolve(); };
+    s.onerror = () => { console.error("Failed:", src); reject(new Error(src)); };
+    document.head.appendChild(s);
+  });
+}
 
-scripts.forEach(src => {
-  const script = document.createElement('script');
-  script.src = src;
-  script.onload = () => {
-    console.log(`Loaded: ${src}`);
-  };
-  script.onerror = () => {
-    console.error(`Failed to load: ${src}`);
-  };
-  document.head.appendChild(script);
-});
+(async function loadAllInOrder() {
+  for (const src of scripts) {
+    await loadScript(src);
+  }
+  console.log("✅ All scripts loaded in order");
+})();
+
 
