@@ -818,8 +818,12 @@ summaryTableBody.innerHTML = '';
 
 
 function setDefaultImages() {
-const defaultMalePath = 'https://raw.githubusercontent.com/PortersTurkeys/Pictures/refs/heads/main/MBronze.jpg';
-const defaultFemalePath = 'https://raw.githubusercontent.com/PortersTurkeys/Pictures/refs/heads/main/FBronze.jpg';
+const defaultMalePath =
+  'https://raw.githubusercontent.com/PortersTurkeys/Pictures/main/MBronze.jpg';
+
+const defaultFemalePath =
+  'https://raw.githubusercontent.com/PortersTurkeys/Pictures/main/FBronze.jpg';
+
 
 document.getElementById('sireImageContainer').innerHTML = `<img src="${defaultMalePath}" alt="Default Sire Image" style="max-width: 300px; height: auto;">`;
 document.getElementById('damImageContainer').innerHTML = `<img src="${defaultFemalePath}" alt="Default Dam Image" style="max-width: 300px; height: auto;">`;
@@ -953,8 +957,12 @@ updateDisplayedGenotypes();
 
 // Updates the setDefaultImages function
 function setDefaultImages() {
-const defaultMalePath = 'https://raw.githubusercontent.com/PortersTurkeys/Pictures/refs/heads/main/MBronze.jpg';
-const defaultFemalePath = 'https://raw.githubusercontent.com/PortersTurkeys/Pictures/refs/heads/main/FBronze.jpg';
+const defaultMalePath =
+  'https://raw.githubusercontent.com/PortersTurkeys/Pictures/main/MBronze.jpg';
+
+const defaultFemalePath =
+  'https://raw.githubusercontent.com/PortersTurkeys/Pictures/main/FBronze.jpg';
+
 
 document.getElementById('sireImageContainer').innerHTML = `<img src="${defaultMalePath}" alt="Default Sire Image" style="max-width: 460px; height: auto;">`;
 document.getElementById('damImageContainer').innerHTML = `<img src="${defaultFemalePath}" alt="Default Dam Image" style="max-width: 460px; height: auto;">`;
