@@ -7,7 +7,37 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/Porterturkeys/TurkeyColorCalculator@main/styles.css">
 
    
-<script src="https://raw.githubusercontent.com/Porterturkeys/TurkeyColorCalculator/main/SplitFunction.js"></script>
+const v = Date.now(); // or "20260117c" that you change manually
+
+const scripts = [
+  `https://raw.githubusercontent.com/Porterturkeys/TurkeyColorCalculator/main/SplitFunction.js?v=${v}`,
+  `https://raw.githubusercontent.com/Porterturkeys/TurkeyColorCalculator/main/AlleleCombos-Ratios.js?v=${v}`,
+  `https://raw.githubusercontent.com/Porterturkeys/TurkeyColorCalculator/main/CalculateOffspring.js?v=${v}`,
+  `https://raw.githubusercontent.com/Porterturkeys/TurkeyColorCalculator/main/DisplayResults.js?v=${v}`,
+  `https://raw.githubusercontent.com/Porterturkeys/TurkeyColorCalculator/main/TransfertoParent.js?v=${v}`,
+  `https://raw.githubusercontent.com/Porterturkeys/TurkeyColorCalculator/main/SaveSirenDamFav.js?v=${v}`,
+  `https://raw.githubusercontent.com/Porterturkeys/TurkeyColorCalculator/main/Sounds.js?v=${v}`,
+  `https://raw.githubusercontent.com/Porterturkeys/TurkeyColorCalculator/main/SocialShare.js?v=${v}`,
+  `https://raw.githubusercontent.com/Porterturkeys/TurkeyColorCalculator/main/LatestFunctions.js?v=${v}`,
+  `https://raw.githubusercontent.com/Porterturkeys/TurkeyColorCalculator/main/phenotypeMapping1.js?v=${v}`,
+  `https://raw.githubusercontent.com/Porterturkeys/TurkeyColorCalculator/main/phenotypeMapping1A.js?v=${v}`,
+  `https://raw.githubusercontent.com/Porterturkeys/TurkeyColorCalculator/main/phenotypeMapping2.js?v=${v}`,
+];
+
+(async function loadAllInOrder(){
+  for (const src of scripts){
+    await new Promise((resolve,reject)=>{
+      const s=document.createElement("script");
+      s.src=src;
+      s.async=false;              // keeps order
+      s.onload=resolve;
+      s.onerror=reject;
+      document.head.appendChild(s);
+    });
+    console.log("Loaded:", src);
+  }
+})();
+
 
 
 
