@@ -102,8 +102,11 @@ document.querySelector('button[onclick="resetCalculator()"]').addEventListener('
                                     let phenotype13 = phenotypeMapping13[shortGenotype];
                                     let phenotype14 = phenotypeMapping14[shortGenotype];
                                     let phenotype15 = phenotypeMapping15[shortGenotype];
+                                    let phenotype16 = phenotypeMapping16[shortGenotype];
+                                    let phenotype17 = phenotypeMapping17[shortGenotype];
+                                    let phenotype18 = phenotypeMapping18[shortGenotype];    
 
-                                    let phenotype = phenotype1 || phenotype1A || phenotype1B || phenotype1C || phenotype1D || phenotype1E || phenotype2 || phenotype2A ||  phenotype3 || phenotype3A || phenotype4 || phenotype5 || phenotype6 || phenotype7 || phenotype8 || phenotype9 || phenotype10 || phenotype11 || phenotype12 || phenotype13 || phenotype14 || phenotype15;
+                                    let phenotype = phenotype1 || phenotype1A || phenotype1B || phenotype1C || phenotype1D || phenotype1E || phenotype2 || phenotype2A ||  phenotype3 || phenotype3A || phenotype4 || phenotype5 || phenotype6 || phenotype7 || phenotype8 || phenotype9 || phenotype10 || phenotype11 || phenotype12 || phenotype13 || phenotype14 || phenotype15 || phenotype16 || phenotype17 || phenotype18;
 
                                     
                                            if (!phenotype && genotype.includes("cc")) {
@@ -123,7 +126,7 @@ document.querySelector('button[onclick="resetCalculator()"]').addEventListener('
     }
 }
 
-                                    const basePicturePath = 'https://porters-rare-heritage-turkeys.neocities.org/Pictures/';
+                                    const basePicturePath = 'https://raw.githubusercontent.com/PortersTurkeys/Pictures/refs/heads/main/';
 
                                     const maleGenotype = {
                                         phenotype: phenotype || 'To be defined',
