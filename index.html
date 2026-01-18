@@ -46,13 +46,11 @@
 
   console.log("[Firebase] Initialized successfully");
 
-  // Fallback: ensure calculateOffspring always exists
-  if (typeof window.calculateOffspring !== "function") {
-    window.calculateOffspring = function() {
-      console.warn("[PAY] Dummy calculateOffspring called — core function missing!");
-      alert("⚠️ Calculator core did not load on this browser. Please refresh or try again.");
-    };
-  }
+  // Don't capture here. Let the real core load first.
+if (typeof window.calculateOffspring !== "function") {
+  console.warn("[CORE] calculateOffspring not loaded yet (will be captured later).");
+}
+
   window._realCalculateOffspring = window.calculateOffspring;
 </script>
 
