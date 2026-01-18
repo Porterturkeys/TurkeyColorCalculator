@@ -30,10 +30,8 @@ const scripts = [
   "https://cdn.jsdelivr.net/gh/Porterturkeys/TurkeyColorCalculator@main/phenotypeMapping12.js",
   "https://cdn.jsdelivr.net/gh/Porterturkeys/TurkeyColorCalculator@main/phenotypeMapping13.js",
   "https://cdn.jsdelivr.net/gh/Porterturkeys/TurkeyColorCalculator@main/phenotypeMapping14.js",
-  "https://cdn.jsdelivr.net/gh/Porterturkeys/TurkeyColorCalculator@main/phenotypeMapping15.js",
-  "https://cdn.jsdelivr.net/gh/Porterturkeys/TurkeyColorCalculator@main/phenotypeMapping16.js",
-  "https://cdn.jsdelivr.net/gh/Porterturkeys/TurkeyColorCalculator@main/phenotypeMapping17.js",
-  "https://cdn.jsdelivr.net/gh/Porterturkeys/TurkeyColorCalculator@main/phenotypeMapping18.js"
+  "https://cdn.jsdelivr.net/gh/Porterturkeys/TurkeyColorCalculator@main/phenotypeMapping15.js"
+  
 ];
 
 function loadScript(src) {
