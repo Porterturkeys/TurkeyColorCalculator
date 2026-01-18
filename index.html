@@ -817,12 +817,10 @@ summaryTableBody.innerHTML = '';
 
 
 
-function setDefaultImages() {
-const defaultMalePath =
-  'https://raw.githubusercontent.com/PortersTurkeys/Pictures/main/MBronze.jpg';
+const IMG_BASE = "https://raw.githubusercontent.com/PortersTurkeys/Pictures/main/";
+const defaultMalePath   = IMG_BASE + "MBronze.jpg";
+const defaultFemalePath = IMG_BASE + "FBronze.jpg";
 
-const defaultFemalePath =
-  'https://raw.githubusercontent.com/PortersTurkeys/Pictures/main/FBronze.jpg';
 
 
 document.getElementById('sireImageContainer').innerHTML = `<img src="${defaultMalePath}" alt="Default Sire Image" style="max-width: 300px; height: auto;">`;
@@ -957,11 +955,10 @@ updateDisplayedGenotypes();
 
 // Updates the setDefaultImages function
 function setDefaultImages() {
-const defaultMalePath =
-  'https://raw.githubusercontent.com/PortersTurkeys/Pictures/main/MBronze.jpg';
+const IMG_BASE = "https://raw.githubusercontent.com/PortersTurkeys/Pictures/main/";
+const defaultMalePath   = IMG_BASE + "MBronze.jpg";
+const defaultFemalePath = IMG_BASE + "FBronze.jpg";
 
-const defaultFemalePath =
-  'https://raw.githubusercontent.com/PortersTurkeys/Pictures/main/FBronze.jpg';
 
 
 document.getElementById('sireImageContainer').innerHTML = `<img src="${defaultMalePath}" alt="Default Sire Image" style="max-width: 460px; height: auto;">`;
