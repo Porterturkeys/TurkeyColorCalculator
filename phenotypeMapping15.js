@@ -1,4 +1,4 @@
-const phenotypeMapping15. = {
+const phenotypeMapping15 = {
   
   
   
