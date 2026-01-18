@@ -1013,13 +1013,7 @@ sireImage.style.width = `${value}px`;
 damImage.style.width = `${value}px`;
 }
 
-const slider = document.getElementById('your-slider');
-const image = document.getElementById('your-image');
 
-slider.addEventListener('input', function() {
-const newSize = this.value + '%';
-image.style.width = newSize;
-});
 
 function displaySummaryChart(maleOffspring, femaleOffspring) {
     const summaryTableBody = document.getElementById('summaryChart').querySelector('tbody');
