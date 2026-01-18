@@ -23,7 +23,8 @@ function searchResults() {
         phenotypeMapping3, phenotypeMapping3A, phenotypeMapping4, phenotypeMapping5,
         phenotypeMapping6, phenotypeMapping7, phenotypeMapping8, phenotypeMapping9,
         phenotypeMapping10, phenotypeMapping11, phenotypeMapping12, phenotypeMapping13,
-        phenotypeMapping14, phenotypeMapping15
+        phenotypeMapping14, phenotypeMapping15, phenotypeMapping16, phenotypeMapping17, 
+        phenotypeMapping18
     ].filter(mapping => typeof mapping !== 'undefined');
 
     if (allMappings.length === 0) {
@@ -191,7 +192,8 @@ function getAllPhenotypeMappings() {
         phenotypeMapping3, phenotypeMapping3A, phenotypeMapping4, phenotypeMapping5,
         phenotypeMapping6, phenotypeMapping7, phenotypeMapping8, phenotypeMapping9,
         phenotypeMapping10, phenotypeMapping11, phenotypeMapping12, phenotypeMapping13,
-        phenotypeMapping14, phenotypeMapping15
+        phenotypeMapping14, phenotypeMapping15, phenotypeMapping16, phenotypeMapping17, 
+        phenotypeMapping18
     ].filter(m => m); // keep only loaded mappings
 }
 
@@ -2439,7 +2441,7 @@ window.addEventListener("load", () => {
       if (!t || /^(sire|dam)$/i.test(t)) return;
 
       // reject genotype-like strings
-      if (/\b(bb1|b1b1|bb|Bb|BB|Ee|EE|NN|Nn|cgcg|cmc|Slsl|slsl|Fdfd|PnPn|Rr|rr|SlSl|SpSp)\b/i.test(t)) return;
+      if (/\b(bb1|b1b1|bb|Bb|BB|Ee|EE|NN|Nn|cgcg|cmc|Slsl|slsl|PnPn|Rr|rr|SlSl|SpSp)\b/i.test(t)) return;
 
       let s = 0;
       if (goodRx.test(hay)) s += 10;
