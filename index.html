@@ -203,7 +203,8 @@ document.addEventListener("DOMContentLoaded",()=>{
 </center>
 
 <div class="header-container">
-<img src="https://raw.githubusercontent.com/PortersTurkeys/Pictures/refs/heads/main/Tails.jpg" alt="Left Image" class="logo" style="width: 150px; height: auto;">
+<img src="<img src="https://raw.githubusercontent.com/PortersTurkeys/Pictures/main/Tails.jpg">
+" alt="Left Image" class="logo" style="width: 150px; height: auto;">
 
 
 <h1 style="
@@ -220,7 +221,8 @@ document.addEventListener("DOMContentLoaded",()=>{
 
 
 
-<img src="https://raw.githubusercontent.com/PortersTurkeys/Pictures/refs/heads/main/Tails.jpg" alt="Right Image" class="logo" style="width: 150px; height: auto;">
+<img src="<img src="https://raw.githubusercontent.com/PortersTurkeys/Pictures/main/Tails.jpg">
+" alt="Right Image" class="logo" style="width: 150px; height: auto;">
 </div>
 
 <center>
@@ -822,16 +824,17 @@ summaryTableBody.innerHTML = '';
 
 
 function setDefaultImages() {
-const defaultMalePath = 'https://raw.githubusercontent.com/PortersTurkeys/Pictures/refs/heads/main/';
-const defaultFemalePath = 'https://raw.githubusercontent.com/PortersTurkeys/Pictures/refs/heads/main/';
+  const defaultMalePath = 'https://raw.githubusercontent.com/PortersTurkeys/Pictures/main/MBronze.jpg';
+  const defaultFemalePath = 'https://raw.githubusercontent.com/PortersTurkeys/Pictures/main/FBronze.jpg';
 
+  document.getElementById('sireImageContainer').innerHTML =
+    `<img src="${defaultMalePath}" alt="Default Sire Image" style="max-width:460px;height:auto;">`;
 
-
-document.getElementById('sireImageContainer').innerHTML = `<img src="${defaultMalePath}" alt="Default Sire Image" style="max-width: 300px; height: auto;">`;
-document.getElementById('damImageContainer').innerHTML = `<img src="${defaultFemalePath}" alt="Default Dam Image" style="max-width: 300px; height: auto;">`;
+  document.getElementById('damImageContainer').innerHTML =
+    `<img src="${defaultFemalePath}" alt="Default Dam Image" style="max-width:460px;height:auto;">`;
 }
-
 window.addEventListener('DOMContentLoaded', setDefaultImages);
+
 
 function removeUnusedAlleles(genotype) {
 const unusedAlleles = ['CC', 'dd', 'EE', 'E-', 'NN', 'N-', 'PnPn', 'RR', 'SlSl', 'SpSp'];
@@ -957,15 +960,7 @@ resetCalculator();
 updateDisplayedGenotypes();
 });
 
-// Update the setDefaultImages function
-function setDefaultImages() {
-const defaultMalePath = 'https://raw.githubusercontent.com/PortersTurkeys/Pictures/refs/heads/main/MBronze.jpg';
-const defaultFemalePath = 'https://raw.githubusercontent.com/PortersTurkeys/Pictures/refs/heads/main/FBronze.jpg';
 
-
-document.getElementById('sireImageContainer').innerHTML = `<img src="${defaultMalePath}" alt="Default Sire Image" style="max-width: 460px; height: auto;">`;
-document.getElementById('damImageContainer').innerHTML = `<img src="${defaultFemalePath}" alt="Default Dam Image" style="max-width: 460px; height: auto;">`;
-}
 
 // Adds event listeners for sire's alleles
 const sireAlleles = document.querySelectorAll('.sire-genotypes select');
