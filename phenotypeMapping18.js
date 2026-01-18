@@ -1,5 +1,5 @@
  // bb HARVEY SPECKLED, done ***
-const phenotypeMapping99 = {
+const phenotypeMapping18 = {
 "bb cc fdfd rr": "Harvey Speckled",
 "bb cc Ee fdfd rr": "Harvey Speckled",
 "bb cc fdfd Nn rr": "Harvey Speckled",
