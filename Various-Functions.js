@@ -1,4 +1,3 @@
-<script>
 const scripts = [
   "https://raw.githubusercontent.com/Porterturkeys/TurkeyColorCalculator/refs/heads/main/AlleleCombos-Ratios.js",
   "https://raw.githubusercontent.com/Porterturkeys/TurkeyColorCalculator/refs/heads/main/CalculateOffspring.js",
@@ -64,4 +63,4 @@ function loadOne(src) {
     console.error("STOPPED LOADING due to failure:", e);
   }
 })();
-</script>
+
