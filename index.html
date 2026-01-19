@@ -796,8 +796,8 @@ function clearSummaryChart() {
 
 // Set default placeholder images for sire & dam
 function setDefaultImages() {
-    const defaultMalePath = 'Pictures/';    // ← you should complete this path
-    const defaultFemalePath = 'Pictures/';  // ← you should complete this path
+    const defaultMalePath = 'https://raw.githubusercontent.com/PortersTurkeys/Pictures/refs/heads/main/';    
+    const defaultFemalePath = 'https://raw.githubusercontent.com/PortersTurkeys/Pictures/refs/heads/main/';  
     
     document.getElementById('sireImageContainer').innerHTML = 
         `<img src="${defaultMalePath}" alt="Default Sire Image" style="max-width: 300px; height: auto;">`;
@@ -933,8 +933,8 @@ updateDisplayedGenotypes();
 
 // Updates the setDefaultImages function
 function setDefaultImages() {
-const defaultMalePath = 'Pictures/MBronze.jpg';
-const defaultFemalePath = 'Pictures/FBronze.jpg';
+const defaultMalePath = 'https://raw.githubusercontent.com/PortersTurkeys/Pictures/refs/heads/main//MBronze.jpg';
+const defaultFemalePath = 'https://raw.githubusercontent.com/PortersTurkeys/Pictures/refs/heads/main/FBronze.jpg';
 
 document.getElementById('sireImageContainer').innerHTML = `<img src="${defaultMalePath}" alt="Default Sire Image" style="max-width: 460px; height: auto;">`;
 document.getElementById('damImageContainer').innerHTML = `<img src="${defaultFemalePath}" alt="Default Dam Image" style="max-width: 460px; height: auto;">`;
