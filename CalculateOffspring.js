@@ -124,7 +124,7 @@ document.querySelector('button[onclick="resetCalculator()"]').addEventListener('
     }
 }
 
-                                    const basePicturePath = 'https://raw.githubusercontent.com/PortersTurkeys/Pictures/main/';
+                                    const basePicturePath = 'https://portersturkeys.github.io/Pictures/';
 
                                     const maleGenotype = {
                                         phenotype: phenotype || 'To be defined',
