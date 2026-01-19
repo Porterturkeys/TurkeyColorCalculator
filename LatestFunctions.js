@@ -843,9 +843,9 @@ document.addEventListener('click', function(e) {
     },
     goulds: {
       name:  "Gould's Wild",
-      male:  "MGouldsWild.jpg",
-      female:"FGouldsWild.jpg",
-      poult: "PGouldsWild.jpg"
+      male:  "https://portersturkeys.github.io/Pictures/MGouldsWild.jpg",
+      female:"https://portersturkeys.github.io/Pictures/FGouldsWild.jpg",
+      poult: "https://portersturkeys.github.io/Pictures/PGouldsWild.jpg"
     },
     merriams: {
       name:  "Merriam's Wild",
