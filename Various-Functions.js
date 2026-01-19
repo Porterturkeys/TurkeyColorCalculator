@@ -33,34 +33,55 @@ const scripts = [
   "https://raw.githubusercontent.com/Porterturkeys/TurkeyColorCalculator/refs/heads/main/phenotypeMapping15.js"
 ];
 
-function loadOne(src) {
+// Convert raw.githubusercontent.com refs/heads/main -> jsDelivr gh@main
+function toCdn(url) {
+  return url.replace(
+    "https://raw.githubusercontent.com/Porterturkeys/TurkeyColorCalculator/refs/heads/main/",
+    "https://cdn.jsdelivr.net/gh/Porterturkeys/TurkeyColorCalculator@main/"
+  );
+}
+
+function loadOne(url) {
   return new Promise((resolve, reject) => {
+    const src = toCdn(url);
     const s = document.createElement("script");
     s.src = src;
-    s.async = false; // IMPORTANT: preserve order
-    s.onload = () => { console.log("Loaded:", src); resolve(); };
-    s.onerror = () => { console.error("Failed to load:", src); reject(new Error(src)); };
+    s.async = false; // keep execution order
+    s.onload = () => {
+      console.log("Loaded:", src);
+      resolve();
+    };
+    s.onerror = () => {
+      console.error("Failed to load:", src);
+      reject(new Error(src));
+    };
     document.head.appendChild(s);
   });
 }
 
-(async function loadAllInOrder() {
+(async function loadAllInOrderFromCDN() {
   try {
-    for (const src of scripts) {
-      await loadOne(src);
+    for (const url of scripts) {
+      await loadOne(url);
     }
-    console.log("ALL SCRIPTS LOADED IN ORDER");
+    console.log("ALL SCRIPTS LOADED (jsDelivr, ordered)");
 
-    // capture core if it exists now
+    // capture core if present
     if (typeof window.calculateOffspring === "function") {
       window._realCalculateOffspring = window.calculateOffspring;
       console.log("Core calculateOffspring captured");
     } else {
-      console.error("Core calculateOffspring still missing AFTER load");
+      console.error("calculateOffspring is still missing after load");
     }
 
+    // quick visibility checks
+    console.log("typeof resetCalculator =", typeof window.resetCalculator);
+    console.log("typeof searchResults   =", typeof window.searchResults);
+
   } catch (e) {
-    console.error("STOPPED LOADING due to failure:", e);
+    console.error("Stopped loading due to error:", e);
   }
 })();
+
+
 
