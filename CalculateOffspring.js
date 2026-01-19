@@ -123,7 +123,7 @@ document.querySelector('button[onclick="resetCalculator()"]').addEventListener('
     }
 }
 
-                                    const basePicturePath = 'https://porters-rare-heritage-turkeys.neocities.org/Pictures/';
+                                    const basePicturePath = 'https://raw.githubusercontent.com/PortersTurkeys/Pictures/main/';
 
                                     const maleGenotype = {
                                         phenotype: phenotype || 'To be defined',
