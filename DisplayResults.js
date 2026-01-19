@@ -8,8 +8,8 @@ function displayResults(containerId, offspring, sex) {
 
         const genotype = removeUnusedAlleles(offspringItem.genotype);
         const phenotype = offspringItem.phenotype || 'To be defined';
-        const basePicturePath = 'https://raw.githubusercontent.com/PortersTurkeys/Pictures/refs/heads/main/';
-        const fallbackImagePath = 'https://raw.githubusercontent.com/PortersTurkeys/Pictures/refs/heads/main/image-not-available.jpg'; 
+        const basePicturePath = 'https://raw.githubusercontent.com/PortersTurkeys/Pictures/main/';
+        const fallbackImagePath = 'https://raw.githubusercontent.com/PortersTurkeys/Pictures/main/image-not-available.jpg'; 
         const heterozygousGenotype = getHeterozygousGenotype(genotype);
         const longGenotype = offspringItem.genotype;
         const shortGenotype = genotype;
@@ -86,8 +86,8 @@ if (genotype.includes('cc') && !genotype.includes("Fdfd") && !genotype.includes(
 
 
 function setGenotypeImage(containerId, alleleb, alleleC, alleled, alleleE, alleleN, allelePn, alleleR, alleleSl, alleleSp, sex) {
-    const basePicturePath = 'https://raw.githubusercontent.com/PortersTurkeys/Pictures/refs/heads/main/';
-    const fallbackImagePath = 'https://raw.githubusercontent.com/PortersTurkeys/Pictures/refs/heads/main/image-not-available.jpg'; 
+    const basePicturePath = 'https://raw.githubusercontent.com/PortersTurkeys/Pictures/main/';
+    const fallbackImagePath = 'https://raw.githubusercontent.com/PortersTurkeys/Pictures/main/image-not-available.jpg'; 
     const sexPrefix = sex === 'male' ? 'M' : 'F';
 
     // Builds genotype string
@@ -95,7 +95,7 @@ function setGenotypeImage(containerId, alleleb, alleleC, alleled, alleleE, allel
     const shortGenotype = removeUnusedAlleles(genotype);
 
     // Retrieves phenotype from all mappings
-    const phenotypeMappings = [phenotypeMapping1, phenotypeMapping1A, phenotypeMapping1B, phenotypeMapping1C, phenotypeMapping1D, phenotypeMapping1E, phenotypeMapping2, phenotypeMapping2A, phenotypeMapping3, phenotypeMapping3A, phenotypeMapping4, phenotypeMapping5, phenotypeMapping6, phenotypeMapping7, phenotypeMapping8, phenotypeMapping9, phenotypeMapping10, phenotypeMapping11, phenotypeMapping12, phenotypeMapping13, phenotypeMapping14, phenotypeMapping15, phenotypeMapping16, phenotypeMapping17, phenotypeMapping18];
+    const phenotypeMappings = [phenotypeMapping1, phenotypeMapping1A, phenotypeMapping1B, phenotypeMapping1C, phenotypeMapping1D, phenotypeMapping1E, phenotypeMapping2, phenotypeMapping2A, phenotypeMapping3, phenotypeMapping3A, phenotypeMapping4, phenotypeMapping5, phenotypeMapping6, phenotypeMapping7, phenotypeMapping8, phenotypeMapping9, phenotypeMapping10, phenotypeMapping11, phenotypeMapping12, phenotypeMapping13, phenotypeMapping14, phenotypeMapping15];
     let phenotype = null;
 
     // Checks for cc in the genotype to force White phenotype
