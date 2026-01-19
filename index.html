@@ -751,59 +751,62 @@ document.addEventListener("click", function(event) {
 
 
 // Shows the button when the user scrolls down from the top of the document
-window.onscroll = function() {scrollFunction()};
+window.onscroll = function() { scrollFunction(); };
 
 function scrollFunction() {
-    const returnToTopButton = document.getElementById("returnToTop");
-    if (document.body.scrollTop > 2000 || document.documentElement.scrollTop > 2000) {
-        returnToTopButton.style.display = "block";
-    } else {
-        returnToTopButton.style.display = "none";
-    }
+  const returnToTopButton = document.getElementById("returnToTop");
+  if (!returnToTopButton) return;
 
-
-
-
-    
-  
-document.getElementById("returnToTop").addEventListener("click", function () {  
-  
-const width = window.innerWidth;
-const height = window.innerHeight;
-
-const isLargeDesktop = width >= 1600;
-const isDesktop = width >= 1025 && width < 1600;
-const isLandscape = height < 500;
-
-let scrollTarget;
-
-if (isLargeDesktop) {
-  // LARGE DESKTOP (big monitors)
-  scrollTarget = 820;
-
-} else if (isDesktop) {
-  // LAPTOP / SMALL DESKTOP
-  scrollTarget = 800;
-
-} else if (isLandscape) {
-  // MOBILE / TABLET LANDSCAPE
-  scrollTarget = 1060;
-
-} else {
-  // MOBILE PORTRAIT
-  scrollTarget = 1000;
+  if (document.body.scrollTop > 2000 || document.documentElement.scrollTop > 2000) {
+    returnToTopButton.style.display = "block";
+  } else {
+    returnToTopButton.style.display = "none";
+  }
 }
 
-document.scrollingElement.scrollTo({
-  top: scrollTarget,
-  behavior: "smooth"
+// Return-to-top click handler (MUST NOT be inside scrollFunction)
+document.addEventListener("DOMContentLoaded", function () {
+  const btn = document.getElementById("returnToTop");
+  if (!btn) return;
+
+  btn.addEventListener("click", function () {
+
+    const width = window.innerWidth;
+    const height = window.innerHeight;
+
+    const isLargeDesktop = width >= 1600;
+    const isDesktop = width >= 1025 && width < 1600;
+    const isLandscape = height < 500;
+
+    let scrollTarget;
+
+    if (isLargeDesktop) {
+      // LARGE DESKTOP (big monitors)
+      scrollTarget = 820;
+
+    } else if (isDesktop) {
+      // LAPTOP / SMALL DESKTOP
+      scrollTarget = 800;
+
+    } else if (isLandscape) {
+      // MOBILE / TABLET LANDSCAPE
+      scrollTarget = 1060;
+
+    } else {
+      // MOBILE PORTRAIT
+      scrollTarget = 1000;
+    }
+
+    document.scrollingElement.scrollTo({
+      top: scrollTarget,
+      behavior: "smooth"
+    });
+
+    playSound('returntopSound');
+
+  });
 });
 
-playSound('returntopSound');
-  
-});
-  
-});
 
 function clearSummaryChart() {
 const summaryTableBody = document.getElementById('summaryChart').querySelector('tbody');
