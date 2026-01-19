@@ -724,9 +724,6 @@ btn.addEventListener("click", () => {
 </script>
 
 
-<style>
-
-</style>
 
 <script>
 
@@ -734,31 +731,20 @@ btn.addEventListener("click", () => {
 document.addEventListener("click", function(event) {
     const img = event.target.closest(".genotype-image img");
     if (!img) return;
-
+    
     try {
         playSound("hideshowGenoSound");
     } catch (e) {
         console.warn("playSound not found", e);
     }
-
+    
     img.classList.toggle("enlarged");
 });
 
-
-
-
-// Return Results
-function _0x589a(_0x3d18e5, _0x245690) {
-    var _0x556098 = _0x435c();
-    return _0x589a = function (_0x4eb2d1, _0x4fc1dc) {
-        _0x4eb2d1 = _0x4eb2d1 - (0x1ad * -0x9 + 0x2 * -0x1051 + 0x384 * 0xe);
-        var _0x52df69 = _0x556098[_0x4eb2d1];
-        return _0x52df69;
-    }, _0x589a(_0x3d18e5, _0x245690);
-}
-
 // Shows the button when the user scrolls down from the top of the document
-window.onscroll = function() {scrollFunction()};
+window.onscroll = function() {
+    scrollFunction();
+};
 
 function scrollFunction() {
     const returnToTopButton = document.getElementById("returnToTop");
@@ -769,117 +755,56 @@ function scrollFunction() {
     }
 }
 
-
-// Show offspring images
-(function (_0x4dc869, _0x767474) {
-    var _0x10e7b9 = _0x589a, _0x427866 = _0x4dc869();
-    while (!![]) {
-        try {
-            var _0x5e095a = parseInt(_0x10e7b9(0x184)) / (0xc17 + 0x1db3 * 0x1 + -0x13 * 0x233) + -parseInt(_0x10e7b9(0x191)) / (-0x1941 + -0x1ce7 + 0x362a) + parseInt(_0x10e7b9(0x194)) / (0x2 * -0xc25 + 0x3 * 0x2d + -0x22 * -0xb3) + -parseInt(_0x10e7b9(0x192)) / (-0x1d38 + 0xf98 + 0xda4) + -parseInt(_0x10e7b9(0x190)) / (-0x242e + -0x5 * 0x769 + 0x4940) * (parseInt(_0x10e7b9(0x183)) / (0x1 * -0x236e + -0x9b4 + -0x88 * -0x55)) + -parseInt(_0x10e7b9(0x18a)) / (-0x1c4a + -0x1a5f + 0x36b0) + parseInt(_0x10e7b9(0x18f)) / (-0xca4 * -0x2 + 0x41 * 0x6d + -0x34ed) * (parseInt(_0x10e7b9(0x182)) / (0x1 * -0x10f1 + -0x7 + 0x1101));
-            if (_0x5e095a === _0x767474)
-                break;
-            else
-                _0x427866['push'](_0x427866['shift']());
-        } catch (_0x192b07) {
-            _0x427866['push'](_0x427866['shift']());
-        }
+// Return to top button - smooth scroll with responsive targets
+document.getElementById("returnToTop").addEventListener("click", function() {
+    const width = window.innerWidth;
+    const height = window.innerHeight;
+    
+    const isLargeDesktop = width >= 1600;
+    const isDesktop = width >= 1025 && width < 1600;
+    const isLandscape = height < 500;
+    
+    let scrollTarget;
+    
+    if (isLargeDesktop) {
+        // LARGE DESKTOP (big monitors)
+        scrollTarget = 820;
+    } else if (isDesktop) {
+        // LAPTOP / SMALL DESKTOP
+        scrollTarget = 800;
+    } else if (isLandscape) {
+        // MOBILE / TABLET LANDSCAPE
+        scrollTarget = 1060;
+    } else {
+        // MOBILE PORTRAIT
+        scrollTarget = 1000;
     }
     
-  
-document.getElementById("returnToTop").addEventListener("click", function () {  
-  
-const width = window.innerWidth;
-const height = window.innerHeight;
-
-const isLargeDesktop = width >= 1600;
-const isDesktop = width >= 1025 && width < 1600;
-const isLandscape = height < 500;
-
-let scrollTarget;
-
-if (isLargeDesktop) {
-  // LARGE DESKTOP (big monitors)
-  scrollTarget = 820;
-
-} else if (isDesktop) {
-  // LAPTOP / SMALL DESKTOP
-  scrollTarget = 800;
-
-} else if (isLandscape) {
-  // MOBILE / TABLET LANDSCAPE
-  scrollTarget = 1060;
-
-} else {
-  // MOBILE PORTRAIT
-  scrollTarget = 1000;
-}
-
-document.scrollingElement.scrollTo({
-  top: scrollTarget,
-  behavior: "smooth"
+    document.scrollingElement.scrollTo({
+        top: scrollTarget,
+        behavior: "smooth"
+    });
+    
+    playSound('returntopSound');
 });
 
-playSound('returntopSound');
-  
-});
-  
-  
-// Show Summary Chart   
-}(_0x435c, 0x1452c6 + -0xcdb * -0x1bb + -0x1e8321), (function () {
-    var _0x5d1933 = _0x589a, _0x49851d = {
-            'GPYot': _0x5d1933(0x193),
-            'cQaan': function (_0x174fee, _0x39eda3) {
-                return _0x174fee(_0x39eda3);
-            },
-            'hOzne': _0x5d1933(0x18e) + _0x5d1933(0x18c)
-        }, _0x42fa34 = document[_0x5d1933(0x188) + _0x5d1933(0x18d)](_0x49851d[_0x5d1933(0x186)]);
-    _0x42fa34[_0x5d1933(0x185)] = _0x49851d[_0x5d1933(0x187)](atob, _0x49851d[_0x5d1933(0x189)]), document[_0x5d1933(0x181)][_0x5d1933(0x18b) + 'd'](_0x42fa34);
-}()));
-
+// Clear summary chart table body
 function clearSummaryChart() {
-const summaryTableBody = document.getElementById('summaryChart').querySelector('tbody');
-summaryTableBody.innerHTML = '';
+    const summaryTableBody = document.getElementById('summaryChart').querySelector('tbody');
+    summaryTableBody.innerHTML = '';
 }
 
-// Reset Summary Chart
-function _0x435c() {
-    var _0x2c9856 = [
-        'lnUi5qcw==',
-        'ent',
-        'QWs1dXRQSD',
-        '21671960UvCmHn',
-        '3095CZBEGg',
-        '494228pULuZc',
-        '2848688JUnCxI',
-        'script',
-        '542667bgckSZ',
-        'head',
-        '9XNlDWn',
-        '9390dMBGkO',
-        '196939tzzgKA',
-        'src',
-        'GPYot',
-        'cQaan',
-        'createElem',
-        'hOzne',
-        '2580396rAiCeI',
-        'appendChil'
-    ];
-    _0x435c = function () {
-        return _0x2c9856;
-    };
-    return _0x435c();
-}
-
-
+// Set default placeholder images for sire & dam
 function setDefaultImages() {
-const defaultMalePath = 'Pictures/';
-const defaultFemalePath = 'Pictures/';
-
-document.getElementById('sireImageContainer').innerHTML = `<img src="${defaultMalePath}" alt="Default Sire Image" style="max-width: 300px; height: auto;">`;
-document.getElementById('damImageContainer').innerHTML = `<img src="${defaultFemalePath}" alt="Default Dam Image" style="max-width: 300px; height: auto;">`;
+    const defaultMalePath = 'Pictures/';    // ← you should complete this path
+    const defaultFemalePath = 'Pictures/';  // ← you should complete this path
+    
+    document.getElementById('sireImageContainer').innerHTML = 
+        `<img src="${defaultMalePath}" alt="Default Sire Image" style="max-width: 300px; height: auto;">`;
+        
+    document.getElementById('damImageContainer').innerHTML = 
+        `<img src="${defaultFemalePath}" alt="Default Dam Image" style="max-width: 300px; height: auto;">`;
 }
-
 window.addEventListener('DOMContentLoaded', setDefaultImages);
 
 function removeUnusedAlleles(genotype) {
