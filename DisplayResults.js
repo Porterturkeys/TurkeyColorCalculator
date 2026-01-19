@@ -8,8 +8,8 @@ function displayResults(containerId, offspring, sex) {
 
         const genotype = removeUnusedAlleles(offspringItem.genotype);
         const phenotype = offspringItem.phenotype || 'To be defined';
-        const basePicturePath = 'https://raw.githubusercontent.com/PortersTurkeys/Pictures/main/';
-        const fallbackImagePath = 'https://raw.githubusercontent.com/PortersTurkeys/Pictures/main/image-not-available.jpg'; 
+        const basePicturePath = 'https://portersturkeys.github.io/Pictures/';
+        const fallbackImagePath = 'https://portersturkeys.github.io/Pictures/image-not-available.jpg'; 
         const heterozygousGenotype = getHeterozygousGenotype(genotype);
         const longGenotype = offspringItem.genotype;
         const shortGenotype = genotype;
@@ -86,8 +86,8 @@ if (genotype.includes('cc') && !genotype.includes("Fdfd") && !genotype.includes(
 
 
 function setGenotypeImage(containerId, alleleb, alleleC, alleled, alleleE, alleleN, allelePn, alleleR, alleleSl, alleleSp, sex) {
-    const basePicturePath = 'https://raw.githubusercontent.com/PortersTurkeys/Pictures/main/';
-    const fallbackImagePath = 'https://raw.githubusercontent.com/PortersTurkeys/Pictures/main/image-not-available.jpg'; 
+    const basePicturePath = 'https://portersturkeys.github.io/Pictures/';
+    const fallbackImagePath = 'https://portersturkeys.github.io/Pictures/image-not-available.jpg'; 
     const sexPrefix = sex === 'male' ? 'M' : 'F';
 
     // Builds genotype string
