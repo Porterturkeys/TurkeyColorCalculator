@@ -1,18 +1,16 @@
 const scripts = [
    
-"https://portersturkeys.github.io/adv-cal/VariousFunctions-AlleleCombos-Ratios.js",
-"https://portersturkeys.github.io/adv-cal/VariousFunctions-CalculateOffspring.js",
-"https://portersturkeys.github.io/adv-cal/VariousFunctions-DisplayResults.js",  
-"https://portersturkeys.github.io/adv-cal/VariousFunctions-fdsplitfunct.js",
-"https://portersturkeys.github.io/adv-cal/VariousFunctions-fdAllelecomboratio.js",
-"https://portersturkeys.github.io/adv-cal/VariousFunctions-fdCalOff.js",
-"https://portersturkeys.github.io/adv-cal/VariousFunctions-fdDisplayRes.js",
-"https://portersturkeys.github.io/adv-cal/VariousFunctions-fdtranstparent.js",
-"https://portersturkeys.github.io/adv-cal/VariousFunctions-fdsavesirendam.js",
-"https://portersturkeys.github.io/adv-cal/VariousFunctions-DNALoader.js",
-"https://portersturkeys.github.io/adv-cal/VariousFunctions-Sounds.js",
-"https://portersturkeys.github.io/adv-cal/VariousFunctions-SocialShare.js",
-"https://portersturkeys.github.io/adv-cal/VariousFunctions-LatestFunctions.js",  
+"https://raw.githubusercontent.com/Porterturkeys/TurkeyColorCalculator/refs/heads/main/AlleleCombos-Ratios.js",
+"https://raw.githubusercontent.com/Porterturkeys/TurkeyColorCalculator/refs/heads/main/CalculateOffspring.js",
+"https://raw.githubusercontent.com/Porterturkeys/TurkeyColorCalculator/refs/heads/main/DisplayResults.js",  
+"https://raw.githubusercontent.com/Porterturkeys/TurkeyColorCalculator/refs/heads/main/LatestFunctions.js", 
+"https://raw.githubusercontent.com/Porterturkeys/TurkeyColorCalculator/refs/heads/main/SaveSirenDamFav.js",
+"https://raw.githubusercontent.com/Porterturkeys/TurkeyColorCalculator/refs/heads/main/SocialShare.js",  
+"https://raw.githubusercontent.com/Porterturkeys/TurkeyColorCalculator/refs/heads/main/Sounds.js", 
+"https://raw.githubusercontent.com/Porterturkeys/TurkeyColorCalculator/refs/heads/main/SplitFunction.js",  
+"https://raw.githubusercontent.com/Porterturkeys/TurkeyColorCalculator/refs/heads/main/TransfertoParent.js",  
+   
+   
 
   
   
