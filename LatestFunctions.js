@@ -965,7 +965,7 @@ document.addEventListener('click', function(e) {
     // 1) Swap parent image to correct Wild file
     const img = container.querySelector("img");
     if (img) {
-      img.src = "Pictures/" + (prefix === "dam" ? data.female : data.male);
+      img.src = "https://portersturkeys.github.io/Pictures/" + (prefix === "dam" ? data.female : data.male);
     }
 
     // 2) Fix visible phenotype/variety label, assuming first <span> under a <strong>
@@ -1083,7 +1083,7 @@ document.addEventListener('click', function(e) {
           const file2 = (o.poultImagePath.split("/").pop() || "").toLowerCase();
 
           if (file2 === "pbronze.jpg") {
-            o.poultImagePath = "Pictures/" + data.poult;
+            o.poultImagePath = "https://portersturkeys.github.io/Pictures/" + data.poult;
           }
         }
       });
@@ -1216,7 +1216,7 @@ window.addEventListener("load", () => {
   installWildOffspringObserver();
 
   // When an offspring is used as sire/dam, keep Wild / Hybrid Wild
-  // for wild ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â wild crosses; otherwise clear Wild overlay.
+  // for wild-wild crosses; otherwise clear Wild overlay.
   if (typeof window.transferOffspringToParent === "function" && !window._wildTransferPatched) {
     window._wildTransferPatched = true;
 
