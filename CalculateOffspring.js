@@ -1,10 +1,11 @@
-function calculateOffspring() {
-    
+document.addEventListener("click", function (e) {
+  const btn = e.target.closest('button[onclick="resetCalculator()"]');
+  if (!btn) return;
+  try { playSound('clickSound'); } catch (err) {}
+});
 
-    // Play success sound when offspring calculation is complete
-    playSound('successSound');
-}
-
+//  Optional: log that this file executed
+console.log("[CORE] CalculateOffspring.js loaded (no crash guard)");
 
 // Add sound to the reset button
 document.querySelector('button[onclick="resetCalculator()"]').addEventListener('click', () => {
