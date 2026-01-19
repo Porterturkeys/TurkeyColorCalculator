@@ -33,55 +33,18 @@ const scripts = [
   "https://raw.githubusercontent.com/Porterturkeys/TurkeyColorCalculator/refs/heads/main/phenotypeMapping15.js"
 ];
 
-// Convert raw.githubusercontent.com refs/heads/main -> jsDelivr gh@main
-function toCdn(url) {
-  return url.replace(
-    "https://raw.githubusercontent.com/Porterturkeys/TurkeyColorCalculator/refs/heads/main/",
-    "https://cdn.jsdelivr.net/gh/Porterturkeys/TurkeyColorCalculator@main/"
-  );
-}
 
-function loadOne(url) {
-  return new Promise((resolve, reject) => {
-    const src = toCdn(url);
-    const s = document.createElement("script");
-    s.src = src;
-    s.async = false; // keep execution order
-    s.onload = () => {
-      console.log("Loaded:", src);
-      resolve();
-    };
-    s.onerror = () => {
-      console.error("Failed to load:", src);
-      reject(new Error(src));
-    };
-    document.head.appendChild(s);
-  });
-}
-
-(async function loadAllInOrderFromCDN() {
-  try {
-    for (const url of scripts) {
-      await loadOne(url);
-    }
-    console.log("ALL SCRIPTS LOADED (jsDelivr, ordered)");
-
-    // capture core if present
-    if (typeof window.calculateOffspring === "function") {
-      window._realCalculateOffspring = window.calculateOffspring;
-      console.log("Core calculateOffspring captured");
-    } else {
-      console.error("calculateOffspring is still missing after load");
-    }
-
-    // quick visibility checks
-    console.log("typeof resetCalculator =", typeof window.resetCalculator);
-    console.log("typeof searchResults   =", typeof window.searchResults);
-
-  } catch (e) {
-    console.error("Stopped loading due to error:", e);
-  }
-})();
+scripts.forEach(src => {
+  const script = document.createElement('script');
+  script.src = src;
+  script.onload = () => {
+    console.log(`Loaded: ${src}`);
+  };
+  script.onerror = () => {
+    console.error(`Failed to load: ${src}`);
+  };
+  document.head.appendChild(script);
+});
 
 
 
