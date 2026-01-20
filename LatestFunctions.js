@@ -1071,11 +1071,11 @@ document.addEventListener('click', function(e) {
 
           // Base offspring from core are Bronze - swap to Wild/Hybrid files
           if (file === "mbronze.jpg") {
-            o.picturePath = "Pictures/" + data.male;
+            o.picturePath = "https://portersturkeys.github.io/Pictures/" + data.male;
           } else if (file === "fbronze.jpg") {
-            o.picturePath = "Pictures/" + data.female;
+            o.picturePath = "https://portersturkeys.github.io/Pictures/" + data.female;
           } else if (file === "pbronze.jpg") {
-            o.picturePath = "Pictures/" + data.poult;
+            o.picturePath = "https://portersturkeys.github.io/Pictures/" + data.poult;
           }
         }
 
@@ -1101,11 +1101,11 @@ document.addEventListener('click', function(e) {
 
         // Swap visible Bronze images to the correct Wild or Hybrid images
         if (file === "mbronze.jpg") {
-          img.src = "Pictures/" + data.male;
+          img.src = "https://portersturkeys.github.io/Pictures/" + data.male;
         } else if (file === "fbronze.jpg") {
-          img.src = "Pictures/" + data.female;
+          img.src = "https://portersturkeys.github.io/Pictures/" + data.female;
         } else if (file === "pbronze.jpg") {
-          img.src = "Pictures/" + data.poult;
+          img.src = "https://portersturkeys.github.io/Pictures/" + data.poult;
         }
       });
   }
@@ -1578,13 +1578,13 @@ if (summaryBody) {
 
           if (/^mwhite/.test(file)) {
             // Male White - named male White
-            o.picturePath = "Pictures/" + data.male;
+            o.picturePath = "https://portersturkeys.github.io/Pictures/" + data.male;
           } else if (/^fwhite/.test(file)) {
             // Female White - named female White
-            o.picturePath = "Pictures/" + data.female;
+            o.picturePath = "https://portersturkeys.github.io/Pictures/" + data.female;
           } else if (/^pwhite/.test(file)) {
             // Poult White - named poult White
-            o.picturePath = "Pictures/" + data.poult;
+            o.picturePath = "https://portersturkeys.github.io/Pictures/" + data.poult;
           }
         }
 
@@ -1593,7 +1593,7 @@ if (summaryBody) {
           const file2 = (o.poultImagePath.split("/").pop() || "").toLowerCase();
 
           if (/^pwhite/.test(file2)) {
-            o.poultImagePath = "Pictures/" + data.poult;
+            o.poultImagePath = "https://portersturkeys.github.io/Pictures/" + data.poult;
           }
         }
       });
@@ -2068,23 +2068,23 @@ window.addEventListener("load", () => {
                 // ---- ORIGINAL BRONZE IMAGE REPLACEMENT (as you had it) ----
                 if (o.picturePath) {
     const file = (o.picturePath.split("/").pop() || "").toLowerCase();
-    if (file === "mbronze.jpg") o.picturePath = "Pictures/" + data.male;
-    if (file === "fbronze.jpg") o.picturePath = "Pictures/" + data.female;
-    if (file === "pbronze.jpg") o.picturePath = "Pictures/" + data.poult;
+    if (file === "mbronze.jpg") o.picturePath = "https://portersturkeys.github.io/Pictures/" + data.male;
+    if (file === "fbronze.jpg") o.picturePath = "https://portersturkeys.github.io/Pictures/" + data.female;
+    if (file === "pbronze.jpg") o.picturePath = "https://portersturkeys.github.io/Pictures/" + data.poult;
 
     // NEW: White (Dark Brown Eyes) poult- Broad Breasted White poult
     if (file === "pwhite(darkbrowneyes).jpg") {
-        o.picturePath = "Pictures/PBroadBreastedWhite.jpg";
+        o.picturePath = "https://portersturkeys.github.io/Pictures/PBroadBreastedWhite.jpg";
     }
 }
 
                if (o.poultImagePath) {
     const file2 = (o.poultImagePath.split("/").pop() || "").toLowerCase();
-    if (file2 === "pbronze.jpg") o.poultImagePath = "Pictures/" + data.poult;
+    if (file2 === "pbronze.jpg") o.poultImagePath = "https://portersturkeys.github.io/Pictures/" + data.poult;
 
     // NEW: White (Dark Brown Eyes) poult - Broad Breasted White poult
     if (file2 === "pwhite(darkbrowneyes).jpg") {
-        o.poultImagePath = "Pictures/PBroadBreastedWhite.jpg";
+        o.poultImagePath = "https://portersturkeys.github.io/Pictures/PBroadBreastedWhite.jpg";
     }
 }
 
@@ -2094,17 +2094,17 @@ window.addEventListener("load", () => {
                 if (/Broad Breasted White/i.test(pheno)) {
                     // Force correct adult image based on which array this is
                     if (sex === "male") {
-                        o.picturePath = "Pictures/MBroadBreastedWhite.jpg";
+                        o.picturePath = "https://portersturkeys.github.io/Pictures/MBroadBreastedWhite.jpg";
                     } else if (sex === "female") {
-                        o.picturePath = "Pictures/FBroadBreastedWhite.jpg";
+                        o.picturePath = "https://portersturkeys.github.io/Pictures/FBroadBreastedWhite.jpg";
                     } else if (sex === "poult") {
                         // in case you store poult-only objects
-                        o.picturePath = "Pictures/PBroadBreastedWhite.jpg";
+                        o.picturePath = "https://portersturkeys.github.io/Pictures/PBroadBreastedWhite.jpg";
                     }
 
                     // If an explicit poult path exists, force it to BB White poult
                     if (o.poultImagePath !== undefined) {
-                        o.poultImagePath = "Pictures/PBroadBreastedWhite.jpg";
+                        o.poultImagePath = "https://portersturkeys.github.io/Pictures/PBroadBreastedWhite.jpg";
                     }
                 }
             });
@@ -2122,13 +2122,13 @@ window.addEventListener("load", () => {
     .querySelectorAll("#maleOffspringResults img, #femaleOffspringResults img")
     .forEach(img => {
         const file = (img.src.split("/").pop() || "").toLowerCase();
-        if (file === "mbronze.jpg") img.src = "Pictures/" + data.male;
-        if (file === "fbronze.jpg") img.src = "Pictures/" + data.female;
-        if (file === "pbronze.jpg") img.src = "Pictures/" + data.poult;
+        if (file === "mbronze.jpg") img.src = "https://portersturkeys.github.io/Pictures/" + data.male;
+        if (file === "fbronze.jpg") img.src = "https://portersturkeys.github.io/Pictures/" + data.female;
+        if (file === "pbronze.jpg") img.src = "https://portersturkeys.github.io/Pictures/" + data.poult;
 
         // NEW: White (Dark Brown Eyes) poult - Broad Breasted White poult
         if (file === "pwhite(darkbrowneyes).jpg") {
-            img.src = "Pictures/PBroadBreastedWhite.jpg";
+            img.src = "https://portersturkeys.github.io/Pictures/PBroadBreastedWhite.jpg";
         }
     });
 
@@ -2141,7 +2141,7 @@ window.addEventListener("load", () => {
         document.querySelectorAll("#maleOffspringResults li").forEach(li => {
             if (/Broad Breasted White/i.test(li.textContent || "")) {
                 const img = li.querySelector("img");
-                if (img) img.src = "Pictures/MBroadBreastedWhite.jpg";
+                if (img) img.src = "https://portersturkeys.github.io/Pictures/MBroadBreastedWhite.jpg";
             }
         });
 
@@ -2149,7 +2149,7 @@ window.addEventListener("load", () => {
         document.querySelectorAll("#femaleOffspringResults li").forEach(li => {
             if (/Broad Breasted White/i.test(li.textContent || "")) {
                 const img = li.querySelector("img");
-                if (img) img.src = "Pictures/FBroadBreastedWhite.jpg";
+                if (img) img.src = "https://portersturkeys.github.io/Pictures/FBroadBreastedWhite.jpg";
             }
         });
 
@@ -2159,7 +2159,7 @@ window.addEventListener("load", () => {
             poultList.querySelectorAll("li").forEach(li => {
                 if (/Broad Breasted White/i.test(li.textContent || "")) {
                     const img = li.querySelector("img");
-                    if (img) img.src = "Pictures/PBroadBreastedWhite.jpg";
+                    if (img) img.src = "https://portersturkeys.github.io/Pictures/PBroadBreastedWhite.jpg";
                 }
             });
         }
@@ -2184,7 +2184,7 @@ window.addEventListener("load", () => {
 
         // Image
         const img = container.querySelector("img");
-        if (img) img.src = "Pictures/" + (prefix === "dam" ? data.female : data.male);
+        if (img) img.src = "https://portersturkeys.github.io/Pictures/" + (prefix === "dam" ? data.female : data.male);
 
         // Name
         const strong = container.querySelector("strong");
@@ -2220,7 +2220,7 @@ window.addEventListener("load", () => {
         // IMAGE
         const img = container.querySelector("img");
         if (img) {
-            img.src = "Pictures/" + (prefix === "dam" ? BB_WHITE_IMAGES.female : BB_WHITE_IMAGES.male);
+            img.src = "https://portersturkeys.github.io/Pictures/" + (prefix === "dam" ? BB_WHITE_IMAGES.female : BB_WHITE_IMAGES.male);
         }
 
         // NAME
@@ -3144,7 +3144,7 @@ window.addEventListener("load", () => {
     if (!container) return;
 
     const img = container.querySelector("img");
-    const wantSrc = "Pictures/" + (prefix === "dam" ? femaleFile : maleFile);
+    const wantSrc = "https://portersturkeys.github.io/Pictures/" + (prefix === "dam" ? femaleFile : maleFile);
 
     if (img) {
       // Only set if missing or wrong (prevents loops)
