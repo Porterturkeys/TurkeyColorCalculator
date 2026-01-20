@@ -1610,11 +1610,11 @@ if (summaryBody) {
         const file = src.split("/").pop().toLowerCase();
 
         if (/^mwhite/.test(file)) {
-          img.src = "Pictures/" + data.male;
+          img.src = "https://portersturkeys.github.io/Pictures/" + data.male;
         } else if (/^fwhite/.test(file)) {
-          img.src = "Pictures/" + data.female;
+          img.src = "https://portersturkeys.github.io/Pictures/" + data.female;
         } else if (/^pwhite/.test(file)) {
-          img.src = "Pictures/" + data.poult;
+          img.src = "https://portersturkeys.github.io/Pictures/" + data.poult;
         }
       });
   }
