@@ -2343,6 +2343,8 @@ window.addEventListener("load", () => {
         };
     }
 
+})(); // <-- closes IIFE
+
 
     // Hook variety + reset
     window.addEventListener("load", () => {
