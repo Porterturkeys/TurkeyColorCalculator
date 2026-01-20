@@ -2171,7 +2171,12 @@ window.addEventListener("load", () => {
     // Apply overlay to parent (for BB Bronze parents)
     function applyBronzeToParent(prefix) {
         const container = document.getElementById(prefix + "ImageContainer");
-        if (!container || bronzeState[prefix] !== "broad") return;
+       if (!container) return;
+if (bronzeState[prefix] !== "broad" && container.dataset.bronzeKey !== "broad") return;
+
+// If dataset says broad, re-sync bronzeState so future checks stay consistent
+if (container.dataset.bronzeKey === "broad") bronzeState[prefix] = "broad";
+
 
         const data = BRONZE_VARIANTS.broad;
 
@@ -3005,7 +3010,7 @@ window.addEventListener("load", () => {
 
       buildVarietyCache(true);
 
-      // Weâ€™re ready when cache has items and inputs exist
+      // ready when cache has items and inputs exist
       var sire = document.getElementById("sireVarietyInput");
       var dam  = document.getElementById("damVarietyInput");
 
