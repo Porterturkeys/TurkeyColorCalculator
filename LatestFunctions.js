@@ -2297,57 +2297,82 @@ if (container.dataset.bronzeKey === "broad") bronzeState[prefix] = "broad";
         });
     }
 
-        // Transfer patch - preserve state/overlay after transfer
-    if (typeof window.transferOffspringToParent === "function" && !window._bbTransferPatched) {
-        window._bbTransferPatched = true;
-        const orig = window.transferOffspringToParent;
+       // Transfer patch - FORCE broad-to-broad to stay broad (GitHub timing-safe)
+if (typeof window.transferOffspringToParent === "function" && !window._bbTransferPatched) {
+  window._bbTransferPatched = true;
+  const orig = window.transferOffspringToParent;
 
-        window.transferOffspringToParent = function(genotype, parent) {
-          
-                       const wasCross =
-                isBroadBronzeWhiteCross() ||
-                isSameStrainBroadBronze() ||
-                isSameStrainBroadWhite();
+  function isBroadContextNow() {
+    // If ANY current parent is Broad (Bronze or White), treat transfers as Broad context.
+    // This avoids the GitHub timing issue where wasCross sometimes evaluates false.
+    return (
+      parentIsBroadBronze("sire") || parentIsBroadWhite("sire") ||
+      parentIsBroadBronze("dam")  || parentIsBroadWhite("dam")  ||
+      /broad\s*breasted/i.test(getParentPhenotype("sireImageContainer")) ||
+      /broad\s*breasted/i.test(getParentPhenotype("damImageContainer"))
+    );
+  }
 
-            
-            const result = orig.apply(this, arguments);
+  function tokenHas(g, rx) {
+    return rx.test(String(g || "").trim());
+  }
 
-            if (wasCross && (parent === "sire" || parent === "dam")) {
+  function forceBroadParent(parent, genotype) {
+    const container = document.getElementById(parent + "ImageContainer");
+    if (!container) return;
+
     const g = String(genotype || "");
 
-    // bb cc (with lowercase cc) = Broad Breasted White
-    const isBroadWhiteOffspring = /\bcc\b/.test(g);
+    const isBBWhite  = tokenHas(g, /(^|\s)cc(\s|$)/i);   // cc token
+    const isBronzeBb = tokenHas(g, /(^|\s)bb(\s|$)/i);   // bb token
 
-    if (isBroadWhiteOffspring) {
-        // ----- OFFSPRING IS BROAD BREASTED WHITE -----
-        if (!window.whiteState) {
-            window.whiteState = { sire: null, dam: null };
-        }
-        window.whiteState[parent] = "broad";
+    if (isBBWhite) {
+      // mark + apply Broad Breasted White
+      if (!window.whiteState) window.whiteState = { sire: null, dam: null };
+      window.whiteState[parent] = "broad";
 
-        bronzeState[parent] = null;
-        const container = document.getElementById(parent + "ImageContainer");
-        if (container && container.dataset.bronzeKey) {
-            delete container.dataset.bronzeKey;
-        }
+      container.dataset.whiteKey = "broad";
+      if (container.dataset.bronzeKey) delete container.dataset.bronzeKey;
 
-        setTimeout(() => applyBroadWhiteToParent(parent), 50);
+      bronzeState[parent] = null;
 
-    } else {
-        // ----- OFFSPRING IS BROAD BREASTED BRONZE (bb Cc etc.) -----
-        bronzeState[parent] = "broad";
-        const container = document.getElementById(parent + "ImageContainer");
-        if (container) container.dataset.bronzeKey = "broad";
-
-        setTimeout(() => applyBronzeToParent(parent), 50);
+      applyBroadWhiteToParent(parent);
+      return;
     }
+
+    if (isBronzeBb) {
+      // mark + apply Broad Breasted Bronze
+      bronzeState[parent] = "broad";
+
+      container.dataset.bronzeKey = "broad";
+      if (container.dataset.whiteKey) delete container.dataset.whiteKey;
+
+      applyBronzeToParent(parent);
+    }
+  }
+
+  function forceBroadParentLater(parent, genotype) {
+    // multi-pass to beat any late redraw overwrites
+    setTimeout(() => forceBroadParent(parent, genotype), 0);
+    setTimeout(() => forceBroadParent(parent, genotype), 80);
+    setTimeout(() => forceBroadParent(parent, genotype), 250);
+    setTimeout(() => forceBroadParent(parent, genotype), 500);
+  }
+
+  window.transferOffspringToParent = function (genotype, parent) {
+    const broadCtx = isBroadContextNow(); // evaluate BEFORE orig may change DOM
+    const result = orig.apply(this, arguments);
+
+    if (broadCtx && (parent === "sire" || parent === "dam")) {
+      forceBroadParentLater(parent, genotype);
+    }
+
+    return result;
+  };
 }
 
 
-            return result;
-        };
-    }
-
+    
     // Hook variety + reset
     window.addEventListener("load", () => {
         function wrapVarietyFn(fnName, prefix) {
@@ -3242,8 +3267,6 @@ window.addEventListener("load", () => {
     // First pass after load
     scheduleEnforce();
   });
-
-
     
 
 })();
