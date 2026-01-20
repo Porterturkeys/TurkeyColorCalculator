@@ -843,9 +843,9 @@ document.addEventListener('click', function(e) {
     },
     goulds: {
       name:  "Gould's Wild",
-      male:  "https://portersturkeys.github.io/Pictures/MGouldsWild.jpg",
-      female:"https://portersturkeys.github.io/Pictures/FGouldsWild.jpg",
-      poult: "https://portersturkeys.github.io/Pictures/PGouldsWild.jpg"
+      male:  "MGouldsWild.jpg",
+      female:"FGouldsWild.jpg",
+      poult: "PGouldsWild.jpg"
     },
     merriams: {
       name:  "Merriam's Wild",
@@ -1470,7 +1470,7 @@ document.addEventListener('click', function (event) {
     // 1) Swap parent image to correct White file
     const img = container.querySelector("img");
     if (img) {
-      img.src = "Pictures/" + (prefix === "dam" ? data.female : data.male);
+      img.src = "https://portersturkeys.github.io/Pictures/" + (prefix === "dam" ? data.female : data.male);
     }
 
     // 2) Fix visible phenotype/variety label, assuming first <span> under a <strong>
