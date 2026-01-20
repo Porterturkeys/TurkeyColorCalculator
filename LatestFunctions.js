@@ -2347,54 +2347,7 @@ if (container.dataset.bronzeKey === "broad") bronzeState[prefix] = "broad";
             return result;
         };
     }
-////////////////////////////////////////////////////
-// ==============================
-// FORCE BROAD PARENTS TO STAY BROAD (GitHub timing fix)
-// Put this INSIDE the BB overlay IIFE
-// ==============================
 
-function enforceBroadParent(prefix) {
-  const container = document.getElementById(prefix + "ImageContainer");
-  if (!container) return;
-
-  if (container.dataset.bronzeKey === "broad") {
-    bronzeState[prefix] = "broad";
-    applyBronzeToParent(prefix);
-  }
-
-  if (container.dataset.whiteKey === "broad") {
-    if (!window.whiteState) window.whiteState = { sire: null, dam: null };
-    window.whiteState[prefix] = "broad";
-    applyBroadWhiteToParent(prefix);
-  }
-}
-
-function enforceBroadParentLater(prefix) {
-  setTimeout(() => enforceBroadParent(prefix), 0);
-  setTimeout(() => enforceBroadParent(prefix), 60);
-  setTimeout(() => enforceBroadParent(prefix), 180);
-  setTimeout(() => enforceBroadParent(prefix), 400);
-}
-
-function wrapOnce(fnName, afterFn) {
-  const orig = window[fnName];
-  if (typeof orig !== "function" || orig._bbWrapped) return;
-  function wrapped() {
-    const r = orig.apply(this, arguments);
-    try { afterFn(); } catch(e) {}
-    return r;
-  }
-  wrapped._bbWrapped = true;
-  window[fnName] = wrapped;
-}
-
-// Hook the *genotype rebuild* functions AFTER they run
-window.addEventListener("load", () => {
-  wrapOnce("updateSireGenotype", () => enforceBroadParentLater("sire"));
-  wrapOnce("updateDamGenotype",  () => enforceBroadParentLater("dam"));
-});
-
-///////////////////////////////////////////////////
     // Hook variety + reset
     window.addEventListener("load", () => {
         function wrapVarietyFn(fnName, prefix) {
@@ -3289,37 +3242,6 @@ window.addEventListener("load", () => {
     // First pass after load
     scheduleEnforce();
   });
-
-////////////////////////////////////////////////
-
-function enforceBroadParent(prefix) {
-  const container = document.getElementById(prefix + "ImageContainer");
-  if (!container) return;
-
-  // If this parent was marked as broad bronze, always re-apply bronze overlay
-  if (container.dataset.bronzeKey === "broad") {
-    bronzeState[prefix] = "broad";
-    applyBronzeToParent(prefix);
-  }
-
-  // If this parent was marked as broad white, always re-apply white overlay
-  if (container.dataset.whiteKey === "broad") {
-    if (!window.whiteState) window.whiteState = { sire: null, dam: null };
-    window.whiteState[prefix] = "broad";
-    applyBroadWhiteToParent(prefix);
-  }
-}
-
-function enforceBroadParentLater(prefix) {
-  // “late writer” defense: hit it multiple times
-  setTimeout(() => enforceBroadParent(prefix), 0);
-  setTimeout(() => enforceBroadParent(prefix), 60);
-  setTimeout(() => enforceBroadParent(prefix), 180);
-  setTimeout(() => enforceBroadParent(prefix), 400);
-
-   
-
-}
 
 
     
