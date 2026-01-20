@@ -2471,6 +2471,80 @@ if (typeof window.transferOffspringToParent === "function" && !window._bbTransfe
 //////////////////////////
 
 
+
+// Additional transfer-specific observer for parent containers
+function installTransferObservers() {
+  if (window._bbTransferObserversInstalled) return;
+  window._bbTransferObserversInstalled = true;
+  
+  ["sire", "dam"].forEach(prefix => {
+    const container = document.getElementById(prefix + "ImageContainer");
+    if (!container) return;
+    
+    // Watch for image src changes specifically (catches overwrites)
+    const imgObserver = new MutationObserver((mutations) => {
+      let needsFix = false;
+      mutations.forEach((mutation) => {
+        if (mutation.type === 'attributes' && mutation.attributeName === 'src') {
+          const img = mutation.target;
+          if (img.tagName === 'IMG' && 
+              img.src.indexOf("bronze.jpg") !== -1 && 
+              img.src.indexOf("BroadBreastedBronze") === -1 &&
+              (bronzeState[prefix] === "broad" || container.dataset.bronzeKey === "broad")) {
+            needsFix = true;
+          }
+        }
+      });
+      
+      if (needsFix) {
+        console.log(`[BB FIX] Observer caught image overwrite for ${prefix}, correcting...`);
+        const genotype = document.getElementById(prefix + "InfoContainer")?.dataset.shortGenotype || "";
+        forceBroadParent(prefix, genotype, true);
+      }
+    });
+    
+    const img = container.querySelector("img");
+    if (img) {
+      imgObserver.observe(img, { attributes: true, attributeFilter: ['src'] });
+    }
+    
+    // Also watch for text content changes in the name
+    const nameObserver = new MutationObserver((mutations) => {
+      let nameNeedsFix = false;
+      mutations.forEach((mutation) => {
+        if (mutation.type === 'childList' || mutation.type === 'characterData') {
+          const strong = container.querySelector("strong");
+          if (strong && 
+              !/broad\s*breasted\s*bronze/i.test(strong.textContent || "") &&
+              (bronzeState[prefix] === "broad" || container.dataset.bronzeKey === "broad")) {
+            nameNeedsFix = true;
+          }
+        }
+      });
+      
+      if (nameNeedsFix) {
+        console.log(`[BB FIX] Observer caught name overwrite for ${prefix}, correcting...`);
+        applyBronzeToParent(prefix);
+      }
+    });
+    
+    nameObserver.observe(container, { 
+      childList: true, 
+      subtree: true, 
+      characterData: true,
+      attributes: true,
+      attributeFilter: ['textContent']
+    });
+  });
+}
+
+// Call this after installObservers()
+installTransferObservers();
+
+
+
+////////////////////////////////////
+
 // =====================================================
 // SUMMARY CHART / Dam (shows ONLY after calculate)
 // Uses MutationObserver on #summaryChart tbody (your working method)
