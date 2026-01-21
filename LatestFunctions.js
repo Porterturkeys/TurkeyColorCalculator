@@ -2299,80 +2299,81 @@ if (container.dataset.bronzeKey === "broad") bronzeState[prefix] = "broad";
 
 
     
-// Transfer patch - FORCE broad-to-broad to stay broad (GitHub timing-safe v2)
-if (typeof window.transferOffspringToParent === "function" && !window._bbTransferPatchedV2) {
-  window._bbTransferPatchedV2 = true;
+// Transfer patch – aggressive post-update enforcement
+if (typeof window.transferOffspringToParent === "function" && !window._bbTransferPatchedV3) {
+  window._bbTransferPatchedV3 = true;
   const orig = window.transferOffspringToParent;
 
-  function isBroadContextNow() {
-    const sireContainer = document.getElementById("sireImageContainer");
-    const damContainer = document.getElementById("damImageContainer");
-    
-    return (
-      parentIsBroadBronze("sire") || parentIsBroadWhite("sire") ||
-      parentIsBroadBronze("dam") || parentIsBroadWhite("dam") ||
-      (sireContainer?.dataset?.bronzeKey === "broad" || sireContainer?.dataset?.whiteKey === "broad") ||
-      (damContainer?.dataset?.bronzeKey === "broad" || damContainer?.dataset?.whiteKey === "broad") ||
-      /broad\s*breasted/i.test(getParentPhenotype("sireImageContainer")) ||
-      /broad\s*breasted/i.test(getParentPhenotype("damImageContainer"))
-    );
-  }
-
-  function forceBroadParent(parent, genotype) {
+  function forceBroadAppearance(parent, genotype) {
     const container = document.getElementById(parent + "ImageContainer");
     if (!container) return;
-    
+
+    const isDam = parent === "dam";
     const g = String(genotype || "").trim();
-    const isBBWhite = /\bcc\b/i.test(g);     // more forgiving than (^|\s)cc(\s|$)
-    const isBronzeBb = /\bbb\b/i.test(g);
 
-    if (isBBWhite) {
-      if (!window.whiteState) window.whiteState = { sire: null, dam: null };
-      window.whiteState[parent] = "broad";
-      container.dataset.whiteKey = "broad";
-      delete container.dataset.bronzeKey;
-      bronzeState[parent] = null;
-      applyBroadWhiteToParent(parent);
-      return;
+    const isWhite = /\bcc\b/i.test(g);
+    const isBroadBronze = /\bbb\b/i.test(g) && !isWhite;
+
+    let targetName = "Broad Breasted Bronze";
+    let targetImg = isDam ? "FBroadBreastedBronze.jpg" : "MBroadBreastedBronze.jpg";
+
+    if (isWhite) {
+      targetName = "Broad Breasted White";
+      targetImg = isDam ? "FBroadBreastedWhite.jpg" : "MBroadBreastedWhite.jpg";
     }
 
-    if (isBronzeBb) {
-      bronzeState[parent] = "broad";
-      container.dataset.bronzeKey = "broad";
-      delete container.dataset.whiteKey;
-      applyBronzeToParent(parent);
+    // 1. Force name
+    const strong = container.querySelector("strong");
+    if (strong) {
+      let span = strong.querySelector("span");
+      if (!span) {
+        span = document.createElement("span");
+        strong.appendChild(span);
+      }
+      if (span.textContent.trim() !== targetName) {
+        span.textContent = targetName;
+      }
     }
-  }
 
-  // More timeouts, longer spread, and a final "nuke" pass
-  function forceBroadParentLater(parent, genotype) {
-    [0, 50, 120, 250, 400, 700].forEach(delay => {
-      setTimeout(() => {
-        forceBroadParent(parent, genotype);
-        // Extra: re-apply name/image even if genotype check fails
-        const container = document.getElementById(parent + "ImageContainer");
-        if (container?.dataset?.bronzeKey === "broad" || container?.dataset?.whiteKey === "broad") {
-          applyBronzeToParent(parent);   // safe no-op if not broad
-          // or applyBroadWhiteToParent(parent) if whiteKey present
-        }
-      }, delay);
-    });
+    // 2. Force image
+    const img = container.querySelector("img");
+    if (img) {
+      const want = "https://portersturkeys.github.io/Pictures/" + targetImg;
+      if (img.src !== want) {
+        img.src = want;
+      }
+    }
+
+    // 3. Persist flag (for observers / future transfers)
+    container.dataset.broadType = isWhite ? "white" : "bronze";
   }
 
   window.transferOffspringToParent = function (genotype, parent) {
-    const broadCtx = isBroadContextNow();
     const result = orig.apply(this, arguments);
 
-    // Always attempt force if genotype looks broad-ish (extra safety net)
-    const g = String(genotype || "");
-    if (/\bbb\b/i.test(g) || /\bcc\b/i.test(g) || broadCtx) {
-      forceBroadParentLater(parent, genotype);
+    // Force immediately + delayed (after potential redraw)
+    forceBroadAppearance(parent, genotype);
+
+    // Short-lived observer to catch late redraws during this transfer
+    const container = document.getElementById(parent + "ImageContainer");
+    if (container) {
+      const tempObs = new MutationObserver(() => {
+        forceBroadAppearance(parent, genotype);
+      });
+      tempObs.observe(container, { childList: true, subtree: true, characterData: true, attributes: true });
+
+      // Disconnect after 1.2 seconds – enough to catch redraws but not permanent
+      setTimeout(() => tempObs.disconnect(), 1200);
     }
+
+    // Extra safety passes
+    [150, 400, 800].forEach(delay => {
+      setTimeout(() => forceBroadAppearance(parent, genotype), delay);
+    });
 
     return result;
   };
 }
-
 
     
     // Hook variety + reset
