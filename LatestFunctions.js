@@ -3311,107 +3311,67 @@ window.addEventListener("load", () => {
 ///////////////////////////
 
 // ============================================================================
-// CORRECTED BROAD ENFORCER - bb = Bronze (unless cc and no bb), cc-only = White
-// - bb Cc / bb CC → Bronze
-// - bb cc → White
-// - cc without bb → White
-// - Honors explicit variety input
-// - Skips plain/default Bronze
-// Paste this ONCE at the VERY END (replace any previous broad enforcer)
+// MINIMAL BROAD PROTECTOR - Only active when broad variety is already set
+// bb = Broad Bronze (including bb Cc)
+// bb cc = Broad White
+// Does NOT touch plain Bronze defaults
 // ============================================================================
-(function correctedBroadEnforcer() {
-  if (window._correctedBroadInstalled) return;
-  window._correctedBroadInstalled = true;
+(function minimalBroadProtector() {
+  if (window._minimalBroadProtector) return;
+  window._minimalBroadProtector = true;
 
-  const BRONZE_NAME = "Broad Breasted Bronze";
-  const WHITE_NAME  = "Broad Breasted White";
-
-  const BRONZE_MALE   = "MBroadBreastedBronze.jpg";
-  const BRONZE_FEMALE = "FBroadBreastedBronze.jpg";
-  const WHITE_MALE    = "MBroadBreastedWhite.jpg";
-  const WHITE_FEMALE  = "FBroadBreastedWhite.jpg";
-
-  // Detect if already in broad context
-  function isBroadContext(prefix) {
-    const inputVal = (document.getElementById(prefix + "VarietyInput")?.value || "").toLowerCase().trim();
-    const displayed = (document.getElementById(prefix + "ImageContainer")?.querySelector("strong")?.textContent || "").toLowerCase().trim();
-    return inputVal.includes("broad breasted") || displayed.includes("broad breasted");
-  }
-
-  function enforceCorrectBroad(prefix) {
-    if (!isBroadContext(prefix)) return;  // protect default plain Bronze
-
+  function enforceBroadIfNeeded(prefix) {
     const input = document.getElementById(prefix + "VarietyInput");
-    const currentInput = input ? input.value.trim() : "";
+    if (!input) return;
 
-    // Honor explicit user variety first
-    if (currentInput === WHITE_NAME) {
-      // Keep White, just sync image
-      const img = document.getElementById(prefix + "ImageContainer")?.querySelector("img");
-      if (img) {
-        const isDam = prefix === "dam";
-        const want = "https://portersturkeys.github.io/Pictures/" + (isDam ? WHITE_FEMALE : WHITE_MALE);
-        if (img.src !== want) img.src = want;
-      }
-      return;
-    }
+    const variety = input.value.trim();
+    if (!variety.includes("Broad Breasted")) return;  // skip defaults
 
-    if (currentInput === BRONZE_NAME) {
-      // Keep Bronze, sync image
-      const img = document.getElementById(prefix + "ImageContainer")?.querySelector("img");
-      if (img) {
-        const isDam = prefix === "dam";
-        const want = "https://portersturkeys.github.io/Pictures/" + (isDam ? BRONZE_FEMALE : BRONZE_MALE);
-        if (img.src !== want) img.src = want;
-      }
-      return;
-    }
+    const container = document.getElementById(prefix + "ImageContainer");
+    if (!container) return;
 
-    // Fallback: genotype logic only if variety is not set
     const info = document.getElementById(prefix + "InfoContainer");
-    const geno = info ? (info.getAttribute("data-short-genotype") || "").trim().toLowerCase() : "";
+    const geno = (info?.getAttribute("data-short-genotype") || "").trim().toLowerCase();
 
     const hasBB = /\bbb\b/.test(geno);
     const hasCC = /\bcc\b/.test(geno);
 
     if (!hasBB && !hasCC) return;
 
-    // bb cc = White (as you last specified)
-    // bb with C (Cc or CC) = Bronze
-    // cc without bb = White
-    const isWhite = hasCC && (!hasBB || geno.includes('cc') && geno.includes('bb'));  // bb cc = White
-    const targetName = isWhite ? WHITE_NAME : BRONZE_NAME;
+    // bb cc → White
+    // bb with C (Cc or CC) → Bronze
+    const targetName = (hasCC && hasBB) ? "Broad Breasted White" : "Broad Breasted Bronze";
+    const isWhite = targetName === "Broad Breasted White";
+
     const targetImg = isWhite
-      ? (prefix === "dam" ? WHITE_FEMALE : WHITE_MALE)
-      : (prefix === "dam" ? BRONZE_FEMALE : BRONZE_MALE);
+      ? (prefix === "dam" ? "FBroadBreastedWhite.jpg" : "MBroadBreastedWhite.jpg")
+      : (prefix === "dam" ? "FBroadBreastedBronze.jpg" : "MBroadBreastedBronze.jpg");
 
-    // Set variety if missing
-    if (input && !currentInput) {
-      input.value = targetName;
-      input.dispatchEvent(new Event("change", { bubbles: true }));
-    }
+    // Never override explicit White variety
+    if (variety === "Broad Breasted White" && !isWhite) return;
 
-    // Force name if mismatched
-    const container = document.getElementById(prefix + "ImageContainer");
-    const strong = container?.querySelector("strong span") || container?.querySelector("strong");
+    // Force name only if mismatched
+    const strong = container.querySelector("strong span") || container.querySelector("strong");
     if (strong && strong.textContent.trim() !== targetName) {
       strong.textContent = targetName;
     }
 
     // Force image
-    const img = container?.querySelector("img");
+    const img = container.querySelector("img");
     if (img) {
       const want = "https://portersturkeys.github.io/Pictures/" + targetImg;
-      if (img.src !== want) img.src = want;
+      if (img.src !== want) {
+        img.src = want;
+      }
     }
   }
 
-  // Wrap updates
+  // Hook into update functions
   const origSire = window.updateSireGenotype;
   if (typeof origSire === "function") {
     window.updateSireGenotype = function() {
       const res = origSire.apply(this, arguments);
-      enforceCorrectBroad("sire");
+      enforceBroadIfNeeded("sire");
       return res;
     };
   }
@@ -3420,23 +3380,23 @@ window.addEventListener("load", () => {
   if (typeof origDam === "function") {
     window.updateDamGenotype = function() {
       const res = origDam.apply(this, arguments);
-      enforceCorrectBroad("dam");
+      enforceBroadIfNeeded("dam");
       return res;
     };
   }
 
-  // Light post-Calculate safety
+  // After Calculate (light touch)
   document.addEventListener("click", e => {
     const btn = e.target.closest("button");
     if (!btn) return;
     if (btn.textContent.toLowerCase().includes("calculate") ||
         btn.onclick?.toString().includes("calculateOffspringWrapper")) {
       setTimeout(() => {
-        if (isBroadContext("sire")) enforceCorrectBroad("sire");
-        if (isBroadContext("dam")) enforceCorrectBroad("dam");
-      }, 100);
+        enforceBroadIfNeeded("sire");
+        enforceBroadIfNeeded("dam");
+      }, 120);
     }
   }, true);
 
-  console.log("[Corrected Broad Enforcer] Active – bb Cc = Bronze, bb cc = White");
+  console.log("[Minimal Broad Protector] Loaded – protects only when Broad variety present");
 })();
