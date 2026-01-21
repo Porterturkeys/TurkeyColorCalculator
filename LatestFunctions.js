@@ -3400,3 +3400,7 @@ window.addEventListener("load", () => {
 
   console.log("[Minimal Broad Protector] Loaded – protects only when Broad variety present");
 })();
+
+
+
+
