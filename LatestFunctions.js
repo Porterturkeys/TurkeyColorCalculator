@@ -3308,14 +3308,16 @@ window.addEventListener("load", () => {
 
 })();
 
+///////////////////////////
+
 // ============================================================================
-// FINAL BROAD BREASTED ENFORCER - Covers bb (Bronze) + cc (White priority)
-// Handles transfers, Calculate, both parents, and offspring consistency
-// Paste this ONCE at the VERY END of your script
+// SAFER BROAD ENFORCER - Only applies when Broad context is detected
+// Does NOT touch default Bronze on load/reset
+// Paste this ONCE at the VERY END (replace the previous full enforcer)
 // ============================================================================
-(function broadBreastedFullEnforcer() {
-  if (window._broadFullEnforcerInstalled) return;
-  window._broadFullEnforcerInstalled = true;
+(function safeBroadEnforcer() {
+  if (window._safeBroadEnforcerInstalled) return;
+  window._safeBroadEnforcerInstalled = true;
 
   const BRONZE_NAME = "Broad Breasted Bronze";
   const WHITE_NAME  = "Broad Breasted White";
@@ -3325,40 +3327,40 @@ window.addEventListener("load", () => {
   const WHITE_MALE    = "MBroadBreastedWhite.jpg";
   const WHITE_FEMALE  = "FBroadBreastedWhite.jpg";
 
-  // Helper: determine correct broad display from short genotype
-  function getBroadDisplay(geno) {
-    geno = (geno || "").trim().toLowerCase();
-    const hasBB = /\bbb\b/.test(geno);
-    const hasCC = /\bcc\b/.test(geno);
+  // Check if parent is in Broad context (variety input or displayed name has "broad breasted")
+  function isBroadContext(prefix) {
+    const input = document.getElementById(prefix + "VarietyInput");
+    const container = document.getElementById(prefix + "ImageContainer");
+    
+    const inputVal = (input?.value || "").toLowerCase().trim();
+    const displayed = (container?.querySelector("strong")?.textContent || "").toLowerCase().trim();
 
-    if (!hasBB && !hasCC) return null; // not broad
-
-    // cc takes priority → White (including bb cc cases)
-    if (hasCC) {
-      return { name: WHITE_NAME };
-    }
-    // otherwise bb → Bronze
-    return { name: BRONZE_NAME };
+    return inputVal.includes("broad breasted") || displayed.includes("broad breasted");
   }
 
-  // Force name + image on a specific parent container
-  function enforceBroadOnContainer(prefix) {
+  // Determine correct broad display only if in broad context
+  function enforceBroadIfNeeded(prefix) {
+    if (!isBroadContext(prefix)) return;  // ← this line prevents default Bronze from being touched
+
     const container = document.getElementById(prefix + "ImageContainer");
     if (!container) return;
 
     const info = document.getElementById(prefix + "InfoContainer");
-    const geno = info ? (info.getAttribute("data-short-genotype") || "") : "";
+    const geno = info ? (info.getAttribute("data-short-genotype") || "").trim().toLowerCase() : "";
 
-    const display = getBroadDisplay(geno);
-    if (!display) return;
+    const hasBB = /\bbb\b/.test(geno);
+    const hasCC = /\bcc\b/.test(geno);
 
-    const isDam = prefix === "dam";
-    const targetName = display.name;
-    const targetImg = (display.name === WHITE_NAME)
-      ? (isDam ? WHITE_FEMALE : WHITE_MALE)
-      : (isDam ? BRONZE_FEMALE : BRONZE_MALE);
+    if (!hasBB && !hasCC) return;
 
-    // Force variety input (helps renderer + persistence)
+    // cc takes priority → White (including bb cc)
+    const isWhite = hasCC;
+    const targetName = isWhite ? WHITE_NAME : BRONZE_NAME;
+    const targetImg = isWhite
+      ? (prefix === "dam" ? WHITE_FEMALE : WHITE_MALE)
+      : (prefix === "dam" ? BRONZE_FEMALE : BRONZE_MALE);
+
+    // Force variety input (only in broad context)
     const input = document.getElementById(prefix + "VarietyInput");
     if (input && input.value.trim() !== targetName) {
       input.value = targetName;
@@ -3381,12 +3383,12 @@ window.addEventListener("load", () => {
     }
   }
 
-  // Wrap both update functions (runs after every genotype refresh / calculate / transfer)
+  // Wrap updates – but only enforce when broad context exists
   const origSire = window.updateSireGenotype;
   if (typeof origSire === "function") {
     window.updateSireGenotype = function() {
       const res = origSire.apply(this, arguments);
-      enforceBroadOnContainer("sire");
+      enforceBroadIfNeeded("sire");
       return res;
     };
   }
@@ -3395,30 +3397,24 @@ window.addEventListener("load", () => {
   if (typeof origDam === "function") {
     window.updateDamGenotype = function() {
       const res = origDam.apply(this, arguments);
-      enforceBroadOnContainer("dam");
+      enforceBroadIfNeeded("dam");
       return res;
     };
   }
 
-  // Extra protection: when Calculate finishes → re-apply to both parents
+  // Extra safety after Calculate (only if broad already present)
   document.addEventListener("click", e => {
     const btn = e.target.closest("button");
     if (!btn) return;
     if (btn.textContent.toLowerCase().includes("calculate") ||
         btn.onclick?.toString().includes("calculateOffspringWrapper")) {
 
-      // Give DOM a moment to settle after calculate
       setTimeout(() => {
-        enforceBroadOnContainer("sire");
-        enforceBroadOnContainer("dam");
+        if (isBroadContext("sire")) enforceBroadIfNeeded("sire");
+        if (isBroadContext("dam"))  enforceBroadIfNeeded("dam");
       }, 150);
-
-      setTimeout(() => {
-        enforceBroadOnContainer("sire");
-        enforceBroadOnContainer("dam");
-      }, 400);
     }
   }, true);
 
-  console.log("[Broad Final] Enforcer active – bb = Bronze, cc = White (cc priority)");
+  console.log("[Safe Broad Enforcer] Active – only applies in Broad context, leaves default Bronze alone");
 })();
