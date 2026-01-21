@@ -2298,67 +2298,37 @@ if (container.dataset.bronzeKey === "broad") bronzeState[prefix] = "broad";
     }
 
 
-// Transfer patch - simple, safe, post-update enforcement (no observers)
-if (typeof window.transferOffspringToParent === "function" && !window._bbTransferPatchedSafe) {
-  window._bbTransferPatchedSafe = true;
-  const orig = window.transferOffspringToParent;
+    
+if (typeof window.transferOffspringToParent === "function" && !window._bbForceVariety) {
+  window._bbForceVariety = true;
+  const origTransfer = window.transferOffspringToParent;
 
-  function forceBroadAppearance(parent, genotype) {
-    const container = document.getElementById(parent + "ImageContainer");
-    if (!container) return;
+  window.transferOffspringToParent = function(genotype, parent) {
+    const result = origTransfer.apply(this, arguments);
 
-    const isDam = parent === "dam";
-    const g = String(genotype || "").trim().toLowerCase();
+    const g = (genotype || "").trim().toLowerCase();
+    if (!g.includes('bb')) return result;  // only care about bb cases
 
-    const isWhite = g.includes('cc');
-    const isBroadBronze = g.includes('bb') && !isWhite;
+    const targetVariety = g.includes('cc') ? "Broad Breasted White" : "Broad Breasted Bronze";
 
-    if (!isBroadBronze && !isWhite) return; // not our case, skip
-
-    const targetName = isWhite ? "Broad Breasted White" : "Broad Breasted Bronze";
-    const targetImg = isDam 
-      ? (isWhite ? "FBroadBreastedWhite.jpg" : "FBroadBreastedBronze.jpg")
-      : (isWhite ? "MBroadBreastedWhite.jpg" : "MBroadBreastedBronze.jpg");
-
-    // 1. Force variety INPUT value (critical: helps renderer use correct mapping)
-    const inputId = parent === "sire" ? "sireVarietyInput" : "damVarietyInput";
+    const inputId = parent === 'sire' ? 'sireVarietyInput' : 'damVarietyInput';
     const input = document.getElementById(inputId);
-    if (input && input.value.trim() !== targetName) {
-      input.value = targetName;
+
+    if (input && input.value.trim() !== targetVariety) {
+      // Set value
+      input.value = targetVariety;
+      // Force events so any listeners react
+      input.dispatchEvent(new Event('input', { bubbles: true }));
+      input.dispatchEvent(new Event('change', { bubbles: true }));
+      input.dispatchEvent(new Event('blur', { bubbles: true }));
     }
 
-    // 2. Force displayed name
-    const strong = container.querySelector("strong");
-    if (strong) {
-      let span = strong.querySelector("span");
-      if (!span) {
-        span = document.createElement("span");
-        strong.innerHTML = ""; // clear old content safely
-        strong.appendChild(span);
+    // One delayed re-force in case renderer runs async/late
+    setTimeout(() => {
+      if (input && input.value.trim() !== targetVariety) {
+        input.value = targetVariety;
       }
-      span.textContent = targetName;
-    }
-
-    // 3. Force image src
-    const img = container.querySelector("img");
-    if (img) {
-      const fullSrc = "https://portersturkeys.github.io/Pictures/" + targetImg;
-      if (img.src !== fullSrc) {
-        img.src = fullSrc;
-      }
-    }
-  }
-
-  window.transferOffspringToParent = function (genotype, parent) {
-    const result = orig.apply(this, arguments);
-
-    // Force right after original (alleles + update...Genotype called)
-    forceBroadAppearance(parent, genotype);
-
-    // Extra staggered forces in case of delayed redraws (GitHub timing quirk)
-    [80, 200, 450].forEach(ms => {
-      setTimeout(() => forceBroadAppearance(parent, genotype), ms);
-    });
+    }, 150);
 
     return result;
   };
