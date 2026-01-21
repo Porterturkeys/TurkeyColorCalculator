@@ -3308,7 +3308,7 @@ window.addEventListener("load", () => {
 
 })();
 
-
+////////////////
 // Emergency symmetry enforcer – force broad name/image on every genotype update
 // Put this at the VERY END of your script
 window.addEventListener('load', () => {
@@ -3378,6 +3378,78 @@ window.addEventListener('load', () => {
   console.log('[Broad Fix] Wrapped updateSireGenotype and updateDamGenotype');
 });
 
+////////////////////////
+// Preserve Broad Breasted variety during full Calculate
+// Add this at the VERY END, after the symmetry enforcer
+(function preserveBroadVarietyOnCalculate() {
+  if (window._preserveBroadOnCalcInstalled) return;
+  window._preserveBroadOnCalcInstalled = true;
 
+  const broadNames = ["Broad Breasted Bronze", "Broad Breasted White"];
 
+  function getBroadVariety(prefix) {
+    const input = document.getElementById(prefix + "VarietyInput");
+    const val = input?.value?.trim() || "";
+    return broadNames.includes(val) ? val : "";
+  }
+
+  let pendingRestore = { sire: "", dam: "" };
+
+  // Hook the Calculate button click
+  document.addEventListener('click', function(e) {
+    const btn = e.target.closest('button');
+    if (!btn) return;
+    if (btn.textContent.toLowerCase().includes('calculate') || 
+        btn.onclick?.toString().includes('calculateOffspringWrapper')) {
+      
+      // Snapshot current broad varieties BEFORE calculate runs
+      pendingRestore.sire = getBroadVariety("sire");
+      pendingRestore.dam  = getBroadVariety("dam");
+
+      if (!pendingRestore.sire && !pendingRestore.dam) return;
+
+      console.log('[Broad Preserve] Detected Calculate – saving:', pendingRestore);
+
+      // Watch summary/results for changes (means calculate finished)
+      const targets = [
+        document.getElementById('summaryChart'),
+        document.getElementById('maleOffspringResults'),
+        document.getElementById('femaleOffspringResults')
+      ].filter(Boolean);
+
+      if (!targets.length) return;
+
+      const observer = new MutationObserver(() => {
+        // Restore after DOM updates
+        ["sire", "dam"].forEach(prefix => {
+          const saved = pendingRestore[prefix];
+          if (!saved) return;
+
+          const input = document.getElementById(prefix + "VarietyInput");
+          if (input && input.value.trim() !== saved) {
+            console.log('[Broad Preserve] Restoring', prefix, '→', saved);
+            input.value = saved;
+            input.dispatchEvent(new Event('change', { bubbles: true }));
+          }
+        });
+
+        // One extra delayed restore in case of chained updates
+        setTimeout(() => {
+          ["sire", "dam"].forEach(prefix => {
+            const saved = pendingRestore[prefix];
+            if (saved) {
+              const input = document.getElementById(prefix + "VarietyInput");
+              if (input) input.value = saved;
+            }
+          });
+        }, 200);
+
+        // Clean up observer after restore
+        observer.disconnect();
+      });
+
+      targets.forEach(t => observer.observe(t, { childList: true, subtree: true, characterData: true }));
+    }
+  }, true);
+})();
 
