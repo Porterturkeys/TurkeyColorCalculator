@@ -188,18 +188,7 @@ updateSireGenotype();
 } else {
 updateDamGenotype();
 }
-///////////////////////
 
-if (parent === 'sire') {
-  updateSireGenotype();
-  updateSireGenotype();  // ← duplicate call as brute force re-render trigger
-} else {
-  updateDamGenotype();
-  updateDamGenotype();   // ← duplicate
-}
-
-  
-///////////////////
 
 // ---- Sync variety input to the newly transferred offspring  ----
 // ALSO: enable observer syncing for this parent from now on
