@@ -1337,148 +1337,276 @@ document.addEventListener('click', function (event) {
 });
 ////////////////////////////////////
 // ===========================================
-// BROAD BREASTED PERSISTENCE - MINIMAL TRANSFER FIX
-// (No variety wrapping, no locus forcing, no observers yet)
+// BROAD BREASTED VARIANTS OVERLAY (parents + offspring)
 // ===========================================
 (function () {
   'use strict';
 
-  // Track if parent was Broad Breasted (we'll set this via variety name or manually)
-  const broadState = {
-    sire: false,
-    dam: false
+  const BROAD_VARIANTS = {
+    bronze: {
+      name: "Broad Breasted Bronze",
+      male: "MBroadBreastedBronze.jpg",
+      female: "FBroadBreastedBronze.jpg",
+      poult: "PBroadBreastedBronze.jpg"
+    },
+    white: {
+      name: "Broad Breasted White",
+      male: "MBroadBreastedWhite.jpg",
+      female: "FBroadBreastedWhite.jpg",
+      poult: "PBroadBreastedWhite.jpg"
+    }
+    // add more if needed, e.g. black, bourbon, etc.
   };
 
-  // Simple norm for string matching
+  const BROAD_VARIETY_MAP = {
+    "broad breasted bronze": "bronze",
+    "broad breasted white": "white",
+    "broad bronze": "bronze",
+    "broad white": "white",
+    "bb bronze": "bronze",
+    "bb white": "white",
+    "broad breasted": "bronze",  // fallback
+    "broad-breasted bronze": "bronze",
+    "broad-breasted white": "white"
+    // add any other common typos/variations users type
+  };
+
+  const broadState = {
+    sire: null,   // "bronze" | "white" | null
+    dam: null
+  };
+
   function norm(str) {
-    return (str || "").trim().toLowerCase().replace(/\s+/g, " ");
+    return (str || "").trim().toLowerCase();
   }
 
-  // Quick check if a variety string looks Broad Breasted
-  function isBroadVariety(val) {
-    const n = norm(val);
-    return n.includes("broad breasted") || 
-           n.includes("broad bronze") || 
-           n.includes("broad white") || 
-           n.startsWith("bb ") || 
-           n.includes("broad-breasted");
-  }
-
-  // Call this after variety is applied (we'll hook minimally)
-  function updateBroadStateFromVariety(prefix) {
+  function detectBroadFromVariety(prefix) {
     const input = document.getElementById(prefix + "VarietyInput");
-    if (!input) return;
-    const isBroad = isBroadVariety(input.value);
-    broadState[prefix] = isBroad;
+    const val = norm(input && input.value);
+    const key = BROAD_VARIETY_MAP[val] || null;
+    broadState[prefix] = key;
 
-    // Optional: store on DOM for observers later
     const container = document.getElementById(prefix + "ImageContainer");
     if (container) {
-      if (isBroad) {
-        container.dataset.isBroad = "true";
+      if (key) {
+        container.dataset.broadKey = key;
       } else {
-        delete container.dataset.isBroad;
+        delete container.dataset.broadKey;
       }
     }
+    return key;
   }
 
-  // Apply visual Broad Breasted overlay to a parent (call when needed)
-  function applyBroadOverlay(prefix) {
+  function applyBroadToParent(prefix) {
     const container = document.getElementById(prefix + "ImageContainer");
-    if (!container || !container.dataset.isBroad) return;
+    if (!container) return;
 
-    // TODO: swap to Broad images / name here
-    // For now, just ensure name doesn't revert to plain Bronze/White
-    const strong = container.querySelector("strong span:first-child");
+    const key = container.dataset.broadKey || broadState[prefix];
+    if (!key) return;
+
+    const data = BROAD_VARIANTS[key];
+    if (!data) return;
+
+    // Optional: force bronze locus (like Wild forces bb)
+    // const bronzeId = prefix === "sire" ? "sireAlleleb" : "damAlleleb";
+    // const sel = document.getElementById(bronzeId);
+    // if (sel && sel.value !== "BB") { sel.value = "BB"; /* trigger update */ }
+
+    // Swap image
+    const img = container.querySelector("img");
+    if (img) {
+      img.src = "https://portersturkeys.github.io/Pictures/" + (prefix === "dam" ? data.female : data.male);
+    }
+
+    // Update phenotype name
+    const strong = container.querySelector("strong");
     if (strong) {
-      let text = strong.textContent.trim();
-      if (text.includes("Bronze") || text.includes("White")) {
-        // Crude fix: prepend "Broad Breasted " if missing
-        if (!text.toLowerCase().includes("broad")) {
-          strong.textContent = "Broad Breasted " + text;
+      const span = strong.querySelector("span");
+      if (span) span.textContent = data.name;
+    }
+
+    // Clean up any leftover "To Be Defined" or plain names
+    const info = document.getElementById(prefix + "InfoContainer");
+    if (info) {
+      info.querySelectorAll("span, div, strong").forEach(el => {
+        if (/to be defined|bronze|white/i.test(el.textContent)) {
+          el.textContent = data.name;
         }
-      }
+      });
     }
   }
 
-  // Patch transfer to keep Broad flag if either parent had it
-  if (window.transferOffspringToParent && !window._broadMinimalPatched) {
-    window._broadMinimalPatched = true;
-    const originalTransfer = window.transferOffspringToParent;
-    window.transferOffspringToParent = function(genotype, parent) {
-      const result = originalTransfer.apply(this, arguments);
+  // ===========================================
+  // Broad offspring patching (when both parents broad)
+  // ===========================================
+  function applyBroadToOffspring() {
+    const sireKey = broadState.sire;
+    const damKey = broadState.dam;
+    if (!sireKey || !damKey) return;
 
-      if (parent === "sire" || parent === "dam") {
-        // If either original parent was Broad → new parent stays Broad
-        if (broadState.sire || broadState.dam) {
-          broadState[parent] = true;
-          const container = document.getElementById(parent + "ImageContainer");
-          if (container) {
-            container.dataset.isBroad = "true";
-          }
-          // Re-apply visual fix after transfer
-          setTimeout(() => applyBroadOverlay(parent), 50);
-        } else {
-          broadState[parent] = false;
-          const container = document.getElementById(parent + "ImageContainer");
-          if (container) delete container.dataset.isBroad;
+    // For BB × BB: use sire's type (or add merge logic later)
+    const variantKey = sireKey;  // or "bronze" if mixed
+    const data = BROAD_VARIANTS[variantKey];
+    if (!data) return;
+
+    const displayName = data.name;
+
+    // Patch text in offspring lists
+    document.querySelectorAll("#maleOffspringResults li, #femaleOffspringResults li").forEach(li => {
+      let html = li.innerHTML;
+      if (html.includes(displayName)) return;
+      html = html.replace(/\bBronze\b/gi, displayName);
+      html = html.replace(/\bWhite\b/gi, displayName);
+      html = html.replace(/To Be Defined/gi, displayName);
+      li.innerHTML = html;
+    });
+
+    // Patch summary chart text
+    const summaryBody = document.querySelector("#summaryChart tbody");
+    if (summaryBody) {
+      summaryBody.querySelectorAll("tr").forEach(tr => {
+        const cell = tr.cells?.[1];
+        if (cell) {
+          let txt = cell.textContent || "";
+          if (txt.includes(displayName)) return;
+          txt = txt.replace(/\bBronze\b/gi, displayName);
+          txt = txt.replace(/\bWhite\b/gi, displayName);
+          txt = txt.replace(/to be defined/gi, displayName);
+          cell.textContent = txt;
         }
-      }
-
-      return result;
-    };
-  }
-
-  // Minimal hooks to update state when variety changes
-  // (non-overriding version - listen to input events)
-  function setupVarietyListeners() {
-    ["sire", "dam"].forEach(prefix => {
-      const input = document.getElementById(prefix + "VarietyInput");
-      if (!input) return;
-
-      // Update on change/blur (autocomplete usually triggers change)
-      input.addEventListener("change", () => {
-        updateBroadStateFromVariety(prefix);
-        if (broadState[prefix]) applyBroadOverlay(prefix);
       });
+    }
 
-      // Also on input for faster feedback
-      input.addEventListener("input", () => {
-        setTimeout(() => {
-          updateBroadStateFromVariety(prefix);
-          if (broadState[prefix]) applyBroadOverlay(prefix);
-        }, 100);
+    // Patch internal offspring arrays (for future transfers)
+    function patchArray(arr) {
+      if (!Array.isArray(arr)) return;
+      arr.forEach(o => {
+        if (o?.phenotype) {
+          o.phenotype = o.phenotype
+            .replace(/\bBronze\b/gi, displayName)
+            .replace(/\bWhite\b/gi, displayName)
+            .replace(/to be defined/gi, displayName);
+        }
+        if (o?.picturePath) {
+          const file = o.picturePath.split("/").pop()?.toLowerCase() || "";
+          if (file === "mbronze.jpg") o.picturePath = "https://portersturkeys.github.io/Pictures/" + data.male;
+          if (file === "fbronze.jpg") o.picturePath = "https://portersturkeys.github.io/Pictures/" + data.female;
+          if (file === "pbronze.jpg") o.poultImagePath = "https://portersturkeys.github.io/Pictures/" + data.poult;
+        }
       });
+    }
+    if (window.maleOffspring) patchArray(window.maleOffspring);
+    if (window.femaleOffspring) patchArray(window.femaleOffspring);
+
+    // Patch visible images
+    document.querySelectorAll("#maleOffspringResults img, #femaleOffspringResults img").forEach(img => {
+      const src = img.src || "";
+      const file = src.split("/").pop()?.toLowerCase() || "";
+      if (file === "mbronze.jpg") img.src = "https://portersturkeys.github.io/Pictures/" + data.male;
+      if (file === "fbronze.jpg") img.src = "https://portersturkeys.github.io/Pictures/" + data.female;
+      if (file === "pbronze.jpg") img.src = "https://portersturkeys.github.io/Pictures/" + data.poult;
     });
   }
 
-  // Reset patch - clear our state only
-  if (window.resetCalculator && !window._broadResetPatched) {
-    window._broadResetPatched = true;
-    const origReset = window.resetCalculator;
-    window.resetCalculator = function(...args) {
-      const res = origReset.apply(this, args);
-      broadState.sire = false;
-      broadState.dam = false;
-      ["sire", "dam"].forEach(p => {
-        const c = document.getElementById(p + "ImageContainer");
-        if (c) delete c.dataset.isBroad;
+  function installBroadOffspringObserver() {
+    let patching = false;
+    const targets = [
+      document.getElementById("maleOffspringResults"),
+      document.getElementById("femaleOffspringResults"),
+      document.getElementById("summaryChart")
+    ].filter(Boolean);
+
+    targets.forEach(target => {
+      const obs = new MutationObserver(() => {
+        if (patching) return;
+        patching = true;
+        setTimeout(() => {
+          applyBroadToOffspring();
+          patching = false;
+        }, 0);
       });
+      obs.observe(target, { childList: true, subtree: true });
+    });
+  }
+
+  // Wrap variety functions (same as Wild)
+  function wrapVarietyFn(fnName, prefix) {
+    const original = window[fnName];
+    if (typeof original !== "function") return;
+    window[fnName] = function () {
+      const res = original.apply(this, arguments);
+      const key = detectBroadFromVariety(prefix);
+      if (key) {
+        setTimeout(() => applyBroadToParent(prefix), 0);
+      } else {
+        const container = document.getElementById(prefix + "ImageContainer");
+        if (container) delete container.dataset.broadKey;
+        broadState[prefix] = null;
+      }
       return res;
     };
   }
 
-  // Init
-  window.addEventListener("load", () => {
-    setupVarietyListeners();
-
-    // Initial check on load (in case of favorites/pre-filled)
+  // Parent observers (re-apply on DOM changes)
+  function installObservers() {
     ["sire", "dam"].forEach(prefix => {
-      updateBroadStateFromVariety(prefix);
-      if (broadState[prefix]) applyBroadOverlay(prefix);
+      const container = document.getElementById(prefix + "ImageContainer");
+      if (!container) return;
+      const obs = new MutationObserver(() => {
+        setTimeout(() => applyBroadToParent(prefix), 0);
+      });
+      obs.observe(container, { childList: true, subtree: true });
     });
-  });
+  }
 
+  window.addEventListener("load", () => {
+    wrapVarietyFn("applyVarietyToSire", "sire");
+    wrapVarietyFn("applyVarietyToDam", "dam");
+
+    // Reset patch
+    if (typeof window.resetCalculator === "function") {
+      const originalReset = window.resetCalculator;
+      window.resetCalculator = function (initial) {
+        const result = originalReset.apply(this, arguments);
+        broadState.sire = null;
+        broadState.dam = null;
+        ["sire", "dam"].forEach(prefix => {
+          const container = document.getElementById(prefix + "ImageContainer");
+          if (container) delete container.dataset.broadKey;
+        });
+        return result;
+      };
+    }
+
+    installObservers();
+    installBroadOffspringObserver();
+
+    // Transfer patch — keep broad if both parents were broad (mirrors Wild logic)
+    if (typeof window.transferOffspringToParent === "function" && !window._broadTransferPatched) {
+      window._broadTransferPatched = true;
+      const originalTransfer = window.transferOffspringToParent;
+      window.transferOffspringToParent = function (genotype, parent) {
+        const result = originalTransfer.apply(this, arguments);
+        if (parent === "sire" || parent === "dam") {
+          const sireKey = broadState.sire;
+          const damKey = broadState.dam;
+          if (sireKey && damKey) {
+            // Both were broad → offspring was broad → new parent stays broad
+            const variantKey = sireKey;  // or damKey, or logic to prefer one
+            broadState[parent] = variantKey;
+            const container = document.getElementById(parent + "ImageContainer");
+            if (container) container.dataset.broadKey = variantKey;
+            setTimeout(() => applyBroadToParent(parent), 0);
+          } else {
+            broadState[parent] = null;
+            const container = document.getElementById(parent + "ImageContainer");
+            if (container) delete container.dataset.broadKey;
+          }
+        }
+        return result;
+      };
+    }
+  });
 })();
 
 
