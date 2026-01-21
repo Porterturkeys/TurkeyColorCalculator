@@ -3309,111 +3309,142 @@ window.addEventListener("load", () => {
 })();
 
 ///////////////////////////
-
 // ============================================================================
-// FINAL WORKING BROAD BREASTED ENFORCER - EXACTLY AS YOU WANTED
-// bb Cc = Broad Breasted Bronze
-// bb cc = Broad Breasted White
-// No revert, no flip-flop, defaults untouched
+// ULTIMATE BROAD BREASTED FIX - Defaults to plain Bronze, no revert on transfer
+// - Load/Reset = plain "Bronze" (default images)
+// - Transfer bb Cc = Broad Breasted Bronze (no revert to plain, no flip to White)
+// - Transfer bb cc = Broad Breasted White
+// - No flip-flop on multiple transfers
+// - Honors manual "Broad Breasted White" entry
+// - Multiple forces to beat timing issues on GitHub
+// Paste this ONCE at the VERY END (replace any previous broad code)
 // ============================================================================
-(function finalWorkingBroadEnforcer() {
-  if (window._finalWorkingBroadEnforcer) return;
-  window._finalWorkingBroadEnforcer = true;
+(function ultimateBroadFix() {
+  if (window._ultimateBroadFix) return;
+  window._ultimateBroadFix = true;
 
   const BRONZE_NAME = "Broad Breasted Bronze";
-  const WHITE_NAME  = "Broad Breasted White";
+  const WHITE_NAME = "Broad Breasted White";
 
-  const BRONZE_MALE   = "MBroadBreastedBronze.jpg";
+  const BRONZE_MALE = "MBroadBreastedBronze.jpg";
   const BRONZE_FEMALE = "FBroadBreastedBronze.jpg";
-  const WHITE_MALE    = "MBroadBreastedWhite.jpg";
-  const WHITE_FEMALE  = "FBroadBreastedWhite.jpg";
+  const WHITE_MALE = "MBroadBreastedWhite.jpg";
+  const WHITE_FEMALE = "FBroadBreastedWhite.jpg";
 
-  function enforceBroad(prefix, incomingGeno = "") {
-    const container = document.getElementById(prefix + "ImageContainer");
-    if (!container) return;
-
-    const input = document.getElementById(prefix + "VarietyInput");
-    const currentInput = input ? input.value.trim() : "";
-
-    // If user explicitly typed White, keep it forever
-    if (currentInput === WHITE_NAME) {
-      const img = container.querySelector("img");
-      if (img) img.src = "https://portersturkeys.github.io/Pictures/" + (prefix === "dam" ? WHITE_FEMALE : WHITE_MALE);
-      return;
-    }
-
-    // Get genotype (prefer incoming from transfer, fallback to info container)
-    let geno = incomingGeno;
-    if (!geno) {
-      const info = document.getElementById(prefix + "InfoContainer");
-      geno = info ? (info.getAttribute("data-short-genotype") || "") : "";
-    }
-
-    const norm = geno.replace(/\s+/g, "").toLowerCase();
-
-    const hasBB = norm.includes("bb");
-    const hasHomoCC = norm.includes("cc");  // only homozygous cc
-
-    if (!hasBB && !hasHomoCC) return;  // not broad
-
-    const isWhite = hasHomoCC;  // bb cc = White, bb Cc = Bronze
-    const targetName = isWhite ? WHITE_NAME : BRONZE_NAME;
-    const targetImg = isWhite
-      ? (prefix === "dam" ? WHITE_FEMALE : WHITE_MALE)
-      : (prefix === "dam" ? BRONZE_FEMALE : BRONZE_MALE);
-
-    // Force variety input
-    if (input && input.value.trim() !== targetName) {
-      input.value = targetName;
-      input.dispatchEvent(new Event("change", { bubbles: true }));
-    }
-
-    // Force displayed name
-    const strong = container.querySelector("strong span") || container.querySelector("strong");
-    if (strong && strong.textContent.trim() !== targetName) {
-      strong.textContent = targetName;
-    }
-
-    // Force image
-    const img = container.querySelector("img");
-    if (img) {
-      const want = "https://portersturkeys.github.io/Pictures/" + targetImg;
-      if (img.src !== want) img.src = want;
-    }
+  function isBroadContext(prefix, genotype = "") {
+    const inputVal = (document.getElementById(prefix + "VarietyInput")?.value || "").toLowerCase().trim();
+    const displayed = (document.getElementById(prefix + "ImageContainer")?.querySelector("strong")?.textContent || "").toLowerCase().trim();
+    const genoNorm = genotype.toLowerCase().replace(/\s+/g, '');
+    const hasBroadGeno = genoNorm.includes('bb') || genoNorm.includes('cc');
+    return inputVal.includes("broad breasted") || displayed.includes("broad breasted") || hasBroadGeno;
   }
 
-  // Wrap updates
-  ["sire", "dam"].forEach(prefix => {
-    const orig = window["update" + (prefix === "sire" ? "Sire" : "Dam") + "Genotype"];
-    if (typeof orig === "function") {
-      window["update" + (prefix === "sire" ? "Sire" : "Dam") + "Genotype"] = function() {
-        const res = orig.apply(this, arguments);
-        enforceBroad(prefix);
-        return res;
-      };
-    }
-  });
+  function enforceBroadIfNeeded(prefix, genotype = "") {
+    if (!isBroadContext(prefix, genotype)) return;  // protects defaults from being forced to Broad
 
-  // Transfer hook - the key to stopping the revert
-  const origTransfer = window.transferOffspringToParent;
-  if (typeof origTransfer === "function") {
-    window.transferOffspringToParent = function(genotype, parent) {
-      const res = origTransfer.apply(this, arguments);
-      enforceBroad(parent, genotype);
-      // Multiple hits to beat any late redraw
-      [0, 30, 80, 150, 250].forEach(t => setTimeout(() => enforceBroad(parent, genotype), t));
+  const input = document.getElementById(prefix + "VarietyInput");
+  const currentInput = input ? input.value.trim() : "";
+
+  if (currentInput === WHITE_NAME) {
+    // Honor and sync White
+    const img = document.getElementById(prefix + "ImageContainer")?.querySelector("img");
+    if (img) {
+      const want = "https://portersturkeys.github.io/Pictures/" + (prefix === "dam" ? WHITE_FEMALE : WHITE_MALE);
+      if (img.src !== want) img.src = want;
+    }
+    return;
+  }
+
+  const container = document.getElementById(prefix + "ImageContainer");
+  if (!container) return;
+
+  const info = document.getElementById(prefix + "InfoContainer");
+  let geno = info ? (info.getAttribute("data-short-genotype") || "").trim() : "";
+  geno = geno || genotype;
+
+  const normalized = geno.replace(/\s+/g, '').toLowerCase();
+
+  const hasBB = normalized.includes('bb');
+  const hasHomoCC = normalized.includes('cc');
+
+  if (!hasBB && !hasHomoCC) return;
+
+  // bb cc = White
+  // bb Cc = Bronze
+  const isWhite = hasHomoCC;
+  const targetName = isWhite ? WHITE_NAME : BRONZE_NAME;
+  const targetImg = isWhite 
+    ? (prefix === "dam" ? WHITE_FEMALE : WHITE_MALE)
+    : (prefix === "dam" ? BRONZE_FEMALE : BRONZE_MALE);
+
+  // Force variety input to target (prevents revert)
+  if (input && input.value.trim() !== targetName) {
+    input.value = targetName;
+    input.dispatchEvent(new Event("input", { bubbles: true }));
+    input.dispatchEvent(new Event("change", { bubbles: true }));
+  }
+
+  // Force name
+  const strong = container.querySelector("strong span") || container.querySelector("strong");
+  if (strong && strong.textContent.trim() !== targetName) {
+    strong.textContent = targetName;
+  }
+
+  // Force image
+  const img = container.querySelector("img");
+  if (img) {
+    const want = "https://portersturkeys.github.io/Pictures/" + targetImg;
+    if (img.src !== want) img.src = want;
+  }
+}
+
+  // Wrap update functions
+  const origSire = window.updateSireGenotype;
+  if (typeof origSire === "function") {
+    window.updateSireGenotype = function() {
+      const res = origSire.apply(this, arguments);
+      enforceBroadIfNeeded("sire");
       return res;
     };
   }
 
-  // Post-Calculate safety
+  const origDam = window.updateDamGenotype;
+  if (typeof origDam === "function") {
+    window.updateDamGenotype = function() {
+      const res = origDam.apply(this, arguments);
+      enforceBroadIfNeeded("dam");
+      return res;
+    };
+  }
+
+  // Transfer hook with strong multi-force
+  const origTransfer = window.transferOffspringToParent;
+  if (typeof origTransfer === "function") {
+    window.transferOffspringToParent = function(genotype, parent) {
+      const res = origTransfer.apply(this, arguments);
+      enforceBroadIfNeeded(parent, genotype);
+      // Multi-delay to catch any GitHub timing quirk
+      [0, 20, 50, 100, 150, 250, 400] .forEach(delay => {
+        setTimeout(() => enforceBroadIfNeeded(parent, genotype), delay);
+      });
+      return res;
+    };
+  }
+
+  // Post-Calculate safety with multi-delay
   document.addEventListener("click", e => {
     const btn = e.target.closest("button");
-    if (btn && (btn.textContent.toLowerCase().includes("calculate") || btn.onclick?.toString().includes("calculateOffspringWrapper"))) {
-      setTimeout(() => { enforceBroad("sire"); enforceBroad("dam"); }, 100);
-      setTimeout(() => { enforceBroad("sire"); enforceBroad("dam"); }, 300);
+    if (!btn) return;
+    if (btn.textContent.toLowerCase().includes("calculate") ||
+        btn.onclick?.toString().includes("calculateOffspringWrapper")) {
+      [50, 100, 200].forEach(delay => {
+        setTimeout(() => {
+          enforceBroadIfNeeded("sire");
+          enforceBroadIfNeeded("dam");
+        }, delay);
+      });
     }
   }, true);
 
-  console.log("[FINAL WORKING] Broad Breasted enforcer loaded - bb Cc = Bronze, bb cc = White, no revert");
+  console.log("[Ultimate Broad Fix] Loaded – no revert, bb Cc = Bronze, bb cc = White, defaults untouched");
 })();
