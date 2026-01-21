@@ -3309,15 +3309,17 @@ window.addEventListener("load", () => {
 })();
 
 ///////////////////////////
-
 // ============================================================================
-// SAFER BROAD ENFORCER - Only applies when Broad context is detected
-// Does NOT touch default Bronze on load/reset
-// Paste this ONCE at the VERY END (replace the previous full enforcer)
+// FINAL RESPECTFUL BROAD ENFORCER - Honors variety input first, then genotype
+// - If variety input is already "Broad Breasted White" or "Broad Breasted Bronze" → keep it
+// - Only force if variety is wrong or missing, and only in broad context
+// - cc = White priority only if no explicit variety set
+// - Does NOT touch default plain Bronze on load/reset
+// Paste this ONCE at the VERY END (replace any previous broad enforcer)
 // ============================================================================
-(function safeBroadEnforcer() {
-  if (window._safeBroadEnforcerInstalled) return;
-  window._safeBroadEnforcerInstalled = true;
+(function respectfulBroadEnforcer() {
+  if (window._respectfulBroadInstalled) return;
+  window._respectfulBroadInstalled = true;
 
   const BRONZE_NAME = "Broad Breasted Bronze";
   const WHITE_NAME  = "Broad Breasted White";
@@ -3327,40 +3329,51 @@ window.addEventListener("load", () => {
   const WHITE_MALE    = "MBroadBreastedWhite.jpg";
   const WHITE_FEMALE  = "FBroadBreastedWhite.jpg";
 
-  // Check if parent is in Broad context (variety input or displayed name has "broad breasted")
+  // Is this parent already in a broad state via variety or display?
   function isBroadContext(prefix) {
-    const input = document.getElementById(prefix + "VarietyInput");
-    const container = document.getElementById(prefix + "ImageContainer");
-    
-    const inputVal = (input?.value || "").toLowerCase().trim();
-    const displayed = (container?.querySelector("strong")?.textContent || "").toLowerCase().trim();
-
+    const inputVal = (document.getElementById(prefix + "VarietyInput")?.value || "").toLowerCase().trim();
+    const displayed = (document.getElementById(prefix + "ImageContainer")?.querySelector("strong")?.textContent || "").toLowerCase().trim();
     return inputVal.includes("broad breasted") || displayed.includes("broad breasted");
   }
 
-  // Determine correct broad display only if in broad context
-  function enforceBroadIfNeeded(prefix) {
-    if (!isBroadContext(prefix)) return;  // ← this line prevents default Bronze from being touched
+  // Get desired name from variety input if set, otherwise fall back to genotype
+  function getDesiredBroadName(prefix, geno) {
+    const input = document.getElementById(prefix + "VarietyInput");
+    const inputVal = input ? input.value.trim() : "";
+
+    // Honor explicit user choice first
+    if (inputVal === WHITE_NAME) return WHITE_NAME;
+    if (inputVal === BRONZE_NAME) return BRONZE_NAME;
+
+    // If no explicit variety, use genotype (cc priority)
+    geno = (geno || "").trim().toLowerCase();
+    const hasCC = /\bcc\b/.test(geno);
+    if (hasCC) return WHITE_NAME;
+
+    const hasBB = /\bbb\b/.test(geno);
+    if (hasBB) return BRONZE_NAME;
+
+    return null; // not broad
+  }
+
+  function enforceRespectfulBroad(prefix) {
+    if (!isBroadContext(prefix)) return;  // skip default Bronze cases
 
     const container = document.getElementById(prefix + "ImageContainer");
     if (!container) return;
 
     const info = document.getElementById(prefix + "InfoContainer");
-    const geno = info ? (info.getAttribute("data-short-genotype") || "").trim().toLowerCase() : "";
+    const geno = info ? (info.getAttribute("data-short-genotype") || "") : "";
 
-    const hasBB = /\bbb\b/.test(geno);
-    const hasCC = /\bcc\b/.test(geno);
+    const targetName = getDesiredBroadName(prefix, geno);
+    if (!targetName) return;
 
-    if (!hasBB && !hasCC) return;
-
-    // cc takes priority → White (including bb cc)
-    const isWhite = hasCC;
-    const targetName = isWhite ? WHITE_NAME : BRONZE_NAME;
+    const isWhite = targetName === WHITE_NAME;
     const targetImg = isWhite
       ? (prefix === "dam" ? WHITE_FEMALE : WHITE_MALE)
       : (prefix === "dam" ? BRONZE_FEMALE : BRONZE_MALE);
 
-    // Force variety input (only in broad context)
+    // Force variety input to match desired (prevents flip-flop)
     const input = document.getElementById(prefix + "VarietyInput");
     if (input && input.value.trim() !== targetName) {
       input.value = targetName;
@@ -3383,12 +3396,12 @@ window.addEventListener("load", () => {
     }
   }
 
-  // Wrap updates – but only enforce when broad context exists
+  // Wrap update functions
   const origSire = window.updateSireGenotype;
   if (typeof origSire === "function") {
     window.updateSireGenotype = function() {
       const res = origSire.apply(this, arguments);
-      enforceBroadIfNeeded("sire");
+      enforceRespectfulBroad("sire");
       return res;
     };
   }
@@ -3397,24 +3410,23 @@ window.addEventListener("load", () => {
   if (typeof origDam === "function") {
     window.updateDamGenotype = function() {
       const res = origDam.apply(this, arguments);
-      enforceBroadIfNeeded("dam");
+      enforceRespectfulBroad("dam");
       return res;
     };
   }
 
-  // Extra safety after Calculate (only if broad already present)
+  // Re-apply after Calculate (only if broad already set)
   document.addEventListener("click", e => {
     const btn = e.target.closest("button");
     if (!btn) return;
     if (btn.textContent.toLowerCase().includes("calculate") ||
         btn.onclick?.toString().includes("calculateOffspringWrapper")) {
-
       setTimeout(() => {
-        if (isBroadContext("sire")) enforceBroadIfNeeded("sire");
-        if (isBroadContext("dam"))  enforceBroadIfNeeded("dam");
+        if (isBroadContext("sire")) enforceRespectfulBroad("sire");
+        if (isBroadContext("dam")) enforceRespectfulBroad("dam");
       }, 150);
     }
   }, true);
 
-  console.log("[Safe Broad Enforcer] Active – only applies in Broad context, leaves default Bronze alone");
+  console.log("[Respectful Broad Enforcer] Active – respects variety input, only broad contexts");
 })();
