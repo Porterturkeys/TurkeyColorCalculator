@@ -1336,281 +1336,7 @@ document.addEventListener('click', function (event) {
     }
 });
 ////////////////////////////////////
-// ===========================================
-// BROAD BREASTED VARIANTS OVERLAY (parents + offspring)
-// ===========================================
-(function () {
-  'use strict';
 
-  const BROAD_VARIANTS = {
-    bronze: {
-      name: "Broad Breasted Bronze",
-      male: "MBroadBreastedBronze.jpg",
-      female: "FBroadBreastedBronze.jpg",
-      poult: "PBroadBreastedBronze.jpg"
-    },
-    white: {
-      name: "Broad Breasted White",
-      male: "MBroadBreastedWhite.jpg",
-      female: "FBroadBreastedWhite.jpg",
-      poult: "PBroadBreastedWhite.jpg"
-    }
-    // add more if needed, e.g. black, bourbon, etc.
-  };
-
-  const BROAD_VARIETY_MAP = {
-    "broad breasted bronze": "bronze",
-    "broad breasted white": "white",
-    "broad bronze": "bronze",
-    "broad white": "white",
-    "bb bronze": "bronze",
-    "bb white": "white",
-    "broad breasted": "bronze",  // fallback
-    "broad-breasted bronze": "bronze",
-    "broad-breasted white": "white"
-    // add any other common typos/variations users type
-  };
-
-  const broadState = {
-    sire: null,   // "bronze" | "white" | null
-    dam: null
-  };
-
-  function norm(str) {
-    return (str || "").trim().toLowerCase();
-  }
-
-  function detectBroadFromVariety(prefix) {
-    const input = document.getElementById(prefix + "VarietyInput");
-    const val = norm(input && input.value);
-    const key = BROAD_VARIETY_MAP[val] || null;
-    broadState[prefix] = key;
-
-    const container = document.getElementById(prefix + "ImageContainer");
-    if (container) {
-      if (key) {
-        container.dataset.broadKey = key;
-      } else {
-        delete container.dataset.broadKey;
-      }
-    }
-    return key;
-  }
-
-  function applyBroadToParent(prefix) {
-    const container = document.getElementById(prefix + "ImageContainer");
-    if (!container) return;
-
-    const key = container.dataset.broadKey || broadState[prefix];
-    if (!key) return;
-
-    const data = BROAD_VARIANTS[key];
-    if (!data) return;
-
-    // Optional: force bronze locus (like Wild forces bb)
-    // const bronzeId = prefix === "sire" ? "sireAlleleb" : "damAlleleb";
-    // const sel = document.getElementById(bronzeId);
-    // if (sel && sel.value !== "BB") { sel.value = "BB"; /* trigger update */ }
-
-    // Swap image
-    const img = container.querySelector("img");
-    if (img) {
-      img.src = "https://portersturkeys.github.io/Pictures/" + (prefix === "dam" ? data.female : data.male);
-    }
-
-    // Update phenotype name
-    const strong = container.querySelector("strong");
-    if (strong) {
-      const span = strong.querySelector("span");
-      if (span) span.textContent = data.name;
-    }
-
-    // Clean up any leftover "To Be Defined" or plain names
-    const info = document.getElementById(prefix + "InfoContainer");
-    if (info) {
-      info.querySelectorAll("span, div, strong").forEach(el => {
-        if (/to be defined|bronze|white/i.test(el.textContent)) {
-          el.textContent = data.name;
-        }
-      });
-    }
-  }
-
-  // ===========================================
-  // Broad offspring patching (when both parents broad)
-  // ===========================================
-  function applyBroadToOffspring() {
-    const sireKey = broadState.sire;
-    const damKey = broadState.dam;
-    if (!sireKey || !damKey) return;
-
-    // For BB × BB: use sire's type (or add merge logic later)
-    const variantKey = sireKey;  // or "bronze" if mixed
-    const data = BROAD_VARIANTS[variantKey];
-    if (!data) return;
-
-    const displayName = data.name;
-
-    // Patch text in offspring lists
-    document.querySelectorAll("#maleOffspringResults li, #femaleOffspringResults li").forEach(li => {
-      let html = li.innerHTML;
-      if (html.includes(displayName)) return;
-      html = html.replace(/\bBronze\b/gi, displayName);
-      html = html.replace(/\bWhite\b/gi, displayName);
-      html = html.replace(/To Be Defined/gi, displayName);
-      li.innerHTML = html;
-    });
-
-    // Patch summary chart text
-    const summaryBody = document.querySelector("#summaryChart tbody");
-    if (summaryBody) {
-      summaryBody.querySelectorAll("tr").forEach(tr => {
-        const cell = tr.cells?.[1];
-        if (cell) {
-          let txt = cell.textContent || "";
-          if (txt.includes(displayName)) return;
-          txt = txt.replace(/\bBronze\b/gi, displayName);
-          txt = txt.replace(/\bWhite\b/gi, displayName);
-          txt = txt.replace(/to be defined/gi, displayName);
-          cell.textContent = txt;
-        }
-      });
-    }
-
-    // Patch internal offspring arrays (for future transfers)
-    function patchArray(arr) {
-      if (!Array.isArray(arr)) return;
-      arr.forEach(o => {
-        if (o?.phenotype) {
-          o.phenotype = o.phenotype
-            .replace(/\bBronze\b/gi, displayName)
-            .replace(/\bWhite\b/gi, displayName)
-            .replace(/to be defined/gi, displayName);
-        }
-        if (o?.picturePath) {
-          const file = o.picturePath.split("/").pop()?.toLowerCase() || "";
-          if (file === "mbronze.jpg") o.picturePath = "https://portersturkeys.github.io/Pictures/" + data.male;
-          if (file === "fbronze.jpg") o.picturePath = "https://portersturkeys.github.io/Pictures/" + data.female;
-          if (file === "pbronze.jpg") o.poultImagePath = "https://portersturkeys.github.io/Pictures/" + data.poult;
-        }
-      });
-    }
-    if (window.maleOffspring) patchArray(window.maleOffspring);
-    if (window.femaleOffspring) patchArray(window.femaleOffspring);
-
-    // Patch visible images
-    document.querySelectorAll("#maleOffspringResults img, #femaleOffspringResults img").forEach(img => {
-      const src = img.src || "";
-      const file = src.split("/").pop()?.toLowerCase() || "";
-      if (file === "mbronze.jpg") img.src = "https://portersturkeys.github.io/Pictures/" + data.male;
-      if (file === "fbronze.jpg") img.src = "https://portersturkeys.github.io/Pictures/" + data.female;
-      if (file === "pbronze.jpg") img.src = "https://portersturkeys.github.io/Pictures/" + data.poult;
-    });
-  }
-
-  function installBroadOffspringObserver() {
-    let patching = false;
-    const targets = [
-      document.getElementById("maleOffspringResults"),
-      document.getElementById("femaleOffspringResults"),
-      document.getElementById("summaryChart")
-    ].filter(Boolean);
-
-    targets.forEach(target => {
-      const obs = new MutationObserver(() => {
-        if (patching) return;
-        patching = true;
-        setTimeout(() => {
-          applyBroadToOffspring();
-          patching = false;
-        }, 0);
-      });
-      obs.observe(target, { childList: true, subtree: true });
-    });
-  }
-
-  // Wrap variety functions (same as Wild)
-  function wrapVarietyFn(fnName, prefix) {
-    const original = window[fnName];
-    if (typeof original !== "function") return;
-    window[fnName] = function () {
-      const res = original.apply(this, arguments);
-      const key = detectBroadFromVariety(prefix);
-      if (key) {
-        setTimeout(() => applyBroadToParent(prefix), 0);
-      } else {
-        const container = document.getElementById(prefix + "ImageContainer");
-        if (container) delete container.dataset.broadKey;
-        broadState[prefix] = null;
-      }
-      return res;
-    };
-  }
-
-  // Parent observers (re-apply on DOM changes)
-  function installObservers() {
-    ["sire", "dam"].forEach(prefix => {
-      const container = document.getElementById(prefix + "ImageContainer");
-      if (!container) return;
-      const obs = new MutationObserver(() => {
-        setTimeout(() => applyBroadToParent(prefix), 0);
-      });
-      obs.observe(container, { childList: true, subtree: true });
-    });
-  }
-
-  window.addEventListener("load", () => {
-    wrapVarietyFn("applyVarietyToSire", "sire");
-    wrapVarietyFn("applyVarietyToDam", "dam");
-
-    // Reset patch
-    if (typeof window.resetCalculator === "function") {
-      const originalReset = window.resetCalculator;
-      window.resetCalculator = function (initial) {
-        const result = originalReset.apply(this, arguments);
-        broadState.sire = null;
-        broadState.dam = null;
-        ["sire", "dam"].forEach(prefix => {
-          const container = document.getElementById(prefix + "ImageContainer");
-          if (container) delete container.dataset.broadKey;
-        });
-        return result;
-      };
-    }
-
-    installObservers();
-    installBroadOffspringObserver();
-
-    // Transfer patch — keep broad if both parents were broad (mirrors Wild logic)
-    if (typeof window.transferOffspringToParent === "function" && !window._broadTransferPatched) {
-      window._broadTransferPatched = true;
-      const originalTransfer = window.transferOffspringToParent;
-      window.transferOffspringToParent = function (genotype, parent) {
-        const result = originalTransfer.apply(this, arguments);
-        if (parent === "sire" || parent === "dam") {
-          const sireKey = broadState.sire;
-          const damKey = broadState.dam;
-          if (sireKey && damKey) {
-            // Both were broad → offspring was broad → new parent stays broad
-            const variantKey = sireKey;  // or damKey, or logic to prefer one
-            broadState[parent] = variantKey;
-            const container = document.getElementById(parent + "ImageContainer");
-            if (container) container.dataset.broadKey = variantKey;
-            setTimeout(() => applyBroadToParent(parent), 0);
-          } else {
-            broadState[parent] = null;
-            const container = document.getElementById(parent + "ImageContainer");
-            if (container) delete container.dataset.broadKey;
-          }
-        }
-        return result;
-      };
-    }
-  });
-})();
-
-
-////////////////////////////////////////
 
 
 
@@ -2079,6 +1805,287 @@ window.addEventListener("load", () => {
 
 
 ////////////////////////////
+
+
+// ===========================================
+// BROAD BREASTED VARIANTS OVERLAY (parents + offspring)
+// ===========================================
+(function () {
+  'use strict';
+
+  const BROAD_VARIANTS = {
+    bronze: {
+      name: "Broad Breasted Bronze",
+      male: "MBroadBreastedBronze.jpg",
+      female: "FBroadBreastedBronze.jpg",
+      poult: "PBroadBreastedBronze.jpg"
+    },
+    white: {
+      name: "Broad Breasted White",
+      male: "MBroadBreastedWhite.jpg",
+      female: "FBroadBreastedWhite.jpg",
+      poult: "PBroadBreastedWhite.jpg"
+    }
+    // add more if needed, e.g. black, bourbon, etc.
+  };
+
+  const BROAD_VARIETY_MAP = {
+    "broad breasted bronze": "bronze",
+    "broad breasted white": "white",
+    "broad bronze": "bronze",
+    "broad white": "white",
+    "bb bronze": "bronze",
+    "bb white": "white",
+    "broad breasted": "bronze",  // fallback
+    "broad-breasted bronze": "bronze",
+    "broad-breasted white": "white"
+    // add any other common typos/variations users type
+  };
+
+  const broadState = {
+    sire: null,   // "bronze" | "white" | null
+    dam: null
+  };
+
+  function norm(str) {
+    return (str || "").trim().toLowerCase();
+  }
+
+  function detectBroadFromVariety(prefix) {
+    const input = document.getElementById(prefix + "VarietyInput");
+    const val = norm(input && input.value);
+    const key = BROAD_VARIETY_MAP[val] || null;
+    broadState[prefix] = key;
+
+    const container = document.getElementById(prefix + "ImageContainer");
+    if (container) {
+      if (key) {
+        container.dataset.broadKey = key;
+      } else {
+        delete container.dataset.broadKey;
+      }
+    }
+    return key;
+  }
+
+  function applyBroadToParent(prefix) {
+    const container = document.getElementById(prefix + "ImageContainer");
+    if (!container) return;
+
+    const key = container.dataset.broadKey || broadState[prefix];
+    if (!key) return;
+
+    const data = BROAD_VARIANTS[key];
+    if (!data) return;
+
+    // Optional: force bronze locus (like Wild forces bb)
+    // const bronzeId = prefix === "sire" ? "sireAlleleb" : "damAlleleb";
+    // const sel = document.getElementById(bronzeId);
+    // if (sel && sel.value !== "BB") { sel.value = "BB"; /* trigger update */ }
+
+    // Swap image
+    const img = container.querySelector("img");
+    if (img) {
+      img.src = "https://portersturkeys.github.io/Pictures/" + (prefix === "dam" ? data.female : data.male);
+    }
+
+    // Update phenotype name
+    const strong = container.querySelector("strong");
+    if (strong) {
+      const span = strong.querySelector("span");
+      if (span) span.textContent = data.name;
+    }
+
+    // Clean up any leftover "To Be Defined" or plain names
+    const info = document.getElementById(prefix + "InfoContainer");
+    if (info) {
+      info.querySelectorAll("span, div, strong").forEach(el => {
+        if (/to be defined|bronze|white/i.test(el.textContent)) {
+          el.textContent = data.name;
+        }
+      });
+    }
+  }
+
+  // ===========================================
+  // Broad offspring patching (when both parents broad)
+  // ===========================================
+  function applyBroadToOffspring() {
+    const sireKey = broadState.sire;
+    const damKey = broadState.dam;
+    if (!sireKey || !damKey) return;
+
+    // For BB × BB: use sire's type (or add merge logic later)
+    const variantKey = sireKey;  // or "bronze" if mixed
+    const data = BROAD_VARIANTS[variantKey];
+    if (!data) return;
+
+    const displayName = data.name;
+
+    // Patch text in offspring lists
+    document.querySelectorAll("#maleOffspringResults li, #femaleOffspringResults li").forEach(li => {
+      let html = li.innerHTML;
+      if (html.includes(displayName)) return;
+      html = html.replace(/\bBronze\b/gi, displayName);
+      html = html.replace(/\bWhite\b/gi, displayName);
+      html = html.replace(/To Be Defined/gi, displayName);
+      li.innerHTML = html;
+    });
+
+    // Patch summary chart text
+    const summaryBody = document.querySelector("#summaryChart tbody");
+    if (summaryBody) {
+      summaryBody.querySelectorAll("tr").forEach(tr => {
+        const cell = tr.cells?.[1];
+        if (cell) {
+          let txt = cell.textContent || "";
+          if (txt.includes(displayName)) return;
+          txt = txt.replace(/\bBronze\b/gi, displayName);
+          txt = txt.replace(/\bWhite\b/gi, displayName);
+          txt = txt.replace(/to be defined/gi, displayName);
+          cell.textContent = txt;
+        }
+      });
+    }
+
+    // Patch internal offspring arrays (for future transfers)
+    function patchArray(arr) {
+      if (!Array.isArray(arr)) return;
+      arr.forEach(o => {
+        if (o?.phenotype) {
+          o.phenotype = o.phenotype
+            .replace(/\bBronze\b/gi, displayName)
+            .replace(/\bWhite\b/gi, displayName)
+            .replace(/to be defined/gi, displayName);
+        }
+        if (o?.picturePath) {
+          const file = o.picturePath.split("/").pop()?.toLowerCase() || "";
+          if (file === "mbronze.jpg") o.picturePath = "https://portersturkeys.github.io/Pictures/" + data.male;
+          if (file === "fbronze.jpg") o.picturePath = "https://portersturkeys.github.io/Pictures/" + data.female;
+          if (file === "pbronze.jpg") o.poultImagePath = "https://portersturkeys.github.io/Pictures/" + data.poult;
+        }
+      });
+    }
+    if (window.maleOffspring) patchArray(window.maleOffspring);
+    if (window.femaleOffspring) patchArray(window.femaleOffspring);
+
+    // Patch visible images
+    document.querySelectorAll("#maleOffspringResults img, #femaleOffspringResults img").forEach(img => {
+      const src = img.src || "";
+      const file = src.split("/").pop()?.toLowerCase() || "";
+      if (file === "mbronze.jpg") img.src = "https://portersturkeys.github.io/Pictures/" + data.male;
+      if (file === "fbronze.jpg") img.src = "https://portersturkeys.github.io/Pictures/" + data.female;
+      if (file === "pbronze.jpg") img.src = "https://portersturkeys.github.io/Pictures/" + data.poult;
+    });
+  }
+
+  function installBroadOffspringObserver() {
+    let patching = false;
+    const targets = [
+      document.getElementById("maleOffspringResults"),
+      document.getElementById("femaleOffspringResults"),
+      document.getElementById("summaryChart")
+    ].filter(Boolean);
+
+    targets.forEach(target => {
+      const obs = new MutationObserver(() => {
+        if (patching) return;
+        patching = true;
+        setTimeout(() => {
+          applyBroadToOffspring();
+          patching = false;
+        }, 0);
+      });
+      obs.observe(target, { childList: true, subtree: true });
+    });
+  }
+
+  // Wrap variety functions (same as Wild)
+  function wrapVarietyFn(fnName, prefix) {
+    const original = window[fnName];
+    if (typeof original !== "function") return;
+    window[fnName] = function () {
+      const res = original.apply(this, arguments);
+      const key = detectBroadFromVariety(prefix);
+      if (key) {
+        setTimeout(() => applyBroadToParent(prefix), 0);
+      } else {
+        const container = document.getElementById(prefix + "ImageContainer");
+        if (container) delete container.dataset.broadKey;
+        broadState[prefix] = null;
+      }
+      return res;
+    };
+  }
+
+  // Parent observers (re-apply on DOM changes)
+  function installObservers() {
+    ["sire", "dam"].forEach(prefix => {
+      const container = document.getElementById(prefix + "ImageContainer");
+      if (!container) return;
+      const obs = new MutationObserver(() => {
+        setTimeout(() => applyBroadToParent(prefix), 0);
+      });
+      obs.observe(container, { childList: true, subtree: true });
+    });
+  }
+
+  window.addEventListener("load", () => {
+    wrapVarietyFn("applyVarietyToSire", "sire");
+    wrapVarietyFn("applyVarietyToDam", "dam");
+
+    // Reset patch
+    if (typeof window.resetCalculator === "function") {
+      const originalReset = window.resetCalculator;
+      window.resetCalculator = function (initial) {
+        const result = originalReset.apply(this, arguments);
+        broadState.sire = null;
+        broadState.dam = null;
+        ["sire", "dam"].forEach(prefix => {
+          const container = document.getElementById(prefix + "ImageContainer");
+          if (container) delete container.dataset.broadKey;
+        });
+        return result;
+      };
+    }
+
+    installObservers();
+    installBroadOffspringObserver();
+
+    // Transfer patch — keep broad if both parents were broad (mirrors Wild logic)
+    if (typeof window.transferOffspringToParent === "function" && !window._broadTransferPatched) {
+      window._broadTransferPatched = true;
+      const originalTransfer = window.transferOffspringToParent;
+      window.transferOffspringToParent = function (genotype, parent) {
+        const result = originalTransfer.apply(this, arguments);
+        if (parent === "sire" || parent === "dam") {
+          const sireKey = broadState.sire;
+          const damKey = broadState.dam;
+          if (sireKey && damKey) {
+            // Both were broad → offspring was broad → new parent stays broad
+            const variantKey = sireKey;  // or damKey, or logic to prefer one
+            broadState[parent] = variantKey;
+            const container = document.getElementById(parent + "ImageContainer");
+            if (container) container.dataset.broadKey = variantKey;
+            setTimeout(() => applyBroadToParent(parent), 0);
+          } else {
+            broadState[parent] = null;
+            const container = document.getElementById(parent + "ImageContainer");
+            if (container) delete container.dataset.broadKey;
+          }
+        }
+        return result;
+      };
+    }
+  });
+})();
+
+
+////////////////////////////////////////
+
+
+
+
     
     // Hook variety + reset
     window.addEventListener("load", () => {
