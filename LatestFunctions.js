@@ -3309,19 +3309,16 @@ window.addEventListener("load", () => {
 })();
 
 ///////////////////////////
-
 // ============================================================================
-// FIXED BROAD PROTECTOR - Corrected for bb Cc = Bronze, bb cc = White
-// - bb Cc / bb CC = Broad Breasted Bronze
-// - bb cc = Broad Breasted White
-// - cc without bb = Broad Breasted White
-// - Honors explicit "Broad Breasted White" entry (no flip to Bronze)
-// - Skips plain/default "Bronze" on load/reset
-// - Added direct transfer hook to prevent revert
+// FIXED BROAD PROTECTOR v3 - Correct detection for homozygous cc only
+// bb Cc / bb CC = Broad Breasted Bronze
+// bb cc = Broad Breasted White
+// cc without bb = Broad Breasted White
+// Honors explicit White, skips defaults
 // ============================================================================
-(function fixedBroadProtector() {
-  if (window._fixedBroadProtector) return;
-  window._fixedBroadProtector = true;
+(function fixedBroadProtectorV3() {
+  if (window._fixedBroadProtectorV3) return;
+  window._fixedBroadProtectorV3 = true;
 
   const BRONZE_NAME = "Broad Breasted Bronze";
   const WHITE_NAME = "Broad Breasted White";
@@ -3358,22 +3355,25 @@ window.addEventListener("load", () => {
     const info = document.getElementById(prefix + "InfoContainer");
     const geno = info ? (info.getAttribute("data-short-genotype") || "").trim() : "";
 
-    const hasBB = /\bbb\b/.test(geno);
-    const hasCC = /\bcc\b/.test(geno);
+    // Normalize genotype for matching (remove spaces, make lowercase)
+    const normalizedGeno = geno.replace(/\s+/g, '').toLowerCase();
 
-    if (!hasBB && !hasCC) return;
+    const hasBB = normalizedGeno.includes('bb');
+    const hasHomoCC = normalizedGeno.includes('cc');
 
-    // bb cc = White
-    // bb Cc / bb CC = Bronze
-    // cc without bb = White
-    const isWhite = hasCC;
+    if (!hasBB && !hasHomoCC) return;
+
+    // Only homozygous cc → White
+    // bb with heterozygous Cc → Bronze
+    // bb cc → White (homozygous cc)
+    const isWhite = hasHomoCC;
     const targetName = isWhite ? WHITE_NAME : BRONZE_NAME;
     const targetImg = isWhite 
       ? (prefix === "dam" ? WHITE_FEMALE : WHITE_MALE)
       : (prefix === "dam" ? BRONZE_FEMALE : BRONZE_MALE);
 
-    // Set variety if needed
-    if (input && input.value.trim() !== targetName) {
+    // Set variety if needed (but don't override explicit White)
+    if (input && currentInput !== WHITE_NAME && currentInput !== BRONZE_NAME && currentInput !== targetName) {
       input.value = targetName;
       input.dispatchEvent(new Event("change", { bubbles: true }));
     }
@@ -3435,6 +3435,6 @@ window.addEventListener("load", () => {
     }
   }, true);
 
-  console.log("[Fixed Broad Protector v2] Loaded – bb Cc = Bronze, bb cc = White");
+  console.log("[Fixed Broad Protector v3] Loaded – bb Cc = Bronze, bb cc = White");
 })();
 
