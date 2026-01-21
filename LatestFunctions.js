@@ -3308,148 +3308,117 @@ window.addEventListener("load", () => {
 
 })();
 
-////////////////
-// Emergency symmetry enforcer – force broad name/image on every genotype update
-// Put this at the VERY END of your script
-window.addEventListener('load', () => {
-  // Store originals only if they exist
-  const originalUpdateSire = window.updateSireGenotype;
-  const originalUpdateDam  = window.updateDamGenotype;
+// ============================================================================
+// FINAL BROAD BREASTED ENFORCER - Covers bb (Bronze) + cc (White priority)
+// Handles transfers, Calculate, both parents, and offspring consistency
+// Paste this ONCE at the VERY END of your script
+// ============================================================================
+(function broadBreastedFullEnforcer() {
+  if (window._broadFullEnforcerInstalled) return;
+  window._broadFullEnforcerInstalled = true;
 
-  if (typeof originalUpdateSire === 'function') {
-    window.updateSireGenotype = function() {
-      const res = originalUpdateSire.apply(this, arguments);
-      
-      // Check if this parent has bb (broad bronze case)
-      const sireInfo = document.getElementById('sireInfoContainer');
-      const geno = sireInfo ? (sireInfo.getAttribute('data-short-genotype') || '') : '';
-      if (geno.includes('bb')) {
-        const container = document.getElementById('sireImageContainer');
-        if (container) {
-          // Force name
-          const strong = container.querySelector('strong span') || container.querySelector('strong');
-          if (strong && !strong.textContent.includes('Broad Breasted')) {
-            strong.textContent = 'Broad Breasted Bronze';
-          }
-          // Force image
-          const img = container.querySelector('img');
-          if (img) {
-            const want = 'https://portersturkeys.github.io/Pictures/MBroadBreastedBronze.jpg';
-            if (img.src !== want) {
-              img.src = want;
-            }
-          }
-        }
-      }
-      return res;
-    };
+  const BRONZE_NAME = "Broad Breasted Bronze";
+  const WHITE_NAME  = "Broad Breasted White";
+
+  const BRONZE_MALE   = "MBroadBreastedBronze.jpg";
+  const BRONZE_FEMALE = "FBroadBreastedBronze.jpg";
+  const WHITE_MALE    = "MBroadBreastedWhite.jpg";
+  const WHITE_FEMALE  = "FBroadBreastedWhite.jpg";
+
+  // Helper: determine correct broad display from short genotype
+  function getBroadDisplay(geno) {
+    geno = (geno || "").trim().toLowerCase();
+    const hasBB = /\bbb\b/.test(geno);
+    const hasCC = /\bcc\b/.test(geno);
+
+    if (!hasBB && !hasCC) return null; // not broad
+
+    // cc takes priority → White (including bb cc cases)
+    if (hasCC) {
+      return { name: WHITE_NAME };
+    }
+    // otherwise bb → Bronze
+    return { name: BRONZE_NAME };
   }
 
-  if (typeof originalUpdateDam === 'function') {
-    window.updateDamGenotype = function() {
-      const res = originalUpdateDam.apply(this, arguments);
-      
-      // Same check for dam
-      const damInfo = document.getElementById('damInfoContainer');
-      const geno = damInfo ? (damInfo.getAttribute('data-short-genotype') || '') : '';
-      if (geno.includes('bb')) {
-        const container = document.getElementById('damImageContainer');
-        if (container) {
-          // Force name
-          const strong = container.querySelector('strong span') || container.querySelector('strong');
-          if (strong && !strong.textContent.includes('Broad Breasted')) {
-            strong.textContent = 'Broad Breasted Bronze';
-          }
-          // Force image
-          const img = container.querySelector('img');
-          if (img) {
-            const want = 'https://portersturkeys.github.io/Pictures/FBroadBreastedBronze.jpg';
-            if (img.src !== want) {
-              img.src = want;
-            }
-          }
-        }
-      }
-      return res;
-    };
-  }
+  // Force name + image on a specific parent container
+  function enforceBroadOnContainer(prefix) {
+    const container = document.getElementById(prefix + "ImageContainer");
+    if (!container) return;
 
-  // Optional: one-time log to confirm wrapping happened
-  console.log('[Broad Fix] Wrapped updateSireGenotype and updateDamGenotype');
-});
+    const info = document.getElementById(prefix + "InfoContainer");
+    const geno = info ? (info.getAttribute("data-short-genotype") || "") : "";
 
-////////////////////////
-// Preserve Broad Breasted variety during full Calculate
-// Add this at the VERY END, after the symmetry enforcer
-(function preserveBroadVarietyOnCalculate() {
-  if (window._preserveBroadOnCalcInstalled) return;
-  window._preserveBroadOnCalcInstalled = true;
+    const display = getBroadDisplay(geno);
+    if (!display) return;
 
-  const broadNames = ["Broad Breasted Bronze", "Broad Breasted White"];
+    const isDam = prefix === "dam";
+    const targetName = display.name;
+    const targetImg = (display.name === WHITE_NAME)
+      ? (isDam ? WHITE_FEMALE : WHITE_MALE)
+      : (isDam ? BRONZE_FEMALE : BRONZE_MALE);
 
-  function getBroadVariety(prefix) {
+    // Force variety input (helps renderer + persistence)
     const input = document.getElementById(prefix + "VarietyInput");
-    const val = input?.value?.trim() || "";
-    return broadNames.includes(val) ? val : "";
+    if (input && input.value.trim() !== targetName) {
+      input.value = targetName;
+      input.dispatchEvent(new Event("change", { bubbles: true }));
+    }
+
+    // Force displayed name
+    const strong = container.querySelector("strong span") || container.querySelector("strong");
+    if (strong && strong.textContent.trim() !== targetName) {
+      strong.textContent = targetName;
+    }
+
+    // Force image
+    const img = container.querySelector("img");
+    if (img) {
+      const want = "https://portersturkeys.github.io/Pictures/" + targetImg;
+      if (img.src !== want) {
+        img.src = want;
+      }
+    }
   }
 
-  let pendingRestore = { sire: "", dam: "" };
+  // Wrap both update functions (runs after every genotype refresh / calculate / transfer)
+  const origSire = window.updateSireGenotype;
+  if (typeof origSire === "function") {
+    window.updateSireGenotype = function() {
+      const res = origSire.apply(this, arguments);
+      enforceBroadOnContainer("sire");
+      return res;
+    };
+  }
 
-  // Hook the Calculate button click
-  document.addEventListener('click', function(e) {
-    const btn = e.target.closest('button');
+  const origDam = window.updateDamGenotype;
+  if (typeof origDam === "function") {
+    window.updateDamGenotype = function() {
+      const res = origDam.apply(this, arguments);
+      enforceBroadOnContainer("dam");
+      return res;
+    };
+  }
+
+  // Extra protection: when Calculate finishes → re-apply to both parents
+  document.addEventListener("click", e => {
+    const btn = e.target.closest("button");
     if (!btn) return;
-    if (btn.textContent.toLowerCase().includes('calculate') || 
-        btn.onclick?.toString().includes('calculateOffspringWrapper')) {
-      
-      // Snapshot current broad varieties BEFORE calculate runs
-      pendingRestore.sire = getBroadVariety("sire");
-      pendingRestore.dam  = getBroadVariety("dam");
+    if (btn.textContent.toLowerCase().includes("calculate") ||
+        btn.onclick?.toString().includes("calculateOffspringWrapper")) {
 
-      if (!pendingRestore.sire && !pendingRestore.dam) return;
+      // Give DOM a moment to settle after calculate
+      setTimeout(() => {
+        enforceBroadOnContainer("sire");
+        enforceBroadOnContainer("dam");
+      }, 150);
 
-      console.log('[Broad Preserve] Detected Calculate – saving:', pendingRestore);
-
-      // Watch summary/results for changes (means calculate finished)
-      const targets = [
-        document.getElementById('summaryChart'),
-        document.getElementById('maleOffspringResults'),
-        document.getElementById('femaleOffspringResults')
-      ].filter(Boolean);
-
-      if (!targets.length) return;
-
-      const observer = new MutationObserver(() => {
-        // Restore after DOM updates
-        ["sire", "dam"].forEach(prefix => {
-          const saved = pendingRestore[prefix];
-          if (!saved) return;
-
-          const input = document.getElementById(prefix + "VarietyInput");
-          if (input && input.value.trim() !== saved) {
-            console.log('[Broad Preserve] Restoring', prefix, '→', saved);
-            input.value = saved;
-            input.dispatchEvent(new Event('change', { bubbles: true }));
-          }
-        });
-
-        // One extra delayed restore in case of chained updates
-        setTimeout(() => {
-          ["sire", "dam"].forEach(prefix => {
-            const saved = pendingRestore[prefix];
-            if (saved) {
-              const input = document.getElementById(prefix + "VarietyInput");
-              if (input) input.value = saved;
-            }
-          });
-        }, 200);
-
-        // Clean up observer after restore
-        observer.disconnect();
-      });
-
-      targets.forEach(t => observer.observe(t, { childList: true, subtree: true, characterData: true }));
+      setTimeout(() => {
+        enforceBroadOnContainer("sire");
+        enforceBroadOnContainer("dam");
+      }, 400);
     }
   }, true);
-})();
 
+  console.log("[Broad Final] Enforcer active – bb = Bronze, cc = White (cc priority)");
+})();
