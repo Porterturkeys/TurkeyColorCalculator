@@ -3304,6 +3304,80 @@ window.addEventListener("load", () => {
     // First pass after load
     scheduleEnforce();
   });
-    
+
 
 })();
+
+
+// Emergency symmetry enforcer – force broad name/image on every genotype update
+// Put this at the VERY END of your script
+window.addEventListener('load', () => {
+  // Store originals only if they exist
+  const originalUpdateSire = window.updateSireGenotype;
+  const originalUpdateDam  = window.updateDamGenotype;
+
+  if (typeof originalUpdateSire === 'function') {
+    window.updateSireGenotype = function() {
+      const res = originalUpdateSire.apply(this, arguments);
+      
+      // Check if this parent has bb (broad bronze case)
+      const sireInfo = document.getElementById('sireInfoContainer');
+      const geno = sireInfo ? (sireInfo.getAttribute('data-short-genotype') || '') : '';
+      if (geno.includes('bb')) {
+        const container = document.getElementById('sireImageContainer');
+        if (container) {
+          // Force name
+          const strong = container.querySelector('strong span') || container.querySelector('strong');
+          if (strong && !strong.textContent.includes('Broad Breasted')) {
+            strong.textContent = 'Broad Breasted Bronze';
+          }
+          // Force image
+          const img = container.querySelector('img');
+          if (img) {
+            const want = 'https://portersturkeys.github.io/Pictures/MBroadBreastedBronze.jpg';
+            if (img.src !== want) {
+              img.src = want;
+            }
+          }
+        }
+      }
+      return res;
+    };
+  }
+
+  if (typeof originalUpdateDam === 'function') {
+    window.updateDamGenotype = function() {
+      const res = originalUpdateDam.apply(this, arguments);
+      
+      // Same check for dam
+      const damInfo = document.getElementById('damInfoContainer');
+      const geno = damInfo ? (damInfo.getAttribute('data-short-genotype') || '') : '';
+      if (geno.includes('bb')) {
+        const container = document.getElementById('damImageContainer');
+        if (container) {
+          // Force name
+          const strong = container.querySelector('strong span') || container.querySelector('strong');
+          if (strong && !strong.textContent.includes('Broad Breasted')) {
+            strong.textContent = 'Broad Breasted Bronze';
+          }
+          // Force image
+          const img = container.querySelector('img');
+          if (img) {
+            const want = 'https://portersturkeys.github.io/Pictures/FBroadBreastedBronze.jpg';
+            if (img.src !== want) {
+              img.src = want;
+            }
+          }
+        }
+      }
+      return res;
+    };
+  }
+
+  // Optional: one-time log to confirm wrapping happened
+  console.log('[Broad Fix] Wrapped updateSireGenotype and updateDamGenotype');
+});
+
+
+
+
