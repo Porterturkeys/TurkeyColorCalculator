@@ -3309,17 +3309,17 @@ window.addEventListener("load", () => {
 })();
 
 ///////////////////////////
+
 // ============================================================================
-// FINAL RESPECTFUL BROAD ENFORCER - Honors variety input first, then genotype
-// - If variety input is already "Broad Breasted White" or "Broad Breasted Bronze" → keep it
-// - Only force if variety is wrong or missing, and only in broad context
-// - cc = White priority only if no explicit variety set
-// - Does NOT touch default plain Bronze on load/reset
-// Paste this ONCE at the VERY END (replace any previous broad enforcer)
+// ULTRA-RESPECTFUL BROAD ENFORCER v4 - ONLY touches when Broad is already indicated
+// - Honors "Broad Breasted White" explicitly entered or set
+// - Does NOT force Bronze over White
+// - Does NOT touch plain "Bronze" on load/reset/default
+// Paste this ONCE at the VERY END
 // ============================================================================
-(function respectfulBroadEnforcer() {
-  if (window._respectfulBroadInstalled) return;
-  window._respectfulBroadInstalled = true;
+(function ultraRespectfulBroadEnforcer() {
+  if (window._ultraRespectfulBroadInstalled) return;
+  window._ultraRespectfulBroadInstalled = true;
 
   const BRONZE_NAME = "Broad Breasted Bronze";
   const WHITE_NAME  = "Broad Breasted White";
@@ -3329,79 +3329,83 @@ window.addEventListener("load", () => {
   const WHITE_MALE    = "MBroadBreastedWhite.jpg";
   const WHITE_FEMALE  = "FBroadBreastedWhite.jpg";
 
-  // Is this parent already in a broad state via variety or display?
   function isBroadContext(prefix) {
     const inputVal = (document.getElementById(prefix + "VarietyInput")?.value || "").toLowerCase().trim();
     const displayed = (document.getElementById(prefix + "ImageContainer")?.querySelector("strong")?.textContent || "").toLowerCase().trim();
     return inputVal.includes("broad breasted") || displayed.includes("broad breasted");
   }
 
-  // Get desired name from variety input if set, otherwise fall back to genotype
-  function getDesiredBroadName(prefix, geno) {
+  function enforceOnlyIfBroadNeeded(prefix) {
+    if (!isBroadContext(prefix)) return;  // skip plain Bronze / defaults
+
     const input = document.getElementById(prefix + "VarietyInput");
-    const inputVal = input ? input.value.trim() : "";
+    const currentInput = input ? input.value.trim() : "";
 
-    // Honor explicit user choice first
-    if (inputVal === WHITE_NAME) return WHITE_NAME;
-    if (inputVal === BRONZE_NAME) return BRONZE_NAME;
+    // Honor explicit White selection first — do NOT override it
+    if (currentInput === WHITE_NAME) {
+      // Just make sure image matches White
+      const img = document.getElementById(prefix + "ImageContainer")?.querySelector("img");
+      if (img) {
+        const isDam = prefix === "dam";
+        const want = "https://portersturkeys.github.io/Pictures/" + (isDam ? WHITE_FEMALE : WHITE_MALE);
+        if (img.src !== want) img.src = want;
+      }
+      return;
+    }
 
-    // If no explicit variety, use genotype (cc priority)
-    geno = (geno || "").trim().toLowerCase();
-    const hasCC = /\bcc\b/.test(geno);
-    if (hasCC) return WHITE_NAME;
+    // If Bronze is set, keep it
+    if (currentInput === BRONZE_NAME) {
+      const img = document.getElementById(prefix + "ImageContainer")?.querySelector("img");
+      if (img) {
+        const isDam = prefix === "dam";
+        const want = "https://portersturkeys.github.io/Pictures/" + (isDam ? BRONZE_FEMALE : BRONZE_MALE);
+        if (img.src !== want) img.src = want;
+      }
+      return;
+    }
 
-    const hasBB = /\bbb\b/.test(geno);
-    if (hasBB) return BRONZE_NAME;
-
-    return null; // not broad
-  }
-
-  function enforceRespectfulBroad(prefix) {
-    if (!isBroadContext(prefix)) return;  // skip default Bronze cases
-
-    const container = document.getElementById(prefix + "ImageContainer");
-    if (!container) return;
-
+    // Fallback only if variety is empty/missing but broad context exists
     const info = document.getElementById(prefix + "InfoContainer");
-    const geno = info ? (info.getAttribute("data-short-genotype") || "") : "";
+    const geno = info ? (info.getAttribute("data-short-genotype") || "").trim().toLowerCase() : "";
 
-    const targetName = getDesiredBroadName(prefix, geno);
-    if (!targetName) return;
+    const hasCC = /\bcc\b/.test(geno);
+    const hasBB = /\bbb\b/.test(geno);
 
-    const isWhite = targetName === WHITE_NAME;
+    if (!hasBB && !hasCC) return;
+
+    const isWhite = hasCC;  // cc priority
+    const targetName = isWhite ? WHITE_NAME : BRONZE_NAME;
     const targetImg = isWhite
       ? (prefix === "dam" ? WHITE_FEMALE : WHITE_MALE)
       : (prefix === "dam" ? BRONZE_FEMALE : BRONZE_MALE);
 
-    // Force variety input to match desired (prevents flip-flop)
-    const input = document.getElementById(prefix + "VarietyInput");
-    if (input && input.value.trim() !== targetName) {
+    // Set variety input if missing
+    if (input && !currentInput) {
       input.value = targetName;
       input.dispatchEvent(new Event("change", { bubbles: true }));
     }
 
-    // Force displayed name
-    const strong = container.querySelector("strong span") || container.querySelector("strong");
+    // Force name only if wrong
+    const container = document.getElementById(prefix + "ImageContainer");
+    const strong = container?.querySelector("strong span") || container?.querySelector("strong");
     if (strong && strong.textContent.trim() !== targetName) {
       strong.textContent = targetName;
     }
 
     // Force image
-    const img = container.querySelector("img");
+    const img = container?.querySelector("img");
     if (img) {
       const want = "https://portersturkeys.github.io/Pictures/" + targetImg;
-      if (img.src !== want) {
-        img.src = want;
-      }
+      if (img.src !== want) img.src = want;
     }
   }
 
-  // Wrap update functions
+  // Wrap updates
   const origSire = window.updateSireGenotype;
   if (typeof origSire === "function") {
     window.updateSireGenotype = function() {
       const res = origSire.apply(this, arguments);
-      enforceRespectfulBroad("sire");
+      enforceOnlyIfBroadNeeded("sire");
       return res;
     };
   }
@@ -3410,23 +3414,23 @@ window.addEventListener("load", () => {
   if (typeof origDam === "function") {
     window.updateDamGenotype = function() {
       const res = origDam.apply(this, arguments);
-      enforceRespectfulBroad("dam");
+      enforceOnlyIfBroadNeeded("dam");
       return res;
     };
   }
 
-  // Re-apply after Calculate (only if broad already set)
+  // Light post-Calculate check (only if broad already present)
   document.addEventListener("click", e => {
     const btn = e.target.closest("button");
     if (!btn) return;
     if (btn.textContent.toLowerCase().includes("calculate") ||
         btn.onclick?.toString().includes("calculateOffspringWrapper")) {
       setTimeout(() => {
-        if (isBroadContext("sire")) enforceRespectfulBroad("sire");
-        if (isBroadContext("dam")) enforceRespectfulBroad("dam");
-      }, 150);
+        if (isBroadContext("sire")) enforceOnlyIfBroadNeeded("sire");
+        if (isBroadContext("dam"))  enforceOnlyIfBroadNeeded("dam");
+      }, 100);
     }
   }, true);
 
-  console.log("[Respectful Broad Enforcer] Active – respects variety input, only broad contexts");
+  console.log("[Ultra Respectful Broad Enforcer] Active – prioritizes explicit White, skips defaults");
 })();
