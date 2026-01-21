@@ -3311,46 +3311,74 @@ window.addEventListener("load", () => {
 ///////////////////////////
 
 // ============================================================================
-// MINIMAL BROAD PROTECTOR - Only active when broad variety is already set
-// bb = Broad Bronze (including bb Cc)
-// bb cc = Broad White
-// Does NOT touch plain Bronze defaults
+// FIXED BROAD PROTECTOR - Corrected for bb Cc = Bronze, bb cc = White
+// - bb Cc / bb CC = Broad Breasted Bronze
+// - bb cc = Broad Breasted White
+// - cc without bb = Broad Breasted White
+// - Honors explicit "Broad Breasted White" entry (no flip to Bronze)
+// - Skips plain/default "Bronze" on load/reset
+// - Added direct transfer hook to prevent revert
 // ============================================================================
-(function minimalBroadProtector() {
-  if (window._minimalBroadProtector) return;
-  window._minimalBroadProtector = true;
+(function fixedBroadProtector() {
+  if (window._fixedBroadProtector) return;
+  window._fixedBroadProtector = true;
+
+  const BRONZE_NAME = "Broad Breasted Bronze";
+  const WHITE_NAME = "Broad Breasted White";
+
+  const BRONZE_MALE = "MBroadBreastedBronze.jpg";
+  const BRONZE_FEMALE = "FBroadBreastedBronze.jpg";
+  const WHITE_MALE = "MBroadBreastedWhite.jpg";
+  const WHITE_FEMALE = "FBroadBreastedWhite.jpg";
+
+  function isBroadContext(prefix) {
+    const inputVal = (document.getElementById(prefix + "VarietyInput")?.value || "").toLowerCase().trim();
+    const displayed = (document.getElementById(prefix + "ImageContainer")?.querySelector("strong")?.textContent || "").toLowerCase().trim();
+    return inputVal.includes("broad breasted") || displayed.includes("broad breasted");
+  }
 
   function enforceBroadIfNeeded(prefix) {
-    const input = document.getElementById(prefix + "VarietyInput");
-    if (!input) return;
+    if (!isBroadContext(prefix)) return;
 
-    const variety = input.value.trim();
-    if (!variety.includes("Broad Breasted")) return;  // skip defaults
+    const input = document.getElementById(prefix + "VarietyInput");
+    const currentInput = input ? input.value.trim() : "";
+
+    if (currentInput === WHITE_NAME) {
+      const img = document.getElementById(prefix + "ImageContainer")?.querySelector("img");
+      if (img) {
+        const want = "https://portersturkeys.github.io/Pictures/" + (prefix === "dam" ? WHITE_FEMALE : WHITE_MALE);
+        if (img.src !== want) img.src = want;
+      }
+      return;
+    }
 
     const container = document.getElementById(prefix + "ImageContainer");
     if (!container) return;
 
     const info = document.getElementById(prefix + "InfoContainer");
-    const geno = (info?.getAttribute("data-short-genotype") || "").trim().toLowerCase();
+    const geno = info ? (info.getAttribute("data-short-genotype") || "").trim() : "";
 
     const hasBB = /\bbb\b/.test(geno);
     const hasCC = /\bcc\b/.test(geno);
 
     if (!hasBB && !hasCC) return;
 
-    // bb cc → White
-    // bb with C (Cc or CC) → Bronze
-    const targetName = (hasCC && hasBB) ? "Broad Breasted White" : "Broad Breasted Bronze";
-    const isWhite = targetName === "Broad Breasted White";
+    // bb cc = White
+    // bb Cc / bb CC = Bronze
+    // cc without bb = White
+    const isWhite = hasCC;
+    const targetName = isWhite ? WHITE_NAME : BRONZE_NAME;
+    const targetImg = isWhite 
+      ? (prefix === "dam" ? WHITE_FEMALE : WHITE_MALE)
+      : (prefix === "dam" ? BRONZE_FEMALE : BRONZE_MALE);
 
-    const targetImg = isWhite
-      ? (prefix === "dam" ? "FBroadBreastedWhite.jpg" : "MBroadBreastedWhite.jpg")
-      : (prefix === "dam" ? "FBroadBreastedBronze.jpg" : "MBroadBreastedBronze.jpg");
+    // Set variety if needed
+    if (input && input.value.trim() !== targetName) {
+      input.value = targetName;
+      input.dispatchEvent(new Event("change", { bubbles: true }));
+    }
 
-    // Never override explicit White variety
-    if (variety === "Broad Breasted White" && !isWhite) return;
-
-    // Force name only if mismatched
+    // Force name if mismatched
     const strong = container.querySelector("strong span") || container.querySelector("strong");
     if (strong && strong.textContent.trim() !== targetName) {
       strong.textContent = targetName;
@@ -3360,13 +3388,11 @@ window.addEventListener("load", () => {
     const img = container.querySelector("img");
     if (img) {
       const want = "https://portersturkeys.github.io/Pictures/" + targetImg;
-      if (img.src !== want) {
-        img.src = want;
-      }
+      if (img.src !== want) img.src = want;
     }
   }
 
-  // Hook into update functions
+  // Wrap update functions
   const origSire = window.updateSireGenotype;
   if (typeof origSire === "function") {
     window.updateSireGenotype = function() {
@@ -3385,7 +3411,18 @@ window.addEventListener("load", () => {
     };
   }
 
-  // After Calculate (light touch)
+  // Hook transfer to force after original
+  const origTransfer = window.transferOffspringToParent;
+  if (typeof origTransfer === "function") {
+    window.transferOffspringToParent = function(genotype, parent) {
+      const res = origTransfer.apply(this, arguments);
+      enforceBroadIfNeeded(parent);
+      setTimeout(() => enforceBroadIfNeeded(parent), 50);
+      return res;
+    };
+  }
+
+  // Post-Calculate safety
   document.addEventListener("click", e => {
     const btn = e.target.closest("button");
     if (!btn) return;
@@ -3394,11 +3431,10 @@ window.addEventListener("load", () => {
       setTimeout(() => {
         enforceBroadIfNeeded("sire");
         enforceBroadIfNeeded("dam");
-      }, 120);
+      }, 100);
     }
   }, true);
 
-  console.log("[Minimal Broad Protector] Loaded – protects only when Broad variety present");
+  console.log("[Fixed Broad Protector v2] Loaded – bb Cc = Bronze, bb cc = White");
 })();
-
 
