@@ -3309,16 +3309,17 @@ window.addEventListener("load", () => {
 })();
 
 ///////////////////////////
+
 // ============================================================================
-// FIXED BROAD PROTECTOR v3 - Correct detection for homozygous cc only
-// bb Cc / bb CC = Broad Breasted Bronze
-// bb cc = Broad Breasted White
-// cc without bb = Broad Breasted White
-// Honors explicit White, skips defaults
+// FIXED BROAD PROTECTOR v4 - Prevents revert during transfer
+// - Uses incoming genotype to detect broad on transfer
+// - bb Cc / bb CC = Broad Breasted Bronze
+// - bb cc = Broad Breasted White
+// - Honors explicit White, skips defaults
 // ============================================================================
-(function fixedBroadProtectorV3() {
-  if (window._fixedBroadProtectorV3) return;
-  window._fixedBroadProtectorV3 = true;
+(function fixedBroadProtectorV4() {
+  if (window._fixedBroadProtectorV4) return;
+  window._fixedBroadProtectorV4 = true;
 
   const BRONZE_NAME = "Broad Breasted Bronze";
   const WHITE_NAME = "Broad Breasted White";
@@ -3328,14 +3329,16 @@ window.addEventListener("load", () => {
   const WHITE_MALE = "MBroadBreastedWhite.jpg";
   const WHITE_FEMALE = "FBroadBreastedWhite.jpg";
 
-  function isBroadContext(prefix) {
+  function isBroadContext(prefix, genotype = "") {
     const inputVal = (document.getElementById(prefix + "VarietyInput")?.value || "").toLowerCase().trim();
     const displayed = (document.getElementById(prefix + "ImageContainer")?.querySelector("strong")?.textContent || "").toLowerCase().trim();
-    return inputVal.includes("broad breasted") || displayed.includes("broad breasted");
+    const genoNorm = genotype.toLowerCase().replace(/\s+/g, '');
+    return inputVal.includes("broad breasted") || displayed.includes("broad breasted") ||
+           genoNorm.includes("bb") || genoNorm.includes("cc");
   }
 
-  function enforceBroadIfNeeded(prefix) {
-    if (!isBroadContext(prefix)) return;
+  function enforceBroadIfNeeded(prefix, genotype = "") {
+    if (!isBroadContext(prefix, genotype)) return;
 
     const input = document.getElementById(prefix + "VarietyInput");
     const currentInput = input ? input.value.trim() : "";
@@ -3353,9 +3356,9 @@ window.addEventListener("load", () => {
     if (!container) return;
 
     const info = document.getElementById(prefix + "InfoContainer");
-    const geno = info ? (info.getAttribute("data-short-genotype") || "").trim() : "";
+    let geno = info ? (info.getAttribute("data-short-genotype") || "").trim() : "";
+    geno = geno || genotype; // fallback to incoming if info not updated yet
 
-    // Normalize genotype for matching (remove spaces, make lowercase)
     const normalizedGeno = geno.replace(/\s+/g, '').toLowerCase();
 
     const hasBB = normalizedGeno.includes('bb');
@@ -3363,22 +3366,19 @@ window.addEventListener("load", () => {
 
     if (!hasBB && !hasHomoCC) return;
 
-    // Only homozygous cc → White
-    // bb with heterozygous Cc → Bronze
-    // bb cc → White (homozygous cc)
-    const isWhite = hasHomoCC;
+    const isWhite = hasHomoCC; // bb cc = White, bb Cc = Bronze
     const targetName = isWhite ? WHITE_NAME : BRONZE_NAME;
     const targetImg = isWhite 
       ? (prefix === "dam" ? WHITE_FEMALE : WHITE_MALE)
       : (prefix === "dam" ? BRONZE_FEMALE : BRONZE_MALE);
 
-    // Set variety if needed (but don't override explicit White)
-    if (input && currentInput !== WHITE_NAME && currentInput !== BRONZE_NAME && currentInput !== targetName) {
+    // Force variety input early (prevents revert)
+    if (input && input.value.trim() !== targetName) {
       input.value = targetName;
       input.dispatchEvent(new Event("change", { bubbles: true }));
     }
 
-    // Force name if mismatched
+    // Force name
     const strong = container.querySelector("strong span") || container.querySelector("strong");
     if (strong && strong.textContent.trim() !== targetName) {
       strong.textContent = targetName;
@@ -3411,13 +3411,13 @@ window.addEventListener("load", () => {
     };
   }
 
-  // Hook transfer to force after original
+  // Hook transfer with genotype fallback
   const origTransfer = window.transferOffspringToParent;
   if (typeof origTransfer === "function") {
     window.transferOffspringToParent = function(genotype, parent) {
       const res = origTransfer.apply(this, arguments);
-      enforceBroadIfNeeded(parent);
-      setTimeout(() => enforceBroadIfNeeded(parent), 50);
+      enforceBroadIfNeeded(parent, genotype);
+      setTimeout(() => enforceBroadIfNeeded(parent, genotype), 50);
       return res;
     };
   }
@@ -3435,6 +3435,5 @@ window.addEventListener("load", () => {
     }
   }, true);
 
-  console.log("[Fixed Broad Protector v3] Loaded – bb Cc = Bronze, bb cc = White");
+  console.log("[Fixed Broad Protector v4] Loaded – bb Cc = Bronze, bb cc = White, no transfer revert");
 })();
-
