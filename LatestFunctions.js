@@ -2298,10 +2298,9 @@ if (container.dataset.bronzeKey === "broad") bronzeState[prefix] = "broad";
     }
 
 
-    
-// Transfer patch – aggressive post-update enforcement
-if (typeof window.transferOffspringToParent === "function" && !window._bbTransferPatchedV3) {
-  window._bbTransferPatchedV3 = true;
+// Transfer patch - simple, safe, post-update enforcement (no observers)
+if (typeof window.transferOffspringToParent === "function" && !window._bbTransferPatchedSafe) {
+  window._bbTransferPatchedSafe = true;
   const orig = window.transferOffspringToParent;
 
   function forceBroadAppearance(parent, genotype) {
@@ -2309,72 +2308,63 @@ if (typeof window.transferOffspringToParent === "function" && !window._bbTransfe
     if (!container) return;
 
     const isDam = parent === "dam";
-    const g = String(genotype || "").trim();
+    const g = String(genotype || "").trim().toLowerCase();
 
-    const isWhite = /\bcc\b/i.test(g);
-    const isBroadBronze = /\bbb\b/i.test(g) && !isWhite;
+    const isWhite = g.includes('cc');
+    const isBroadBronze = g.includes('bb') && !isWhite;
 
-    let targetName = "Broad Breasted Bronze";
-    let targetImg = isDam ? "FBroadBreastedBronze.jpg" : "MBroadBreastedBronze.jpg";
+    if (!isBroadBronze && !isWhite) return; // not our case, skip
 
-    if (isWhite) {
-      targetName = "Broad Breasted White";
-      targetImg = isDam ? "FBroadBreastedWhite.jpg" : "MBroadBreastedWhite.jpg";
+    const targetName = isWhite ? "Broad Breasted White" : "Broad Breasted Bronze";
+    const targetImg = isDam 
+      ? (isWhite ? "FBroadBreastedWhite.jpg" : "FBroadBreastedBronze.jpg")
+      : (isWhite ? "MBroadBreastedWhite.jpg" : "MBroadBreastedBronze.jpg");
+
+    // 1. Force variety INPUT value (critical: helps renderer use correct mapping)
+    const inputId = parent === "sire" ? "sireVarietyInput" : "damVarietyInput";
+    const input = document.getElementById(inputId);
+    if (input && input.value.trim() !== targetName) {
+      input.value = targetName;
     }
 
-    // 1. Force name
+    // 2. Force displayed name
     const strong = container.querySelector("strong");
     if (strong) {
       let span = strong.querySelector("span");
       if (!span) {
         span = document.createElement("span");
+        strong.innerHTML = ""; // clear old content safely
         strong.appendChild(span);
       }
-      if (span.textContent.trim() !== targetName) {
-        span.textContent = targetName;
-      }
+      span.textContent = targetName;
     }
 
-    // 2. Force image
+    // 3. Force image src
     const img = container.querySelector("img");
     if (img) {
-      const want = "https://portersturkeys.github.io/Pictures/" + targetImg;
-      if (img.src !== want) {
-        img.src = want;
+      const fullSrc = "https://portersturkeys.github.io/Pictures/" + targetImg;
+      if (img.src !== fullSrc) {
+        img.src = fullSrc;
       }
     }
-
-    // 3. Persist flag (for observers / future transfers)
-    container.dataset.broadType = isWhite ? "white" : "bronze";
   }
 
   window.transferOffspringToParent = function (genotype, parent) {
     const result = orig.apply(this, arguments);
 
-    // Force immediately + delayed (after potential redraw)
+    // Force right after original (alleles + update...Genotype called)
     forceBroadAppearance(parent, genotype);
 
-    // Short-lived observer to catch late redraws during this transfer
-    const container = document.getElementById(parent + "ImageContainer");
-    if (container) {
-      const tempObs = new MutationObserver(() => {
-        forceBroadAppearance(parent, genotype);
-      });
-      tempObs.observe(container, { childList: true, subtree: true, characterData: true, attributes: true });
-
-      // Disconnect after 1.2 seconds – enough to catch redraws but not permanent
-      setTimeout(() => tempObs.disconnect(), 1200);
-    }
-
-    // Extra safety passes
-    [150, 400, 800].forEach(delay => {
-      setTimeout(() => forceBroadAppearance(parent, genotype), delay);
+    // Extra staggered forces in case of delayed redraws (GitHub timing quirk)
+    [80, 200, 450].forEach(ms => {
+      setTimeout(() => forceBroadAppearance(parent, genotype), ms);
     });
 
     return result;
   };
 }
 
+////////////////////////////
     
     // Hook variety + reset
     window.addEventListener("load", () => {
