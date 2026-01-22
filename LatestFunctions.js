@@ -1,507 +1,515 @@
 // =====================================================
-// DISPLAY + SEARCH SECTION (COMPLETE REWRITE — NO DUPES)
-// Goal:
-// 1) Dropdown suggestions: KEEP "(Semi-Pencilled)" but REMOVE "(Split ...)"
-// 2) Everywhere else (parents / offspring / summary / search results text): REMOVE BOTH
-//    "(Split ...)" AND "(Semi-Pencilled)" (including any dash variants)
-// 3) Only ONE searchResults() and ONE resetSearch()
-// 4) Wrap hooks ONCE only (no duplicate wrappers)
+// VARIETY SEARCH + SUGGESTIONS + DISPLAY CLEANING (ONE BLOCK)
+// - Dropdown suggestions: KEEP (Semi-Pencilled), STRIP (Split ...)
+// - Everywhere else (search results / parents / offspring / summary):
+//     STRIP (Split ...) + (Semi-Pencilled)
+// - Cross-browser dropdown: works in Firefox + Chromium (Chrome/Edge/etc)
+//   by using pointerdown + preventDefault + fixed dropdown on <body>
 // =====================================================
 
+(function VarietyTools_AllInOne() {
+  "use strict";
+  if (window._VarietyTools_AllInOneInstalled) return;
+  window._VarietyTools_AllInOneInstalled = true;
 
-// =====================================================
-// 1) TEXT CLEANERS
-// =====================================================
-
-// Dropdown ONLY: keep (Semi-Pencilled), strip (Split ...)
-function cleanForDropdown(s) {
-  return String(s || "")
-    .replace(/\s*\(\s*Split\b.*?\)/gi, "")
-    .trim();
-}
-
-// Everywhere else: strip (Split ...) + strip (Semi-Pencilled) with any dash/spaces
-function cleanDisplayLabel(s) {
-  return String(s || "")
-    // remove "(Split ...)"
-    .replace(/\s*\(\s*Split\b.*?\)/gi, "")
-    // remove "(Semi-Pencilled)" allowing hyphen variations: -, ‐, -, ‒, –, —, − or just space
-    .replace(/\s*\(\s*Semi\s*[-\u2010\u2011\u2012\u2013\u2014\u2212 ]?\s*Pencilled\b.*?\)/gi, "")
-    .trim();
-}
-
-
-// =====================================================
-// 2) GET ALL MAPPINGS (SAFE)
-// =====================================================
-function getAllPhenotypeMappings() {
-  const maps = [];
-  for (const k of [
-    "phenotypeMapping1","phenotypeMapping1A","phenotypeMapping1B","phenotypeMapping1C","phenotypeMapping1D","phenotypeMapping1E",
-    "phenotypeMapping2","phenotypeMapping2A",
-    "phenotypeMapping3","phenotypeMapping3A",
-    "phenotypeMapping4","phenotypeMapping5","phenotypeMapping6","phenotypeMapping7","phenotypeMapping8","phenotypeMapping9",
-    "phenotypeMapping10","phenotypeMapping11","phenotypeMapping12","phenotypeMapping13","phenotypeMapping14","phenotypeMapping15"
-  ]) {
-    if (typeof window[k] !== "undefined" && window[k]) maps.push(window[k]);
+  // ------------------------------
+  // CLEANERS
+  // ------------------------------
+  // Dropdown suggestions: keep (Semi-Pencilled), remove (Split...)
+  function cleanForDropdown(s) {
+    return String(s || "").replace(/\s*\(Split.*?\)/gi, "").trim();
   }
-  return maps;
-}
 
+  // Everywhere else: remove both (Split...) and (Semi-Pencilled)
+  function cleanDisplayLabel(s) {
+    return String(s || "")
+      .replace(/\s*\((?:Split|Semi-Pencilled)\b.*?\)/gi, "")
+      .trim();
+  }
 
-// =====================================================
-// 3) NORMALIZATION + SYNONYMS
-// =====================================================
-function normalizeWordOrder(str) {
-  return String(str || "").split(/\s+/).filter(Boolean).sort().join(" ");
-}
+  // Make these globally available if you call them elsewhere
+  window.cleanForDropdown = cleanForDropdown;
+  window.cleanDisplayLabel = cleanDisplayLabel;
 
-function normalizeVarietyInput(raw) {
-  if (!raw) return "";
-  let s = String(raw).replace(/\s+/g, " ").trim().toLowerCase();
+  // ------------------------------
+  // MAPPINGS LOADER (safe)
+  // ------------------------------
+  function getAllPhenotypeMappings() {
+    return [
+      (typeof phenotypeMapping1  !== "undefined" ? phenotypeMapping1  : null),
+      (typeof phenotypeMapping1A !== "undefined" ? phenotypeMapping1A : null),
+      (typeof phenotypeMapping1B !== "undefined" ? phenotypeMapping1B : null),
+      (typeof phenotypeMapping1C !== "undefined" ? phenotypeMapping1C : null),
+      (typeof phenotypeMapping1D !== "undefined" ? phenotypeMapping1D : null),
+      (typeof phenotypeMapping1E !== "undefined" ? phenotypeMapping1E : null),
+      (typeof phenotypeMapping2  !== "undefined" ? phenotypeMapping2  : null),
+      (typeof phenotypeMapping2A !== "undefined" ? phenotypeMapping2A : null),
+      (typeof phenotypeMapping3  !== "undefined" ? phenotypeMapping3  : null),
+      (typeof phenotypeMapping3A !== "undefined" ? phenotypeMapping3A : null),
+      (typeof phenotypeMapping4  !== "undefined" ? phenotypeMapping4  : null),
+      (typeof phenotypeMapping5  !== "undefined" ? phenotypeMapping5  : null),
+      (typeof phenotypeMapping6  !== "undefined" ? phenotypeMapping6  : null),
+      (typeof phenotypeMapping7  !== "undefined" ? phenotypeMapping7  : null),
+      (typeof phenotypeMapping8  !== "undefined" ? phenotypeMapping8  : null),
+      (typeof phenotypeMapping9  !== "undefined" ? phenotypeMapping9  : null),
+      (typeof phenotypeMapping10 !== "undefined" ? phenotypeMapping10 : null),
+      (typeof phenotypeMapping11 !== "undefined" ? phenotypeMapping11 : null),
+      (typeof phenotypeMapping12 !== "undefined" ? phenotypeMapping12 : null),
+      (typeof phenotypeMapping13 !== "undefined" ? phenotypeMapping13 : null),
+      (typeof phenotypeMapping14 !== "undefined" ? phenotypeMapping14 : null),
+      (typeof phenotypeMapping15 !== "undefined" ? phenotypeMapping15 : null),
+    ].filter(Boolean);
+  }
+  window.getAllPhenotypeMappings = getAllPhenotypeMappings;
 
-  const synonymMap = {
-    "red bourbon": "bourbon red",
-    "red burbon": "bourbon red",
-    "burbon red": "bourbon red",
+  // ------------------------------
+  // NORMALIZATION + SYNONYMS
+  // ------------------------------
+  function normalizeWordOrder(str) {
+    return String(str || "").split(/\s+/).filter(Boolean).sort().join(" ");
+  }
 
-    "blue slate": "slate",
-    "slate blue": "slate",
-    "black slate": "slate",
-    "mottled blue slate": "mottled slate",
+  function normalizeVarietyInput(raw) {
+    if (!raw) return "";
+    let s = String(raw).replace(/\s+/g, " ").trim().toLowerCase();
 
-    "spanish black": "black",
-    "black spanish": "black",
+    const synonymMap = {
+      "red bourbon": "bourbon red",
+      "red burbon": "bourbon red",
+      "burbon red": "bourbon red",
 
-    "slate blue palm": "blue palm",
-    "blue royal palm": "blue palm",
-    "royal blue palm": "blue palm",
+      "blue slate": "slate",
+      "slate blue": "slate",
+      "black slate": "slate",
+      "mottled blue slate": "mottled slate",
 
-    "firefall": "fall fire",
-    "fireball": "fall fire",
+      "spanish black": "black",
+      "black spanish": "black",
 
-    "sweetwater": "sweet grass",
-    "sweetgrass": "sweet grass",
+      "slate blue palm": "blue palm",
+      "blue royal palm": "blue palm",
+      "royal blue palm": "blue palm",
 
-    "black norfolk": "black",
-    "norfolk black": "black",
+      "firefall": "fall fire",
+      "fireball": "fall fire",
 
-    "ridley bronze": "bronze",
+      "sweetwater": "sweet grass",
+      "sweetgrass": "sweet grass",
 
-    "narri": "narragansett",
-    "naganset": "narragansett",
-    "nagansetts": "narragansett",
-    "nari": "narragansett",
-    "narrie": "narragansett",
+      "black norfolk": "black",
+      "norfolk black": "black",
 
-    "white downed red": "regal red"
-  };
+      "ridley bronze": "bronze",
 
-  if (synonymMap[s]) s = synonymMap[s];
-  return s;
-}
+      "narri": "narragansett",
+      "naganset": "narragansett",
+      "nagansetts": "narragansett",
+      "nari": "narragansett",
+      "narrie": "narragansett",
 
+      "white downed red": "regal red"
+    };
 
-// =====================================================
-// 4) LEVENSHTEIN (FUZZY)
-// =====================================================
-function getEditDistance(a, b) {
-  a = String(a || "");
-  b = String(b || "");
+    if (synonymMap[s]) s = synonymMap[s];
+    return s;
+  }
 
-  const m = a.length, n = b.length;
-  const dp = Array.from({ length: m + 1 }, () => new Array(n + 1).fill(0));
+  // ------------------------------
+  // LEVENSHTEIN (fuzzy)
+  // ------------------------------
+  function getEditDistance(a, b) {
+    a = String(a || "");
+    b = String(b || "");
+    const m = Array.from({ length: a.length + 1 }, () => new Array(b.length + 1).fill(0));
 
-  for (let i = 0; i <= m; i++) dp[i][0] = i;
-  for (let j = 0; j <= n; j++) dp[0][j] = j;
+    for (let i = 0; i <= a.length; i++) m[i][0] = i;
+    for (let j = 0; j <= b.length; j++) m[0][j] = j;
 
-  for (let i = 1; i <= m; i++) {
-    for (let j = 1; j <= n; j++) {
-      dp[i][j] = Math.min(
-        dp[i - 1][j] + 1,
-        dp[i][j - 1] + 1,
-        dp[i - 1][j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1)
-      );
+    for (let i = 1; i <= a.length; i++) {
+      for (let j = 1; j <= b.length; j++) {
+        m[i][j] = Math.min(
+          m[i - 1][j] + 1,
+          m[i][j - 1] + 1,
+          m[i - 1][j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1)
+        );
+      }
     }
-  }
-  return dp[m][n];
-}
-
-
-// =====================================================
-// 5) SEARCH RESULTS (ONE FUNCTION ONLY)
-// - Guarantees display strips (Semi-Pencilled) in results
-// =====================================================
-function searchResults() {
-  const inputEl = document.getElementById("searchInput");
-  const results = document.getElementById("results");
-  const resultsHeader = document.getElementById("resultsHeader");
-  const additionalText = document.getElementById("resultsAdditionalText");
-
-  if (!inputEl || !results || !resultsHeader || !additionalText) return;
-
-  const rawInput = inputEl.value.trim();
-
-  // Clear previous
-  results.innerHTML = "";
-  results.style.display = "none";
-  resultsHeader.style.display = "none";
-  additionalText.style.display = "none";
-
-  if (!rawInput) {
-    resultsHeader.style.display = "block";
-    results.style.display = "block";
-    results.innerHTML = '<li style="color: blue;">Please enter a valid search term.</li>';
-    return;
+    return m[a.length][b.length];
   }
 
-  const allMappings = getAllPhenotypeMappings();
-  if (!allMappings.length) {
-    console.error("Phenotype mappings are not loaded.");
-    resultsHeader.style.display = "block";
-    results.style.display = "block";
-    results.innerHTML = '<li style="color: red;">Error: Data not loaded. Please refresh.</li>';
-    return;
-  }
+  // ------------------------------
+  // SEARCH RESULTS (ONE)
+  // ------------------------------
+  function searchResults() {
+    const inputEl = document.getElementById("searchInput");
+    const results = document.getElementById("results");
+    const resultsHeader = document.getElementById("resultsHeader");
+    const additionalText = document.getElementById("resultsAdditionalText");
 
-  const normalizedInput = normalizeVarietyInput(rawInput);
-  const rawLower = rawInput.toLowerCase().trim();
-  const sortedRawLower = normalizeWordOrder(rawLower);
+    if (!inputEl || !results || !resultsHeader || !additionalText) return;
 
-  // Find best fuzzy phenotype match (distance <= 3)
-  let bestMatch = null;
-  let bestDistance = Infinity;
+    const rawInput = inputEl.value.trim();
 
-  for (const mapping of allMappings) {
-    for (const [, phenotype] of Object.entries(mapping)) {
-      const ph = String(phenotype || "").toLowerCase().trim();
-      const phSorted = normalizeWordOrder(ph);
+    results.innerHTML = "";
+    results.style.display = "none";
+    resultsHeader.style.display = "none";
+    additionalText.style.display = "none";
 
-      const d = Math.min(
-        getEditDistance(rawLower, ph),
-        getEditDistance(sortedRawLower, phSorted)
-      );
-
-      if (d === 0) { bestMatch = phenotype; bestDistance = 0; break; }
-      if (d < bestDistance && d <= 3) { bestMatch = phenotype; bestDistance = d; }
+    if (!rawInput) {
+      resultsHeader.style.display = "block";
+      results.style.display = "block";
+      results.innerHTML = '<li style="color: blue;">Please enter a valid search term.</li>';
+      return;
     }
-    if (bestDistance === 0) break;
-  }
 
-  // Use fuzzy bestMatch ONLY if close (<=2), else use normalized synonym term
-  const finalSearchTerm = (bestMatch && bestDistance <= 2)
-    ? String(bestMatch).toLowerCase().trim()
-    : String(normalizedInput).toLowerCase().trim();
+    const allMappings = getAllPhenotypeMappings();
+    if (allMappings.length === 0) {
+      console.error("Phenotype mappings are not loaded.");
+      resultsHeader.style.display = "block";
+      results.style.display = "block";
+      results.innerHTML = '<li style="color: red;">Error: Data not loaded. Please refresh.</li>';
+      return;
+    }
 
-  let maleMatch = null;
-  let femaleMatch = null;
-  let sharedMatch = null;
+    const normalizedInput = normalizeVarietyInput(rawInput);
+    const rawLower = rawInput.toLowerCase().trim();
+    const sortedRawLower = normalizeWordOrder(rawLower);
 
-  for (const mapping of allMappings) {
-    for (const [genotype, phenotype] of Object.entries(mapping)) {
-      const normGeno = String(genotype || "").replace(/\s+/g, " ").trim();
-      const normPheno = String(phenotype || "").toLowerCase().trim();
+    let bestMatch = null;
+    let bestDistance = Infinity;
 
-      if (normPheno === finalSearchTerm || normGeno === normalizedInput) {
-        if (genotype.includes("Ee") || genotype.includes("ee") || genotype.includes("Nn") || genotype.includes("nn")) {
-          if (!maleMatch) maleMatch = { genotype, phenotype };
-        } else if (genotype.includes("e-") || genotype.includes("n-")) {
-          if (!femaleMatch) femaleMatch = { genotype, phenotype };
-        } else {
-          if (!sharedMatch) sharedMatch = { genotype, phenotype };
+    for (const mapping of allMappings) {
+      for (const [, phenotype] of Object.entries(mapping)) {
+        const ph = String(phenotype || "").toLowerCase().trim();
+        const phSorted = normalizeWordOrder(ph);
+
+        const d = Math.min(
+          getEditDistance(rawLower, ph),
+          getEditDistance(sortedRawLower, phSorted)
+        );
+
+        if (d === 0) {
+          bestMatch = phenotype;
+          bestDistance = 0;
+          break;
+        }
+        if (d < bestDistance && d <= 3) {
+          bestMatch = phenotype;
+          bestDistance = d;
         }
       }
+      if (bestDistance === 0) break;
     }
-    if (maleMatch && femaleMatch && sharedMatch) break;
-  }
 
-  resultsHeader.style.display = "block";
-  results.style.display = "block";
+    const finalSearchTerm = (bestMatch && bestDistance <= 2)
+      ? String(bestMatch).toLowerCase().trim()
+      : String(normalizedInput).toLowerCase().trim();
 
-  if (sharedMatch || maleMatch || femaleMatch) {
-    if (sharedMatch) {
-      results.innerHTML += `<li><strong>Shared Results (Male & Female):</strong></li>`;
-      results.innerHTML += `<li>Genotype: ${sharedMatch.genotype}, Phenotype: ${cleanDisplayLabel(sharedMatch.phenotype)}</li>`;
-    } else {
-      if (maleMatch) {
-        results.innerHTML += `<li><strong>Male Results:</strong></li>`;
-        results.innerHTML += `<li>Genotype: ${maleMatch.genotype}, Phenotype: ${cleanDisplayLabel(maleMatch.phenotype)}</li>`;
+    let maleMatch = null;
+    let femaleMatch = null;
+    let sharedMatch = null;
+
+    for (const mapping of allMappings) {
+      for (const [genotype, phenotype] of Object.entries(mapping)) {
+        const normGeno = String(genotype || "").replace(/\s+/g, " ").trim();
+        const normPheno = String(phenotype || "").toLowerCase().trim();
+
+        if (normPheno === finalSearchTerm || normGeno === normalizedInput) {
+          if (genotype.includes("Ee") || genotype.includes("ee") || genotype.includes("Nn") || genotype.includes("nn")) {
+            if (!maleMatch) maleMatch = { genotype, phenotype };
+          } else if (genotype.includes("e-") || genotype.includes("n-")) {
+            if (!femaleMatch) femaleMatch = { genotype, phenotype };
+          } else {
+            if (!sharedMatch) sharedMatch = { genotype, phenotype };
+          }
+        }
       }
-      if (femaleMatch) {
-        results.innerHTML += `<li><strong>Female Results:</strong></li>`;
-        results.innerHTML += `<li>Genotype: ${femaleMatch.genotype}, Phenotype: ${cleanDisplayLabel(femaleMatch.phenotype)}</li>`;
+      if (maleMatch && femaleMatch && sharedMatch) break;
+    }
+
+    resultsHeader.style.display = "block";
+    results.style.display = "block";
+
+    if (sharedMatch || maleMatch || femaleMatch) {
+      if (sharedMatch) {
+        results.innerHTML += `<li><strong>Shared Results (Male & Female):</strong></li>`;
+        results.innerHTML += `<li>Genotype: ${sharedMatch.genotype}, Phenotype: ${cleanDisplayLabel(sharedMatch.phenotype)}</li>`;
+      } else {
+        if (maleMatch) {
+          results.innerHTML += `<li><strong>Male Results:</strong></li>`;
+          results.innerHTML += `<li>Genotype: ${maleMatch.genotype}, Phenotype: ${cleanDisplayLabel(maleMatch.phenotype)}</li>`;
+        }
+        if (femaleMatch) {
+          results.innerHTML += `<li><strong>Female Results:</strong></li>`;
+          results.innerHTML += `<li>Genotype: ${femaleMatch.genotype}, Phenotype: ${cleanDisplayLabel(femaleMatch.phenotype)}</li>`;
+        }
+      }
+    } else {
+      if (bestMatch && bestDistance <= 3) {
+        results.innerHTML = `<li style="color: blue;">No exact match found. Did you mean <strong>${cleanDisplayLabel(bestMatch)}</strong>?</li>`;
+      } else {
+        results.innerHTML = `<li style="color: blue;">No matches found. Please check your spelling and try again.</li>`;
       }
     }
-  } else {
-    if (bestMatch && bestDistance <= 3) {
-      results.innerHTML = `<li style="color: blue;">No exact match found. Did you mean <strong>${cleanDisplayLabel(bestMatch)}</strong>?</li>`;
-    } else {
-      results.innerHTML = `<li style="color: blue;">No matches found. Please check your spelling and try again.</li>`;
-    }
+
+    additionalText.style.display = "block";
+    additionalText.innerHTML = `<p style="font-size: 18px; color: blue;">Enter this genotype into the calculator.</p>`;
   }
 
-  additionalText.style.display = "block";
-  additionalText.innerHTML = `<p style="font-size: 18px; color: blue;">Enter this genotype into the calculator.</p>`;
-}
+  function resetSearch() {
+    const inputEl = document.getElementById("searchInput");
+    const results = document.getElementById("results");
+    const resultsHeader = document.getElementById("resultsHeader");
+    const additionalText = document.getElementById("resultsAdditionalText");
 
-function resetSearch() {
-  const inputEl = document.getElementById("searchInput");
-  const results = document.getElementById("results");
-  const resultsHeader = document.getElementById("resultsHeader");
-  const additionalText = document.getElementById("resultsAdditionalText");
-
-  if (inputEl) inputEl.value = "";
-  if (results) { results.innerHTML = ""; results.style.display = "none"; }
-  if (resultsHeader) resultsHeader.style.display = "none";
-  if (additionalText) additionalText.style.display = "none";
-}
-
-
-// =====================================================
-// 6) OPTIONAL: PHENOTYPE -> GENOTYPE HELPERS (KEPT)
-// =====================================================
-function findFirstGenotypeForPhenotype(phenotypeInput) {
-  const allMaps = getAllPhenotypeMappings();
-  if (!phenotypeInput) return null;
-
-  const normalized = normalizeVarietyInput(phenotypeInput);
-  const sortedNorm = normalizeWordOrder(normalized);
-
-  for (const map of allMaps) {
-    for (const [genotype, pheno] of Object.entries(map)) {
-      const phNorm = normalizeVarietyInput(pheno);
-      const phSorted = normalizeWordOrder(phNorm);
-      if (phNorm === normalized || phSorted === sortedNorm) return genotype;
-    }
+    if (inputEl) inputEl.value = "";
+    if (results) { results.innerHTML = ""; results.style.display = "none"; }
+    if (resultsHeader) resultsHeader.style.display = "none";
+    if (additionalText) additionalText.style.display = "none";
   }
-  return null;
-}
 
-function applyGenotypeToDropdowns(genotype, prefix) {
-  if (!genotype) return;
+  window.searchResults = searchResults;
+  window.resetSearch = resetSearch;
 
-  const parts = String(genotype).split(" ").filter(Boolean);
-  const isDam = prefix === "dam";
+  // ------------------------------
+  // PHENOTYPE -> GENOTYPE HELPERS (kept)
+  // ------------------------------
+  function findFirstGenotypeForPhenotype(phenotypeInput) {
+    const allMaps = getAllPhenotypeMappings();
+    if (!phenotypeInput) return null;
 
-  parts.forEach(token => {
-    if (/^[Bb]/.test(token)) document.getElementById(prefix + "Alleleb").value = token;
-    else if (/^[Cc]/.test(token)) document.getElementById(prefix + "AlleleC").value = token;
-    else if (/^[Dd]/.test(token)) document.getElementById(prefix + "Alleled").value = token;
-    else if (/^[Ee]/.test(token)) {
-      let v = token;
-      if (isDam && (token === "Ee" || token === "ee")) v = token[0] + "-";
-      document.getElementById(prefix + "AlleleE").value = v;
+    const normalized = normalizeVarietyInput(phenotypeInput);
+    const sortedNorm = normalizeWordOrder(normalized);
+
+    for (const map of allMaps) {
+      for (const [genotype, pheno] of Object.entries(map)) {
+        const phNorm = normalizeVarietyInput(pheno);
+        const phSorted = normalizeWordOrder(phNorm);
+        if (phNorm === normalized || phSorted === sortedNorm) return genotype;
+      }
     }
-    else if (/^[Nn]/.test(token)) {
-      let v = token;
-      if (isDam && (token === "Nn" || token === "nn")) v = token[0].toLowerCase() + "-";
-      document.getElementById(prefix + "AlleleN").value = v;
-    }
-    else if (/^Pn|^pn/.test(token)) document.getElementById(prefix + "AllelePn").value = token;
-    else if (/^[Rr]/.test(token)) document.getElementById(prefix + "AlleleR").value = token;
-    else if (/^Sl|^sl/.test(token)) document.getElementById(prefix + "AlleleSl").value = token;
-    else if (/^Sp|^sp/.test(token)) document.getElementById(prefix + "AlleleSp").value = token;
-  });
+    return null;
+  }
+  window.findFirstGenotypeForPhenotype = findFirstGenotypeForPhenotype;
 
-  if (prefix === "sire" && typeof updateSireGenotype === "function") updateSireGenotype();
-  if (prefix === "dam" && typeof updateDamGenotype === "function") updateDamGenotype();
-}
-
-function applyVarietyToSire() {
-  const v = document.getElementById("sireVarietyInput")?.value.trim();
-  if (!v) return;
-  const g = findFirstGenotypeForPhenotype(v);
-  if (g) applyGenotypeToDropdowns(g, "sire");
-}
-
-function applyVarietyToDam() {
-  const v = document.getElementById("damVarietyInput")?.value.trim();
-  if (!v) return;
-  const g = findFirstGenotypeForPhenotype(v);
-  if (g) applyGenotypeToDropdowns(g, "dam");
-}
-
-function resetVarietyAutocomplete() {
-  const sire = document.getElementById("sireVarietyInput");
-  const dam  = document.getElementById("damVarietyInput");
-  if (sire) sire.value = "";
-  if (dam)  dam.value = "";
-}
-
-
-// =====================================================
-// 7) DISPLAY CLEANERS FOR UI (PARENTS / OFFSPRING / SUMMARY)
-// =====================================================
-function cleanParentPhenotypesOnce() {
-  ["sireImageContainer", "damImageContainer"].forEach(id => {
-    const c = document.getElementById(id);
-    if (!c) return;
-
-    const strong = c.querySelector("strong");
-    if (!strong) return;
-
-    const spans = strong.querySelectorAll("span");
-    if (!spans || !spans.length) return;
-
-    const phenoSpan = spans[0];
-    if (!phenoSpan || !phenoSpan.textContent) return;
-
-    phenoSpan.textContent = cleanDisplayLabel(phenoSpan.textContent);
-  });
-}
-
-function cleanOffspringPhenotypesOnce() {
-  ["maleOffspringResults", "femaleOffspringResults"].forEach(id => {
-    const c = document.getElementById(id);
-    if (!c) return;
-
-    c.querySelectorAll(".offspring-item .variety-name").forEach(span => {
-      if (!span || !span.textContent) return;
-      span.textContent = cleanDisplayLabel(span.textContent);
+  // ------------------------------
+  // DISPLAY CLEANERS (parents / offspring / summary)
+  // ------------------------------
+  function cleanParentPhenotypesOnce() {
+    ["sireImageContainer", "damImageContainer"].forEach(id => {
+      const container = document.getElementById(id);
+      if (!container) return;
+      const strong = container.querySelector("strong");
+      if (!strong) return;
+      const spans = strong.querySelectorAll("span");
+      if (!spans.length) return;
+      const phenoSpan = spans[0];
+      if (!phenoSpan || !phenoSpan.textContent) return;
+      phenoSpan.textContent = cleanDisplayLabel(phenoSpan.textContent);
     });
-  });
-}
-
-function cleanSummaryPhenotypesOnce() {
-  const t = document.getElementById("summaryChart");
-  if (!t) return;
-
-  t.querySelectorAll("td, th").forEach(cell => {
-    if (!cell || !cell.textContent) return;
-    cell.textContent = cleanDisplayLabel(cell.textContent);
-  });
-}
-
-
-// =====================================================
-// 8) WRAP HOOKS ONCE (NO DUPLICATE WRAPPERS)
-// =====================================================
-function wrapOnce(fnName, afterFn) {
-  const orig = window[fnName];
-  if (typeof orig !== "function") return;
-  if (orig._displayCleanWrapped) return;
-
-  function wrapped() {
-    const out = orig.apply(this, arguments);
-    try { afterFn(); } catch (e) {}
-    return out;
   }
-  wrapped._displayCleanWrapped = true;
-  window[fnName] = wrapped;
-}
 
-// Run a baseline clean (and one delayed clean for late DOM writes)
-window.addEventListener("DOMContentLoaded", () => {
-  cleanParentPhenotypesOnce();
-  cleanOffspringPhenotypesOnce();
-  cleanSummaryPhenotypesOnce();
-  setTimeout(() => {
+  function cleanOffspringPhenotypesOnce() {
+    ["maleOffspringResults", "femaleOffspringResults"].forEach(id => {
+      const container = document.getElementById(id);
+      if (!container) return;
+      container.querySelectorAll(".offspring-item .variety-name").forEach(span => {
+        if (!span || !span.textContent) return;
+        span.textContent = cleanDisplayLabel(span.textContent);
+      });
+    });
+  }
+
+  function cleanSummaryPhenotypesOnce() {
+    const summaryTable = document.getElementById("summaryChart");
+    if (!summaryTable) return;
+
+    summaryTable.querySelectorAll("td").forEach(td => {
+      if (!td || !td.textContent) return;
+      if (/\((Split|Semi-Pencilled)\b.*?\)/i.test(td.textContent)) {
+        td.textContent = cleanDisplayLabel(td.textContent);
+      }
+    });
+  }
+
+  // Wrap ONCE helpers
+  function wrapOnce(fnName, afterFn) {
+    const orig = window[fnName];
+    if (typeof orig !== "function" || orig._wrappedOnce) return;
+    function wrapped() {
+      const r = orig.apply(this, arguments);
+      try { afterFn(); } catch (e) {}
+      return r;
+    }
+    wrapped._wrappedOnce = true;
+    window[fnName] = wrapped;
+  }
+
+  // Clean after parent updates + image builds
+  wrapOnce("updateSireGenotype", () => setTimeout(cleanParentPhenotypesOnce, 0));
+  wrapOnce("updateDamGenotype",  () => setTimeout(cleanParentPhenotypesOnce, 0));
+  wrapOnce("setGenotypeImage",   () => setTimeout(cleanParentPhenotypesOnce, 0));
+
+  // Clean after offspring render + summary render
+  wrapOnce("displayResults",      () => setTimeout(cleanOffspringPhenotypesOnce, 0));
+  wrapOnce("displaySummaryChart", () => setTimeout(cleanSummaryPhenotypesOnce, 0));
+
+  // Run once on load
+  window.addEventListener("DOMContentLoaded", () => {
     cleanParentPhenotypesOnce();
     cleanOffspringPhenotypesOnce();
     cleanSummaryPhenotypesOnce();
-  }, 50);
-});
+  });
 
-// Hook into your existing flows
-wrapOnce("updateSireGenotype", () => setTimeout(cleanParentPhenotypesOnce, 0));
-wrapOnce("updateDamGenotype",  () => setTimeout(cleanParentPhenotypesOnce, 0));
-wrapOnce("setGenotypeImage",   () => setTimeout(cleanParentPhenotypesOnce, 0));
+  // ------------------------------
+  // CROSS-BROWSER CUSTOM SUGGESTION DROPDOWN
+  // (No native list required, and does not depend on it)
+  // ------------------------------
+  const MAX_RESULTS = 60;
+  let cachedNames = null;
 
-wrapOnce("displayResults", () => setTimeout(() => {
-  cleanOffspringPhenotypesOnce();
-  cleanSummaryPhenotypesOnce();
-}, 0));
-
-wrapOnce("displaySummaryChart", () => setTimeout(cleanSummaryPhenotypesOnce, 0));
-
-
-
-
-// Wrap helpers (prevents duplicates)
-function wrapOnce(fnName, afterFn) {
-  const orig = window[fnName];
-  if (typeof orig !== "function" || orig._wrappedOnce) return;
-  function wrapped() {
-    const r = orig.apply(this, arguments);
-    try { afterFn(); } catch (e) {}
-    return r;
+  function getAllVarietyNames() {
+    if (cachedNames) return cachedNames;
+    const maps = getAllPhenotypeMappings();
+    const set = new Set();
+    maps.forEach(m => Object.values(m).forEach(v => {
+      const name = String(v || "").trim();
+      if (name) set.add(name);
+    }));
+    cachedNames = Array.from(set);
+    return cachedNames;
   }
-  wrapped._wrappedOnce = true;
-  window[fnName] = wrapped;
-}
 
-// Parents: allele updates + image updates
-wrapOnce("updateSireGenotype", () => setTimeout(cleanParentPhenotypesOnce, 0));
-wrapOnce("updateDamGenotype",  () => setTimeout(cleanParentPhenotypesOnce, 0));
-wrapOnce("setGenotypeImage",   () => setTimeout(cleanParentPhenotypesOnce, 0));
-
-// Offspring + Summary renders
-wrapOnce("displayResults",     () => setTimeout(cleanOffspringPhenotypesOnce, 0));
-wrapOnce("displaySummaryChart",() => setTimeout(cleanSummaryPhenotypesOnce, 0));
-
-// Run once on load
-window.addEventListener("DOMContentLoaded", () => {
-  cleanParentPhenotypesOnce();
-});
-
-// =====================================================
-// NO SOUND WHILE TYPING, ONLY when variety is actually selected/applied
-// (kept from your code)
-// =====================================================
-function playVarietySound() {
-  playSound("alleleClickSound");
-}
-
-document.addEventListener("mousedown", (e) => {
-  const item = e.target.closest(".varSuggestionItem");
-  if (!item) return;
-  playVarietySound();
-});
-
-// =====================================================
-// IMAGE SIZE SLIDER (kept from your code)
-// =====================================================
-function updateImageSize(value) {
-  const sireImg = document.querySelector("#sireImageContainer img");
-  const damImg  = document.querySelector("#damImageContainer img");
-
-  if (sireImg) {
-    sireImg.style.width = value + "px";
-    if (value < 200) {
-      sireImg.style.maxWidth = value + "px";
-    } else {
-      sireImg.style.removeProperty("max-width");
-      sireImg.style.removeProperty("max-height");
+  function filterMatches(q) {
+    q = String(q || "").trim().toLowerCase();
+    if (!q) return [];
+    const all = getAllVarietyNames();
+    const starts = [];
+    const contains = [];
+    for (const name of all) {
+      const n = name.toLowerCase();
+      if (n.startsWith(q)) starts.push(name);
+      else if (n.includes(q)) contains.push(name);
+      if (starts.length + contains.length >= MAX_RESULTS) break;
     }
+    return starts.concat(contains).slice(0, MAX_RESULTS);
   }
 
-  if (damImg) {
-    damImg.style.width = value + "px";
-    if (value < 200) {
-      damImg.style.maxWidth = value + "px";
-    } else {
-      damImg.style.removeProperty("max-width");
-      damImg.style.removeProperty("max-height");
+  const dd = document.createElement("div");
+  dd.className = "variety-dd";
+  dd.style.cssText = [
+    "position:fixed",
+    "z-index:2147483647",
+    "background:#fff",
+    "border:2px solid blue",
+    "border-radius:8px",
+    "box-shadow:0 6px 16px rgba(0,0,0,.15)",
+    "max-height:260px",
+    "overflow:auto",
+    "padding:4px",
+    "display:none",
+    "min-width:240px"
+  ].join(";");
+  document.body.appendChild(dd);
+
+  let activeInput = null;
+  let suppressHide = false;
+
+  function placeDropdownUnderInput(input) {
+    const r = input.getBoundingClientRect();
+    dd.style.left = Math.round(r.left) + "px";
+    dd.style.top  = Math.round(r.bottom + 4) + "px";
+    dd.style.minWidth = Math.round(r.width) + "px";
+  }
+
+  function hideDropdown() {
+    if (suppressHide) return;
+    dd.style.display = "none";
+    dd.innerHTML = "";
+    activeInput = null;
+  }
+
+  function showDropdown(input, items) {
+    if (!items.length) return hideDropdown();
+    activeInput = input;
+    placeDropdownUnderInput(input);
+
+    dd.innerHTML = items.map(name => {
+      // suggestions KEEP Semi-Pencilled, strip Split
+      const label = cleanForDropdown(name);
+      return `<div class="varSuggestionItem"
+                   data-value="${encodeURIComponent(name)}"
+                   style="padding:6px 8px; cursor:pointer; border-radius:6px;">
+                ${label}
+              </div>`;
+    }).join("");
+
+    dd.style.display = "block";
+  }
+
+  // Pointerdown prevents Chromium blur-before-click
+  dd.addEventListener("pointerdown", (e) => {
+    const item = e.target.closest(".varSuggestionItem");
+    if (!item) return;
+
+    e.preventDefault();
+    e.stopPropagation();
+
+    const raw = decodeURIComponent(item.getAttribute("data-value") || "");
+    if (activeInput) {
+      // When it lands in input, remove BOTH Split and Semi-Pencilled
+      activeInput.value = cleanDisplayLabel(raw);
+
+      // Fire input/change so your existing handlers run
+      activeInput.dispatchEvent(new Event("input", { bubbles: true }));
+      activeInput.dispatchEvent(new Event("change", { bubbles: true }));
     }
-  }
-}
+    hideDropdown();
+  });
 
-window.addEventListener("DOMContentLoaded", () => {
-  const slider = document.getElementById("imageSizeSlider");
-  if (slider) {
-    slider.value = 200;
-    updateImageSize(200);
-  }
-});
+  dd.addEventListener("pointerenter", () => { suppressHide = true; });
+  dd.addEventListener("pointerleave", () => { suppressHide = false; });
 
-document.addEventListener("click", function (e) {
-  const img = e.target.closest("#sireImageContainer img, #damImageContainer img");
-  if (img && img.classList.contains("enlarged")) {
-    img.style.removeProperty("max-width");
-    img.style.removeProperty("max-height");
-    img.style.removeProperty("width");
+  document.addEventListener("pointerdown", (e) => {
+    if (dd.style.display !== "block") return;
+    if (e.target === dd || dd.contains(e.target)) return;
+    if (activeInput && e.target === activeInput) return;
+    hideDropdown();
+  }, true);
+
+  window.addEventListener("scroll", () => {
+    if (activeInput && dd.style.display === "block") placeDropdownUnderInput(activeInput);
+  }, true);
+
+  window.addEventListener("resize", () => {
+    if (activeInput && dd.style.display === "block") placeDropdownUnderInput(activeInput);
+  });
+
+  function bindSuggestInput(input) {
+    if (!input || input._suggestBound) return;
+    input._suggestBound = true;
+
+    input.addEventListener("input", () => {
+      const matches = filterMatches(input.value);
+      showDropdown(input, matches);
+    });
+
+    input.addEventListener("focus", () => {
+      const matches = filterMatches(input.value);
+      showDropdown(input, matches);
+    });
+
+    input.addEventListener("blur", () => {
+      setTimeout(hideDropdown, 120);
+    });
   }
-});
+
+  // Change IDs here ONLY if yours differ
+  bindSuggestInput(document.getElementById("sireVarietyInput"));
+  bindSuggestInput(document.getElementById("damVarietyInput"));
+
+})();
+
 ///////////////////////////
 
 function updateImageSize(value) {
