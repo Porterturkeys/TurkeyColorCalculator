@@ -2207,6 +2207,79 @@ window.addEventListener("load", () => {
       };
     }
 
+///////////////////////////////////
+
+// =====================================================
+// BB FIX: Parent observer must apply BB WHITE OR BB BRONZE correctly
+// - Stops BB White dam reverting to Bronze after transfer
+// =====================================================
+(function BBParentObserverFix(){
+  if (window._BBParentObserverFixInstalled) return;
+  window._BBParentObserverFixInstalled = true;
+
+  function norm(s){ return String(s||"").trim().toLowerCase(); }
+
+  // Detect from the parent image container label (most reliable after transfer)
+  function getParentLabel(prefix){
+    var c = document.getElementById(prefix+"ImageContainer");
+    if (!c) return "";
+    var strong = c.querySelector("strong");
+    if (!strong) return norm(c.textContent);
+    var spans = strong.querySelectorAll("span");
+    return norm((spans[0] && spans[0].textContent) || strong.textContent);
+  }
+
+  function applyCorrectBBParent(prefix){
+    var c = document.getElementById(prefix+"ImageContainer");
+    if (!c) return;
+
+    // If BB White is intended, enforce it (and clear bronze flag)
+    var label = getParentLabel(prefix);
+    var isWhite = /broad\s*breasted\s*white/i.test(label) || (c.dataset && c.dataset.whiteKey === "broad");
+    var isBronze = /broad\s*breasted\s*bronze/i.test(label) || (c.dataset && c.dataset.bronzeKey === "broad");
+
+    // Prefer white if both ever appear (white must not be overwritten)
+    if (isWhite && typeof window.applyBroadWhiteToParent === "function") {
+      try { delete c.dataset.bronzeKey; } catch(e){}
+      c.dataset.whiteKey = "broad";
+      window.applyBroadWhiteToParent(prefix);
+      return;
+    }
+
+    if (isBronze && typeof window.applyBronzeToParent === "function") {
+      try { delete c.dataset.whiteKey; } catch(e){}
+      c.dataset.bronzeKey = "broad";
+      window.applyBronzeToParent(prefix);
+    }
+  }
+
+  // Install *our* observers (and they do NOT blindly apply bronze)
+  window.addEventListener("load", function(){
+    ["sire","dam"].forEach(function(prefix){
+      var c = document.getElementById(prefix+"ImageContainer");
+      if (!c) return;
+
+      var busy = false;
+      var obs = new MutationObserver(function(){
+        if (busy) return;
+        busy = true;
+        setTimeout(function(){
+          applyCorrectBBParent(prefix);
+          busy = false;
+        }, 0);
+      });
+
+      obs.observe(c, { childList:true, subtree:true });
+    });
+  });
+
+})();
+
+
+
+
+      
+//////////////////////////////////////
     // Keep BB overlay alive through Calculate / redraws
     installParentObservers();
     installBBOffspringObserver();
