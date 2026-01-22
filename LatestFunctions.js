@@ -1,54 +1,56 @@
 // =====================================================
-// DISPLAY CLEANERS
-// - Dropdown suggestions: keep (Semi-Pencilled), strip (Split ...)
-// - Everywhere else (search results / parents / offspring / summary): strip (Split ...) + (Semi-Pencilled)
+// DISPLAY + SEARCH SECTION (COMPLETE REWRITE — NO DUPES)
+// Goal:
+// 1) Dropdown suggestions: KEEP "(Semi-Pencilled)" but REMOVE "(Split ...)"
+// 2) Everywhere else (parents / offspring / summary / search results text): REMOVE BOTH
+//    "(Split ...)" AND "(Semi-Pencilled)" (including any dash variants)
+// 3) Only ONE searchResults() and ONE resetSearch()
+// 4) Wrap hooks ONCE only (no duplicate wrappers)
 // =====================================================
+
+
+// =====================================================
+// 1) TEXT CLEANERS
+// =====================================================
+
+// Dropdown ONLY: keep (Semi-Pencilled), strip (Split ...)
 function cleanForDropdown(s) {
   return String(s || "")
-    .replace(/\s*\(Split.*?\)/gi, "")
+    .replace(/\s*\(\s*Split\b.*?\)/gi, "")
     .trim();
 }
 
+// Everywhere else: strip (Split ...) + strip (Semi-Pencilled) with any dash/spaces
 function cleanDisplayLabel(s) {
-  // KEEP (Semi-Pencilled) ONLY in the suggestion dropdown.
-  // Everywhere else: strip (Split...) and (Semi-Pencilled)
   return String(s || "")
-    .replace(/\s*\((Split|Semi-Pencilled).*?\)/gi, "")
+    // remove "(Split ...)"
+    .replace(/\s*\(\s*Split\b.*?\)/gi, "")
+    // remove "(Semi-Pencilled)" allowing hyphen variations: -, ‐, -, ‒, –, —, − or just space
+    .replace(/\s*\(\s*Semi\s*[-\u2010\u2011\u2012\u2013\u2014\u2212 ]?\s*Pencilled\b.*?\)/gi, "")
     .trim();
 }
+
 
 // =====================================================
-// Helper: safely gather all phenotype mappings (shared safely)
+// 2) GET ALL MAPPINGS (SAFE)
 // =====================================================
 function getAllPhenotypeMappings() {
-  return [
-    typeof phenotypeMapping1 !== "undefined" ? phenotypeMapping1 : null,
-    typeof phenotypeMapping1A !== "undefined" ? phenotypeMapping1A : null,
-    typeof phenotypeMapping1B !== "undefined" ? phenotypeMapping1B : null,
-    typeof phenotypeMapping1C !== "undefined" ? phenotypeMapping1C : null,
-    typeof phenotypeMapping1D !== "undefined" ? phenotypeMapping1D : null,
-    typeof phenotypeMapping1E !== "undefined" ? phenotypeMapping1E : null,
-    typeof phenotypeMapping2 !== "undefined" ? phenotypeMapping2 : null,
-    typeof phenotypeMapping2A !== "undefined" ? phenotypeMapping2A : null,
-    typeof phenotypeMapping3 !== "undefined" ? phenotypeMapping3 : null,
-    typeof phenotypeMapping3A !== "undefined" ? phenotypeMapping3A : null,
-    typeof phenotypeMapping4 !== "undefined" ? phenotypeMapping4 : null,
-    typeof phenotypeMapping5 !== "undefined" ? phenotypeMapping5 : null,
-    typeof phenotypeMapping6 !== "undefined" ? phenotypeMapping6 : null,
-    typeof phenotypeMapping7 !== "undefined" ? phenotypeMapping7 : null,
-    typeof phenotypeMapping8 !== "undefined" ? phenotypeMapping8 : null,
-    typeof phenotypeMapping9 !== "undefined" ? phenotypeMapping9 : null,
-    typeof phenotypeMapping10 !== "undefined" ? phenotypeMapping10 : null,
-    typeof phenotypeMapping11 !== "undefined" ? phenotypeMapping11 : null,
-    typeof phenotypeMapping12 !== "undefined" ? phenotypeMapping12 : null,
-    typeof phenotypeMapping13 !== "undefined" ? phenotypeMapping13 : null,
-    typeof phenotypeMapping14 !== "undefined" ? phenotypeMapping14 : null,
-    typeof phenotypeMapping15 !== "undefined" ? phenotypeMapping15 : null
-  ].filter(Boolean);
+  const maps = [];
+  for (const k of [
+    "phenotypeMapping1","phenotypeMapping1A","phenotypeMapping1B","phenotypeMapping1C","phenotypeMapping1D","phenotypeMapping1E",
+    "phenotypeMapping2","phenotypeMapping2A",
+    "phenotypeMapping3","phenotypeMapping3A",
+    "phenotypeMapping4","phenotypeMapping5","phenotypeMapping6","phenotypeMapping7","phenotypeMapping8","phenotypeMapping9",
+    "phenotypeMapping10","phenotypeMapping11","phenotypeMapping12","phenotypeMapping13","phenotypeMapping14","phenotypeMapping15"
+  ]) {
+    if (typeof window[k] !== "undefined" && window[k]) maps.push(window[k]);
+  }
+  return maps;
 }
 
+
 // =====================================================
-// Normalization + synonyms
+// 3) NORMALIZATION + SYNONYMS
 // =====================================================
 function normalizeWordOrder(str) {
   return String(str || "").split(/\s+/).filter(Boolean).sort().join(" ");
@@ -78,7 +80,7 @@ function normalizeVarietyInput(raw) {
     "firefall": "fall fire",
     "fireball": "fall fire",
 
-    "sweetwater": "sweet grass",    // if you prefer "sweetgrass" change here
+    "sweetwater": "sweet grass",
     "sweetgrass": "sweet grass",
 
     "black norfolk": "black",
@@ -99,32 +101,36 @@ function normalizeVarietyInput(raw) {
   return s;
 }
 
+
 // =====================================================
-// Levenshtein (for fuzzy search)
+// 4) LEVENSHTEIN (FUZZY)
 // =====================================================
 function getEditDistance(a, b) {
   a = String(a || "");
   b = String(b || "");
-  const matrix = Array.from({ length: a.length + 1 }, () => new Array(b.length + 1).fill(0));
 
-  for (let i = 0; i <= a.length; i++) matrix[i][0] = i;
-  for (let j = 0; j <= b.length; j++) matrix[0][j] = j;
+  const m = a.length, n = b.length;
+  const dp = Array.from({ length: m + 1 }, () => new Array(n + 1).fill(0));
 
-  for (let i = 1; i <= a.length; i++) {
-    for (let j = 1; j <= b.length; j++) {
-      matrix[i][j] = Math.min(
-        matrix[i - 1][j] + 1,
-        matrix[i][j - 1] + 1,
-        matrix[i - 1][j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1)
+  for (let i = 0; i <= m; i++) dp[i][0] = i;
+  for (let j = 0; j <= n; j++) dp[0][j] = j;
+
+  for (let i = 1; i <= m; i++) {
+    for (let j = 1; j <= n; j++) {
+      dp[i][j] = Math.min(
+        dp[i - 1][j] + 1,
+        dp[i][j - 1] + 1,
+        dp[i - 1][j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1)
       );
     }
   }
-  return matrix[a.length][b.length];
+  return dp[m][n];
 }
 
+
 // =====================================================
-// INDEPENDENT SEARCH FEATURE (ONLY ONE searchResults())
-// - Cleans display so (Semi-Pencilled) never shows in results
+// 5) SEARCH RESULTS (ONE FUNCTION ONLY)
+// - Guarantees display strips (Semi-Pencilled) in results
 // =====================================================
 function searchResults() {
   const inputEl = document.getElementById("searchInput");
@@ -150,7 +156,7 @@ function searchResults() {
   }
 
   const allMappings = getAllPhenotypeMappings();
-  if (allMappings.length === 0) {
+  if (!allMappings.length) {
     console.error("Phenotype mappings are not loaded.");
     resultsHeader.style.display = "block";
     results.style.display = "block";
@@ -176,20 +182,13 @@ function searchResults() {
         getEditDistance(sortedRawLower, phSorted)
       );
 
-      if (d === 0) {
-        bestMatch = phenotype;
-        bestDistance = 0;
-        break;
-      }
-      if (d < bestDistance && d <= 3) {
-        bestMatch = phenotype;
-        bestDistance = d;
-      }
+      if (d === 0) { bestMatch = phenotype; bestDistance = 0; break; }
+      if (d < bestDistance && d <= 3) { bestMatch = phenotype; bestDistance = d; }
     }
     if (bestDistance === 0) break;
   }
 
-  // Use fuzzy bestMatch ONLY if reasonably close (<=2), else use normalized synonym term
+  // Use fuzzy bestMatch ONLY if close (<=2), else use normalized synonym term
   const finalSearchTerm = (bestMatch && bestDistance <= 2)
     ? String(bestMatch).toLowerCase().trim()
     : String(normalizedInput).toLowerCase().trim();
@@ -198,7 +197,6 @@ function searchResults() {
   let femaleMatch = null;
   let sharedMatch = null;
 
-  // Main search
   for (const mapping of allMappings) {
     for (const [genotype, phenotype] of Object.entries(mapping)) {
       const normGeno = String(genotype || "").replace(/\s+/g, " ").trim();
@@ -217,7 +215,6 @@ function searchResults() {
     if (maleMatch && femaleMatch && sharedMatch) break;
   }
 
-  // Display
   resultsHeader.style.display = "block";
   results.style.display = "block";
 
@@ -247,7 +244,6 @@ function searchResults() {
   additionalText.innerHTML = `<p style="font-size: 18px; color: blue;">Enter this genotype into the calculator.</p>`;
 }
 
-// Reset search
 function resetSearch() {
   const inputEl = document.getElementById("searchInput");
   const results = document.getElementById("results");
@@ -260,9 +256,9 @@ function resetSearch() {
   if (additionalText) additionalText.style.display = "none";
 }
 
+
 // =====================================================
-// (OPTIONAL) Phenotype -> Genotype helpers you already use elsewhere
-// (kept because your code references them)
+// 6) OPTIONAL: PHENOTYPE -> GENOTYPE HELPERS (KEPT)
 // =====================================================
 function findFirstGenotypeForPhenotype(phenotypeInput) {
   const allMaps = getAllPhenotypeMappings();
@@ -273,9 +269,9 @@ function findFirstGenotypeForPhenotype(phenotypeInput) {
 
   for (const map of allMaps) {
     for (const [genotype, pheno] of Object.entries(map)) {
-      const phenoNorm = normalizeVarietyInput(pheno);
-      const phenoSorted = normalizeWordOrder(phenoNorm);
-      if (phenoNorm === normalized || phenoSorted === sortedNorm) return genotype;
+      const phNorm = normalizeVarietyInput(pheno);
+      const phSorted = normalizeWordOrder(phNorm);
+      if (phNorm === normalized || phSorted === sortedNorm) return genotype;
     }
   }
   return null;
@@ -283,7 +279,8 @@ function findFirstGenotypeForPhenotype(phenotypeInput) {
 
 function applyGenotypeToDropdowns(genotype, prefix) {
   if (!genotype) return;
-  const parts = String(genotype).split(" ").filter(x => x.trim());
+
+  const parts = String(genotype).split(" ").filter(Boolean);
   const isDam = prefix === "dam";
 
   parts.forEach(token => {
@@ -291,14 +288,14 @@ function applyGenotypeToDropdowns(genotype, prefix) {
     else if (/^[Cc]/.test(token)) document.getElementById(prefix + "AlleleC").value = token;
     else if (/^[Dd]/.test(token)) document.getElementById(prefix + "Alleled").value = token;
     else if (/^[Ee]/.test(token)) {
-      let val = token;
-      if (isDam && (token === "Ee" || token === "ee")) val = token[0] + "-";
-      document.getElementById(prefix + "AlleleE").value = val;
+      let v = token;
+      if (isDam && (token === "Ee" || token === "ee")) v = token[0] + "-";
+      document.getElementById(prefix + "AlleleE").value = v;
     }
     else if (/^[Nn]/.test(token)) {
-      let val = token;
-      if (isDam && (token === "Nn" || token === "nn")) val = token[0].toLowerCase() + "-";
-      document.getElementById(prefix + "AlleleN").value = val;
+      let v = token;
+      if (isDam && (token === "Nn" || token === "nn")) v = token[0].toLowerCase() + "-";
+      document.getElementById(prefix + "AlleleN").value = v;
     }
     else if (/^Pn|^pn/.test(token)) document.getElementById(prefix + "AllelePn").value = token;
     else if (/^[Rr]/.test(token)) document.getElementById(prefix + "AlleleR").value = token;
@@ -311,41 +308,40 @@ function applyGenotypeToDropdowns(genotype, prefix) {
 }
 
 function applyVarietyToSire() {
-  const val = document.getElementById("sireVarietyInput")?.value.trim();
-  if (!val) return;
-  const g = findFirstGenotypeForPhenotype(val);
+  const v = document.getElementById("sireVarietyInput")?.value.trim();
+  if (!v) return;
+  const g = findFirstGenotypeForPhenotype(v);
   if (g) applyGenotypeToDropdowns(g, "sire");
 }
 
 function applyVarietyToDam() {
-  const val = document.getElementById("damVarietyInput")?.value.trim();
-  if (!val) return;
-  const g = findFirstGenotypeForPhenotype(val);
+  const v = document.getElementById("damVarietyInput")?.value.trim();
+  if (!v) return;
+  const g = findFirstGenotypeForPhenotype(v);
   if (g) applyGenotypeToDropdowns(g, "dam");
 }
 
 function resetVarietyAutocomplete() {
   const sire = document.getElementById("sireVarietyInput");
-  const dam = document.getElementById("damVarietyInput");
+  const dam  = document.getElementById("damVarietyInput");
   if (sire) sire.value = "";
-  if (dam) dam.value = "";
+  if (dam)  dam.value = "";
 }
 
+
 // =====================================================
-// DISPLAY CLEANERS (PARENTS / OFFSPRING / SUMMARY)
-// - Uses cleanDisplayLabel() so (Semi-Pencilled) never shows in UI
-// - Wrapped ONCE only
+// 7) DISPLAY CLEANERS FOR UI (PARENTS / OFFSPRING / SUMMARY)
 // =====================================================
 function cleanParentPhenotypesOnce() {
   ["sireImageContainer", "damImageContainer"].forEach(id => {
-    const container = document.getElementById(id);
-    if (!container) return;
+    const c = document.getElementById(id);
+    if (!c) return;
 
-    const strong = container.querySelector("strong");
+    const strong = c.querySelector("strong");
     if (!strong) return;
 
     const spans = strong.querySelectorAll("span");
-    if (!spans.length) return;
+    if (!spans || !spans.length) return;
 
     const phenoSpan = spans[0];
     if (!phenoSpan || !phenoSpan.textContent) return;
@@ -356,10 +352,10 @@ function cleanParentPhenotypesOnce() {
 
 function cleanOffspringPhenotypesOnce() {
   ["maleOffspringResults", "femaleOffspringResults"].forEach(id => {
-    const container = document.getElementById(id);
-    if (!container) return;
+    const c = document.getElementById(id);
+    if (!c) return;
 
-    container.querySelectorAll(".offspring-item .variety-name").forEach(span => {
+    c.querySelectorAll(".offspring-item .variety-name").forEach(span => {
       if (!span || !span.textContent) return;
       span.textContent = cleanDisplayLabel(span.textContent);
     });
@@ -367,16 +363,59 @@ function cleanOffspringPhenotypesOnce() {
 }
 
 function cleanSummaryPhenotypesOnce() {
-  const summaryTable = document.getElementById("summaryChart");
-  if (!summaryTable) return;
+  const t = document.getElementById("summaryChart");
+  if (!t) return;
 
-  summaryTable.querySelectorAll("td").forEach(td => {
-    if (!td || !td.textContent) return;
-    if (/\((Split|Semi-Pencilled).*?\)/i.test(td.textContent)) {
-      td.textContent = cleanDisplayLabel(td.textContent);
-    }
+  t.querySelectorAll("td, th").forEach(cell => {
+    if (!cell || !cell.textContent) return;
+    cell.textContent = cleanDisplayLabel(cell.textContent);
   });
 }
+
+
+// =====================================================
+// 8) WRAP HOOKS ONCE (NO DUPLICATE WRAPPERS)
+// =====================================================
+function wrapOnce(fnName, afterFn) {
+  const orig = window[fnName];
+  if (typeof orig !== "function") return;
+  if (orig._displayCleanWrapped) return;
+
+  function wrapped() {
+    const out = orig.apply(this, arguments);
+    try { afterFn(); } catch (e) {}
+    return out;
+  }
+  wrapped._displayCleanWrapped = true;
+  window[fnName] = wrapped;
+}
+
+// Run a baseline clean (and one delayed clean for late DOM writes)
+window.addEventListener("DOMContentLoaded", () => {
+  cleanParentPhenotypesOnce();
+  cleanOffspringPhenotypesOnce();
+  cleanSummaryPhenotypesOnce();
+  setTimeout(() => {
+    cleanParentPhenotypesOnce();
+    cleanOffspringPhenotypesOnce();
+    cleanSummaryPhenotypesOnce();
+  }, 50);
+});
+
+// Hook into your existing flows
+wrapOnce("updateSireGenotype", () => setTimeout(cleanParentPhenotypesOnce, 0));
+wrapOnce("updateDamGenotype",  () => setTimeout(cleanParentPhenotypesOnce, 0));
+wrapOnce("setGenotypeImage",   () => setTimeout(cleanParentPhenotypesOnce, 0));
+
+wrapOnce("displayResults", () => setTimeout(() => {
+  cleanOffspringPhenotypesOnce();
+  cleanSummaryPhenotypesOnce();
+}, 0));
+
+wrapOnce("displaySummaryChart", () => setTimeout(cleanSummaryPhenotypesOnce, 0));
+
+
+
 
 // Wrap helpers (prevents duplicates)
 function wrapOnce(fnName, afterFn) {
