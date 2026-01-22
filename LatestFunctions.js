@@ -3205,14 +3205,14 @@ window.addEventListener("load", () => {
 
 ////////////////////////////
 // =====================================================
-// HARD FIX: Variety suggestion dropdown (FF/Safari safe)
-// - Removes any old dropdowns to prevent conflicts
+// FIXED: Variety suggestion dropdown (ALL browsers)
+// - Builds ONE dropdown per input (sire + dam)
+// - Removes old installs ONCE (no cross-deleting)
 // - Waits for mappings to exist
-// - Sire/Dam only
 // =====================================================
-(function VarietyDropdown_HardFix(){
-  if (window._varietyDropdownHardFixInstalled) return;
-  window._varietyDropdownHardFixInstalled = true;
+(function VarietyDropdown_FixedAllBrowsers(){
+  if (window._varietyDropdownFixedAllBrowsersInstalled) return;
+  window._varietyDropdownFixedAllBrowsersInstalled = true;
 
   var MAX_RESULTS = 50;
   var cached = [];
@@ -3297,20 +3297,25 @@ window.addEventListener("load", () => {
     return starts.concat(wordStarts, contains).slice(0, MAX_RESULTS);
   }
 
-  function removeOldDropdowns(){
+  // Remove ONLY older installs once (previous blocks), then never again
+  function removeOldOnce(){
+    if (window._varietyDropdownOldRemovedOnce) return;
+    window._varietyDropdownOldRemovedOnce = true;
+
     document.querySelectorAll(".variety-dd").forEach(function(el){
-      try{ el.remove(); }catch(e){}
+      // Only remove dropdowns that are NOT ours (or that have no owner)
+      // (If you had multiple installs earlier, this clears them.)
+      try { el.remove(); } catch(e){}
     });
   }
 
   function makeDropdown(inputEl, role){
-    // remove any existing dropdowns (conflict killer)
-    removeOldDropdowns();
-
+    // Unique dropdown per input
     var dd = document.createElement("div");
     dd.className = "variety-dd";
     dd.style.display = "none";
     dd.setAttribute("role","listbox");
+    dd.dataset.owner = inputEl.id; // tie dropdown to that input
     document.body.appendChild(dd);
 
     var state = { open:false, items:[], active:-1, last:"" };
@@ -3345,7 +3350,6 @@ window.addEventListener("load", () => {
     function applySelection(label){
       inputEl.value = label;
 
-      // apply using your existing functions (do NOT change these)
       if (role === "sire" && typeof window.applyVarietyToSire === "function") window.applyVarietyToSire();
       if (role === "dam"  && typeof window.applyVarietyToDam  === "function") window.applyVarietyToDam();
 
@@ -3357,13 +3361,12 @@ window.addEventListener("load", () => {
       state.active=-1;
 
       for (var i=0;i<state.items.length;i++){
-        (function(label, idx){
+        (function(label){
           var row = document.createElement("div");
           row.className="variety-dd-item";
           row.setAttribute("role","option");
           row.innerHTML = highlight(label, norm(qRaw));
 
-          // Touch + mouse safe
           row.addEventListener("touchstart", function(e){
             e.preventDefault();
             applySelection(label);
@@ -3375,7 +3378,7 @@ window.addEventListener("load", () => {
           });
 
           dd.appendChild(row);
-        })(state.items[i], i);
+        })(state.items[i]);
       }
 
       position();
@@ -3429,14 +3432,17 @@ window.addEventListener("load", () => {
       }
     });
 
-    // Blur race fix
     inputEl.addEventListener("blur", function(){ setTimeout(close, 200); });
 
     window.addEventListener("scroll", function(){ if (state.open) position(); }, true);
     window.addEventListener("resize", function(){ if (state.open) position(); });
+
+    return { update:update, close:close };
   }
 
   function initWhenReady(){
+    removeOldOnce();
+
     var tries = 0;
     var maxTries = 200; // ~20s
     var t = setInterval(function(){
@@ -3448,13 +3454,20 @@ window.addEventListener("load", () => {
 
       if ((sire || dam) && cached.length){
         clearInterval(t);
+
+        // Also remove any duplicates that might exist for these inputs specifically
+        document.querySelectorAll('.variety-dd').forEach(function(el){
+          if (el.dataset && (el.dataset.owner === "sireVarietyInput" || el.dataset.owner === "damVarietyInput")) {
+            try{ el.remove(); }catch(e){}
+          }
+        });
+
         if (sire) makeDropdown(sire, "sire");
         if (dam)  makeDropdown(dam,  "dam");
       }
 
       if (tries >= maxTries){
         clearInterval(t);
-        // still install (focus/input will rebuild)
         var s2 = document.getElementById("sireVarietyInput");
         var d2 = document.getElementById("damVarietyInput");
         if (s2) makeDropdown(s2, "sire");
