@@ -4,7 +4,8 @@
 // - Everywhere else (search results / parents / offspring / summary / input value):
 //     STRIP (Split ...) + (Semi-Pencilled)
 // - Cross-browser dropdown: works in Firefox + Chromium (Chrome/Edge/etc)
-//   via pointerdown + preventDefault + fixed dropdown on <body>
+//   via mousedown + preventDefault + fixed dropdown on <body>
+// - DOES NOT change your dropdown colors/layout (no inline theme styles)
 // =====================================================
 
 (function VarietyTools_AllInOne() {
@@ -285,21 +286,21 @@
   // Wrap ONCE helper (no duplicate wraps)
   function wrapOnce(fnName, afterFn) {
     const orig = window[fnName];
-    if (typeof orig !== "function" || orig._wrappedOnce) return;
+    if (typeof orig !== "function" || orig._vtWrappedOnce) return;
     function wrapped() {
       const r = orig.apply(this, arguments);
       try { afterFn(); } catch (e) {}
       return r;
     }
-    wrapped._wrappedOnce = true;
+    wrapped._vtWrappedOnce = true;
     window[fnName] = wrapped;
   }
 
-  wrapOnce("updateSireGenotype", () => setTimeout(cleanParentPhenotypesOnce, 0));
-  wrapOnce("updateDamGenotype",  () => setTimeout(cleanParentPhenotypesOnce, 0));
-  wrapOnce("setGenotypeImage",   () => setTimeout(cleanParentPhenotypesOnce, 0));
-  wrapOnce("displayResults",     () => setTimeout(cleanOffspringPhenotypesOnce, 0));
-  wrapOnce("displaySummaryChart",() => setTimeout(cleanSummaryPhenotypesOnce, 0));
+  wrapOnce("updateSireGenotype",  () => setTimeout(cleanParentPhenotypesOnce, 0));
+  wrapOnce("updateDamGenotype",   () => setTimeout(cleanParentPhenotypesOnce, 0));
+  wrapOnce("setGenotypeImage",    () => setTimeout(cleanParentPhenotypesOnce, 0));
+  wrapOnce("displayResults",      () => setTimeout(cleanOffspringPhenotypesOnce, 0));
+  wrapOnce("displaySummaryChart", () => setTimeout(cleanSummaryPhenotypesOnce, 0));
 
   window.addEventListener("DOMContentLoaded", () => {
     cleanParentPhenotypesOnce();
@@ -309,12 +310,15 @@
 
   // ------------------------------
   // CROSS-BROWSER CUSTOM SUGGESTION DROPDOWN
+  // IMPORTANT:
+  // - No inline theme styling (your CSS controls colors/layout)
+  // - mousedown+preventDefault = Chromium click works
+  // - clicking suggestion also calls applyVarietyToSire/Dam if present (transfer fix)
   // ------------------------------
   const MAX_RESULTS = 60;
   let cachedNames = null;
 
-  function getAllVarietyNames() {
-    if (cachedNames) return cachedNames;
+  function buildNamesCache() {
     const maps = getAllPhenotypeMappings();
     const set = new Set();
     maps.forEach(m => {
@@ -326,6 +330,12 @@
       } catch (e) {}
     });
     cachedNames = Array.from(set);
+    return cachedNames;
+  }
+
+  function getAllVarietyNames() {
+    // If mappings load later, rebuild when empty.
+    if (!cachedNames || cachedNames.length === 0) return buildNamesCache();
     return cachedNames;
   }
 
@@ -344,22 +354,18 @@
     return starts.concat(contains).slice(0, MAX_RESULTS);
   }
 
-  const dd = document.createElement("div");
-  dd.className = "variety-dd";
-  dd.style.cssText = [
-    "position:fixed",
-    "z-index:2147483647",
-    "background:#fff",
-    "border:2px solid blue",
-    "border-radius:8px",
-    "box-shadow:0 6px 16px rgba(0,0,0,.15)",
-    "max-height:260px",
-    "overflow:auto",
-    "padding:4px",
-    "display:none",
-    "min-width:240px"
-  ].join(";");
-  document.body.appendChild(dd);
+  // Reuse an existing dropdown if you already have one; otherwise create it.
+  let dd = document.querySelector(".variety-dd");
+  if (!dd) {
+    dd = document.createElement("div");
+    dd.className = "variety-dd";
+    document.body.appendChild(dd);
+  }
+
+  // Only positioning/visibility (no color/layout styling)
+  dd.style.position = "fixed";
+  dd.style.zIndex = "2147483647";
+  dd.style.display = "none";
 
   let activeInput = null;
   let suppressHide = false;
@@ -379,24 +385,20 @@
   }
 
   function showDropdown(input, items) {
-    if (!items.length) return hideDropdown();
+    if (!items || !items.length) return hideDropdown();
     activeInput = input;
     placeDropdownUnderInput(input);
 
     dd.innerHTML = items.map(name => {
       const label = cleanForDropdown(name); // keep Semi-Pencilled; remove Split
-      return `<div class="varSuggestionItem"
-                  data-value="${encodeURIComponent(name)}"
-                  style="padding:6px 8px; cursor:pointer; border-radius:6px;">
-                ${label}
-              </div>`;
+      return `<div class="varSuggestionItem" data-value="${encodeURIComponent(name)}">${label}</div>`;
     }).join("");
 
     dd.style.display = "block";
   }
 
-  // KEY: pointerdown + preventDefault for Chromium
-  dd.addEventListener("pointerdown", (e) => {
+  // *** Chromium fix: use mousedown BEFORE blur happens ***
+  dd.addEventListener("mousedown", (e) => {
     const item = e.target.closest(".varSuggestionItem");
     if (!item) return;
 
@@ -404,19 +406,30 @@
     e.stopPropagation();
 
     const raw = decodeURIComponent(item.getAttribute("data-value") || "");
-    if (activeInput) {
-      // Input should NOT keep Semi-Pencilled OR Split
-      activeInput.value = cleanDisplayLabel(raw);
-      activeInput.dispatchEvent(new Event("input", { bubbles: true }));
-      activeInput.dispatchEvent(new Event("change", { bubbles: true }));
+    if (!activeInput) return;
+
+    // Input should NOT keep Semi-Pencilled OR Split
+    activeInput.value = cleanDisplayLabel(raw);
+
+    // Trigger your existing flows
+    activeInput.dispatchEvent(new Event("input", { bubbles: true }));
+    activeInput.dispatchEvent(new Event("change", { bubbles: true }));
+
+    // Transfer/apply fix (if your functions exist)
+    if (activeInput.id === "sireVarietyInput" && typeof window.applyVarietyToSire === "function") {
+      try { window.applyVarietyToSire(); } catch (e2) {}
     }
+    if (activeInput.id === "damVarietyInput" && typeof window.applyVarietyToDam === "function") {
+      try { window.applyVarietyToDam(); } catch (e2) {}
+    }
+
     hideDropdown();
   });
 
-  dd.addEventListener("pointerenter", () => { suppressHide = true; });
-  dd.addEventListener("pointerleave", () => { suppressHide = false; });
+  dd.addEventListener("mouseenter", () => { suppressHide = true; });
+  dd.addEventListener("mouseleave", () => { suppressHide = false; });
 
-  document.addEventListener("pointerdown", (e) => {
+  document.addEventListener("mousedown", (e) => {
     if (dd.style.display !== "block") return;
     if (e.target === dd || dd.contains(e.target)) return;
     if (activeInput && e.target === activeInput) return;
@@ -432,16 +445,18 @@
   });
 
   function bindSuggestInput(input) {
-    if (!input || input._suggestBound) return;
-    input._suggestBound = true;
+    if (!input || input._vtSuggestBound) return;
+    input._vtSuggestBound = true;
 
     input.addEventListener("input", () => {
-      const matches = filterMatches(input.value);
+      const q = input.value || "";
+      const matches = filterMatches(q);
       showDropdown(input, matches);
     });
 
     input.addEventListener("focus", () => {
-      const matches = filterMatches(input.value);
+      const q = input.value || "";
+      const matches = filterMatches(q);
       showDropdown(input, matches);
     });
 
@@ -460,7 +475,7 @@
 })();
 
 /////////////////////////////////////////////////////
-// IMAGE SIZE (unchanged from your request)
+// IMAGE SIZE (unchanged)
 /////////////////////////////////////////////////////
 function updateImageSize(value) {
   const sireImg = document.querySelector('#sireImageContainer img');
@@ -468,6 +483,7 @@ function updateImageSize(value) {
 
   if (sireImg) {
     sireImg.style.width = value + 'px';
+    // ONLY set max-width when shrinking - NEVER when at default
     if (value < 200) {
       sireImg.style.maxWidth = value + 'px';
     } else {
@@ -486,6 +502,7 @@ function updateImageSize(value) {
   }
 }
 
+// Clean start on page load
 window.addEventListener('DOMContentLoaded', () => {
   const slider = document.getElementById('imageSizeSlider');
   if (slider) {
@@ -494,6 +511,7 @@ window.addEventListener('DOMContentLoaded', () => {
   }
 });
 
+// When user clicks to enlarge - removes any inline limits so CSS wins
 document.addEventListener('click', function(e) {
   const img = e.target.closest('#sireImageContainer img, #damImageContainer img');
   if (img && img.classList.contains('enlarged')) {
