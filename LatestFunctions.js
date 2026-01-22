@@ -1,34 +1,32 @@
 // =====================================================
-// VARIETY SEARCH + SUGGESTIONS + DISPLAY CLEANING (ONE BLOCK)
+// VARIETY TOOLS - FULL INTEGRATED VERSION
 // - Dropdown suggestions: KEEP (Semi-Pencilled), STRIP (Split ...)
-// - Everywhere else (search results / parents / offspring / summary / input value):
-// STRIP (Split ...) + (Semi-Pencilled)
-// - Cross-browser dropdown: works in Firefox + Chromium (Chrome/Edge/etc)
-// via mousedown + preventDefault + fixed dropdown on <body>
-// - DOES NOT change your dropdown colors/layout (no inline theme styles)
+// - All other displays (search results, parents, offspring, summary, input after select): STRIP both (Split ...) and (Semi-Pencilled)
 // =====================================================
+
 (function VarietyTools_AllInOne() {
   "use strict";
   if (window._VarietyTools_AllInOneInstalled) return;
   window._VarietyTools_AllInOneInstalled = true;
+
   // ------------------------------
   // CLEANERS
   // ------------------------------
-  // Dropdown suggestions: keep (Semi-Pencilled), remove (Split...)
   function cleanForDropdown(s) {
     return String(s || "").replace(/\s*\(Split.*?\)/gi, "").trim();
   }
-  // Everywhere else: remove both (Split...) and (Semi-Pencilled)
+
   function cleanDisplayLabel(s) {
     return String(s || "")
       .replace(/\s*\((?:Split|Semi-Pencilled)\b.*?\)/gi, "")
       .trim();
   }
-  // Expose globally (in case other code calls them)
+
   window.cleanForDropdown = cleanForDropdown;
   window.cleanDisplayLabel = cleanDisplayLabel;
+
   // ------------------------------
-  // MAPPINGS LOADER (safe)
+  // MAPPINGS LOADER
   // ------------------------------
   function getAllPhenotypeMappings() {
     const keys = [
@@ -39,19 +37,18 @@
       "phenotypeMapping10","phenotypeMapping11","phenotypeMapping12","phenotypeMapping13",
       "phenotypeMapping14","phenotypeMapping15"
     ];
-    const out = [];
-    for (const k of keys) {
-      if (typeof window[k] !== "undefined" && window[k]) out.push(window[k]);
-    }
-    return out;
+    return keys
+      .map(k => window[k])
+      .filter(m => typeof m !== 'undefined' && m);
   }
-  window.getAllPhenotypeMappings = getAllPhenotypeMappings;
+
   // ------------------------------
   // NORMALIZATION + SYNONYMS
   // ------------------------------
   function normalizeWordOrder(str) {
     return String(str || "").split(/\s+/).filter(Boolean).sort().join(" ");
   }
+
   function normalizeVarietyInput(raw) {
     if (!raw) return "";
     let s = String(raw).replace(/\s+/g, " ").trim().toLowerCase();
@@ -85,8 +82,9 @@
     if (synonymMap[s]) s = synonymMap[s];
     return s;
   }
+
   // ------------------------------
-  // LEVENSHTEIN (fuzzy)
+  // LEVENSHTEIN DISTANCE
   // ------------------------------
   function getEditDistance(a, b) {
     a = String(a || "");
@@ -105,27 +103,31 @@
     }
     return m[a.length][b.length];
   }
+
   // ------------------------------
-  // SEARCH RESULTS (ONE)
-  // (Display is cleaned so Semi-Pencilled never appears here)
+  // SEARCH RESULTS FUNCTION (cleaned display)
   // ------------------------------
   function searchResults() {
     const inputEl = document.getElementById("searchInput");
     const results = document.getElementById("results");
     const resultsHeader = document.getElementById("resultsHeader");
     const additionalText = document.getElementById("resultsAdditionalText");
+
     if (!inputEl || !results || !resultsHeader || !additionalText) return;
+
     const rawInput = inputEl.value.trim();
     results.innerHTML = "";
     results.style.display = "none";
     resultsHeader.style.display = "none";
     additionalText.style.display = "none";
+
     if (!rawInput) {
       resultsHeader.style.display = "block";
       results.style.display = "block";
       results.innerHTML = '<li style="color: blue;">Please enter a valid search term.</li>';
       return;
     }
+
     const allMappings = getAllPhenotypeMappings();
     if (allMappings.length === 0) {
       console.error("Phenotype mappings are not loaded.");
@@ -134,25 +136,34 @@
       results.innerHTML = '<li style="color: red;">Error: Data not loaded. Please refresh.</li>';
       return;
     }
+
     const normalizedInput = normalizeVarietyInput(rawInput);
     const rawLower = rawInput.toLowerCase().trim();
     const sortedRawLower = normalizeWordOrder(rawLower);
+
     let bestMatch = null;
     let bestDistance = Infinity;
+
     for (const mapping of allMappings) {
       for (const [, phenotype] of Object.entries(mapping)) {
         const ph = String(phenotype || "").toLowerCase().trim();
         const phSorted = normalizeWordOrder(ph);
-        const d = Math.min(getEditDistance(rawLower, ph), getEditDistance(sortedRawLower, phSorted));
+        const d = Math.min(
+          getEditDistance(rawLower, ph),
+          getEditDistance(sortedRawLower, phSorted)
+        );
         if (d === 0) { bestMatch = phenotype; bestDistance = 0; break; }
         if (d < bestDistance && d <= 3) { bestMatch = phenotype; bestDistance = d; }
       }
       if (bestDistance === 0) break;
     }
+
     const finalSearchTerm = (bestMatch && bestDistance <= 2)
       ? String(bestMatch).toLowerCase().trim()
-      : String(normalizedInput).toLowerCase().trim();
+      : normalizedInput;
+
     let maleMatch = null, femaleMatch = null, sharedMatch = null;
+
     for (const mapping of allMappings) {
       for (const [genotype, phenotype] of Object.entries(mapping)) {
         const normGeno = String(genotype || "").replace(/\s+/g, " ").trim();
@@ -169,8 +180,10 @@
       }
       if (maleMatch && femaleMatch && sharedMatch) break;
     }
+
     resultsHeader.style.display = "block";
     results.style.display = "block";
+
     if (sharedMatch || maleMatch || femaleMatch) {
       if (sharedMatch) {
         results.innerHTML += `<li><strong>Shared Results (Male & Female):</strong></li>`;
@@ -192,9 +205,11 @@
         results.innerHTML = `<li style="color: blue;">No matches found. Please check your spelling and try again.</li>`;
       }
     }
+
     additionalText.style.display = "block";
     additionalText.innerHTML = `<p style="font-size: 18px; color: blue;">Enter this genotype into the calculator.</p>`;
   }
+
   function resetSearch() {
     const inputEl = document.getElementById("searchInput");
     const results = document.getElementById("results");
@@ -205,66 +220,12 @@
     if (resultsHeader) resultsHeader.style.display = "none";
     if (additionalText) additionalText.style.display = "none";
   }
+
   window.searchResults = searchResults;
   window.resetSearch = resetSearch;
+
   // ------------------------------
-  // DISPLAY CLEANERS (parents / offspring / summary)
-  // ------------------------------
-  function cleanParentPhenotypesOnce() {
-    ["sireImageContainer", "damImageContainer"].forEach(id => {
-      const container = document.getElementById(id);
-      if (!container) return;
-      const strong = container.querySelector("strong");
-      if (!strong) return;
-      const spans = strong.querySelectorAll("span");
-      if (!spans.length) return;
-      const phenoSpan = spans[0];
-      if (!phenoSpan || !phenoSpan.textContent) return;
-      phenoSpan.textContent = cleanDisplayLabel(phenoSpan.textContent);
-    });
-  }
-  function cleanOffspringPhenotypesOnce() {
-    ["maleOffspringResults", "femaleOffspringResults"].forEach(id => {
-      const container = document.getElementById(id);
-      if (!container) return;
-      container.querySelectorAll(".offspring-item .variety-name").forEach(span => {
-        if (!span || !span.textContent) return;
-        span.textContent = cleanDisplayLabel(span.textContent);
-      });
-    });
-  }
-  function cleanSummaryPhenotypesOnce() {
-    const summaryTable = document.getElementById("summaryChart");
-    if (!summaryTable) return;
-    summaryTable.querySelectorAll("td").forEach(td => {
-      if (!td || !td.textContent) return;
-      td.textContent = cleanDisplayLabel(td.textContent);
-    });
-  }
-  // Wrap ONCE helper (no duplicate wraps)
-  function wrapOnce(fnName, afterFn) {
-    const orig = window[fnName];
-    if (typeof orig !== "function" || orig._vtWrappedOnce) return;
-    function wrapped() {
-      const r = orig.apply(this, arguments);
-      try { afterFn(); } catch (e) {}
-      return r;
-    }
-    wrapped._vtWrappedOnce = true;
-    window[fnName] = wrapped;
-  }
-  wrapOnce("updateSireGenotype", () => setTimeout(cleanParentPhenotypesOnce, 0));
-  wrapOnce("updateDamGenotype", () => setTimeout(cleanParentPhenotypesOnce, 0));
-  wrapOnce("setGenotypeImage", () => setTimeout(cleanParentPhenotypesOnce, 0));
-  wrapOnce("displayResults", () => setTimeout(cleanOffspringPhenotypesOnce, 0));
-  wrapOnce("displaySummaryChart", () => setTimeout(cleanSummaryPhenotypesOnce, 0));
-  window.addEventListener("DOMContentLoaded", () => {
-    cleanParentPhenotypesOnce();
-    cleanOffspringPhenotypesOnce();
-    cleanSummaryPhenotypesOnce();
-  });
-  // ------------------------------
-  // CROSS-BROWSER CUSTOM SUGGESTION DROPDOWN
+  // AUTOCOMPLETE DROPDOWN FOR SIRE/DAM VARIETY INPUTS
   // ------------------------------
   const MAX_RESULTS = 60;
   let cachedNames = null;
@@ -273,38 +234,24 @@
     const maps = getAllPhenotypeMappings();
     const set = new Set();
     maps.forEach(m => {
-      try {
-        Object.values(m).forEach(v => {
-          const name = String(v || "").trim();
-          if (name) set.add(name);
-        });
-      } catch (e) {
-        console.warn("Error processing mapping:", e);
-      }
+      Object.values(m).forEach(v => {
+        const name = String(v || "").trim();
+        if (name) set.add(name);
+      });
     });
-    cachedNames = Array.from(set).sort(); // sort for nicer display
-    console.log(`[VarietyTools] Built cache with ${cachedNames.length} variety names`);
+    cachedNames = Array.from(set).sort();
     return cachedNames;
   }
 
   function getAllVarietyNames() {
-    if (!cachedNames || cachedNames.length === 0) {
-      console.log("[VarietyTools] Cache empty/missing → rebuilding");
-      return buildNamesCache();
-    }
-    return cachedNames;
+    if (!cachedNames || cachedNames.length === 0) buildNamesCache();
+    return cachedNames || [];
   }
 
   function filterMatches(q) {
     q = String(q || "").trim().toLowerCase();
     if (!q) return [];
-    
     const all = getAllVarietyNames();
-    if (all.length === 0) {
-      console.warn("[VarietyTools] No variety names available for suggestions");
-      return [];
-    }
-
     const starts = [];
     const contains = [];
     for (const name of all) {
@@ -313,19 +260,14 @@
       else if (n.includes(q)) contains.push(name);
       if (starts.length + contains.length >= MAX_RESULTS) break;
     }
-    
-    const result = starts.concat(contains).slice(0, MAX_RESULTS);
-    console.log(`[VarietyTools] "${q}" → ${result.length} matches (starts: ${starts.length})`);
-    return result;
+    return starts.concat(contains).slice(0, MAX_RESULTS);
   }
 
-  // Reuse or create dropdown
   let dd = document.querySelector(".variety-dd");
   if (!dd) {
     dd = document.createElement("div");
     dd.className = "variety-dd";
     document.body.appendChild(dd);
-    console.log("[VarietyTools] Created suggestion dropdown");
   }
 
   dd.style.position = "fixed";
@@ -337,8 +279,8 @@
 
   function placeDropdownUnderInput(input) {
     const r = input.getBoundingClientRect();
-    dd.style.left   = Math.round(r.left) + "px";
-    dd.style.top    = Math.round(r.bottom + 4) + "px";
+    dd.style.left = Math.round(r.left) + "px";
+    dd.style.top = Math.round(r.bottom + 4) + "px";
     dd.style.minWidth = Math.round(r.width) + "px";
   }
 
@@ -347,67 +289,50 @@
     dd.style.display = "none";
     dd.innerHTML = "";
     activeInput = null;
-    // console.log("[VarietyTools] Dropdown hidden");
   }
 
   function showDropdown(input, items) {
-    if (!items || !items.length) {
-      hideDropdown();
-      return;
-    }
-    
+    if (!items?.length) return hideDropdown();
     activeInput = input;
     placeDropdownUnderInput(input);
-    
     dd.innerHTML = items.map(name => {
       const label = cleanForDropdown(name);
       return `<div class="varSuggestionItem" data-value="${encodeURIComponent(name)}">${label}</div>`;
     }).join("");
-    
-    // Small delay helps fight blur/mousedown races in some browsers
-    setTimeout(() => {
-      dd.style.display = "block";
-      // console.log("[VarietyTools] Dropdown shown with", items.length, "items");
-    }, 50);
+    setTimeout(() => { dd.style.display = "block"; }, 60);
   }
 
-  // Chromium-friendly click
-  dd.addEventListener("mousedown", (e) => {
+  dd.addEventListener("mousedown", e => {
     const item = e.target.closest(".varSuggestionItem");
     if (!item) return;
     e.preventDefault();
     e.stopPropagation();
-    
-    const raw = decodeURIComponent(item.getAttribute("data-value") || "");
-    if (!activeInput) return;
-    
-    activeInput.value = cleanDisplayLabel(raw);
-    activeInput.dispatchEvent(new Event("input",  { bubbles: true }));
-    activeInput.dispatchEvent(new Event("change", { bubbles: true }));
-    
-    // Trigger your apply functions if they exist
-    if (activeInput.id === "sireVarietyInput" && typeof window.applyVarietyToSire === "function") {
-      try { window.applyVarietyToSire(); } catch {}
+    const raw = decodeURIComponent(item.dataset.value || "");
+    if (activeInput) {
+      activeInput.value = cleanDisplayLabel(raw);
+      activeInput.dispatchEvent(new Event("input", { bubbles: true }));
+      activeInput.dispatchEvent(new Event("change", { bubbles: true }));
+
+      if (activeInput.id === "sireVarietyInput" && typeof window.applyVarietyToSire === "function") {
+        window.applyVarietyToSire();
+      }
+      if (activeInput.id === "damVarietyInput" && typeof window.applyVarietyToDam === "function") {
+        window.applyVarietyToDam();
+      }
     }
-    if (activeInput.id === "damVarietyInput" && typeof window.applyVarietyToDam === "function") {
-      try { window.applyVarietyToDam(); } catch {}
-    }
-    
     hideDropdown();
   });
 
-  dd.addEventListener("mouseenter", () => { suppressHide = true; });
-  dd.addEventListener("mouseleave", () => { suppressHide = false; });
+  dd.addEventListener("mouseenter", () => suppressHide = true);
+  dd.addEventListener("mouseleave", () => suppressHide = false);
 
-  // Click outside → hide
-  document.addEventListener("mousedown", (e) => {
+  document.addEventListener("mousedown", e => {
     if (dd.style.display !== "block") return;
     if (e.target === dd || dd.contains(e.target)) return;
     if (activeInput && e.target === activeInput) return;
     hideDropdown();
   }, true);
 
-  // Reposition on scroll/resize
   window.addEventListener("scroll", () => {
     if (activeInput && dd.style.display === "block") placeDropdownUnderInput(activeInput);
   }, true);
@@ -418,48 +343,100 @@
   function bindSuggestInput(input) {
     if (!input || input._vtSuggestBound) return;
     input._vtSuggestBound = true;
-    
-    console.log("[VarietyTools] Bound suggestions to input:", input.id || input.name || "unnamed");
-    
-    const handleInputOrFocus = () => {
+
+    const handle = () => {
       const q = input.value || "";
-      const matches = filterMatches(q);
-      showDropdown(input, matches);
+      showDropdown(input, filterMatches(q));
     };
-    
-    input.addEventListener("input", handleInputOrFocus);
-    input.addEventListener("focus", handleInputOrFocus);
-    
-    // Blur delay slightly longer to let mousedown fire first
-    input.addEventListener("blur", () => {
-      setTimeout(hideDropdown, 180);
-    });
+
+    input.addEventListener("input", handle);
+    input.addEventListener("focus", handle);
+    input.addEventListener("blur", () => setTimeout(hideDropdown, 200));
   }
 
-  // Bind your known inputs
-  const sireInput  = document.getElementById("sireVarietyInput");
-  const damInput   = document.getElementById("damVarietyInput");
-
+  const sireInput = document.getElementById("sireVarietyInput");
+  const damInput  = document.getElementById("damVarietyInput");
   if (sireInput) bindSuggestInput(sireInput);
   if (damInput)  bindSuggestInput(damInput);
 
-  // Optional: any future inputs with attribute
   document.querySelectorAll('input[data-variety-suggest="1"]').forEach(bindSuggestInput);
 
-  // Force initial cache build (helps if mappings load async)
-  if (!cachedNames) {
-    setTimeout(buildNamesCache, 300); // give page a moment to load mappings
-  }
+  // Initial cache build
+  setTimeout(() => { if (!cachedNames) buildNamesCache(); }, 400);
+
 })();
-/////////////////////////////////////////////////////
+
+// ------------------------------
+// PARENT / OFFSPRING / SUMMARY CLEANERS + HOOKS
+// ------------------------------
+function cleanParentPhenotypesOnce() {
+  ["sireImageContainer", "damImageContainer"].forEach(id => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    const strong = el.querySelector("strong");
+    if (!strong) return;
+    const span = strong.querySelector("span");
+    if (span?.textContent) {
+      span.textContent = cleanDisplayLabel(span.textContent);
+    }
+  });
+}
+
+function cleanOffspringPhenotypesOnce() {
+  ["maleOffspringResults", "femaleOffspringResults"].forEach(id => {
+    const container = document.getElementById(id);
+    if (!container) return;
+    container.querySelectorAll(".offspring-item .variety-name").forEach(span => {
+      if (span?.textContent) {
+        span.textContent = cleanDisplayLabel(span.textContent);
+      }
+    });
+  });
+}
+
+function cleanSummaryPhenotypesOnce() {
+  const table = document.getElementById("summaryChart");
+  if (!table) return;
+  table.querySelectorAll("td").forEach(td => {
+    if (td?.textContent) {
+      td.textContent = cleanDisplayLabel(td.textContent);
+    }
+  });
+}
+
+// Safe wrapping
+function wrapOnce(fnName, afterFn) {
+  const orig = window[fnName];
+  if (typeof orig !== "function" || orig._vtWrapped) return;
+  window[fnName] = function(...args) {
+    const res = orig.apply(this, args);
+    setTimeout(afterFn, 0);
+    return res;
+  };
+  window[fnName]._vtWrapped = true;
+}
+
+wrapOnce("updateSireGenotype", cleanParentPhenotypesOnce);
+wrapOnce("updateDamGenotype", cleanParentPhenotypesOnce);
+wrapOnce("setGenotypeImage", cleanParentPhenotypesOnce);
+wrapOnce("displayResults", cleanOffspringPhenotypesOnce);
+wrapOnce("displaySummaryChart", cleanSummaryPhenotypesOnce);
+
+// Initial clean
+window.addEventListener("DOMContentLoaded", () => {
+  cleanParentPhenotypesOnce();
+  cleanOffspringPhenotypesOnce();
+  cleanSummaryPhenotypesOnce();
+});
+
+// ------------------------------
 // IMAGE SIZE (unchanged)
-/////////////////////////////////////////////////////
+// ------------------------------
 function updateImageSize(value) {
   const sireImg = document.querySelector('#sireImageContainer img');
   const damImg = document.querySelector('#damImageContainer img');
   if (sireImg) {
     sireImg.style.width = value + 'px';
-    // ONLY set max-width when shrinking - NEVER when at default
     if (value < 200) {
       sireImg.style.maxWidth = value + 'px';
     } else {
@@ -477,7 +454,7 @@ function updateImageSize(value) {
     }
   }
 }
-// Clean start on page load
+
 window.addEventListener('DOMContentLoaded', () => {
   const slider = document.getElementById('imageSizeSlider');
   if (slider) {
@@ -485,10 +462,10 @@ window.addEventListener('DOMContentLoaded', () => {
     updateImageSize(200);
   }
 });
-// When user clicks to enlarge - removes any inline limits so CSS wins
-document.addEventListener('click', function(e) {
+
+document.addEventListener('click', e => {
   const img = e.target.closest('#sireImageContainer img, #damImageContainer img');
-  if (img && img.classList.contains('enlarged')) {
+  if (img?.classList.contains('enlarged')) {
     img.style.removeProperty('max-width');
     img.style.removeProperty('max-height');
     img.style.removeProperty('width');
