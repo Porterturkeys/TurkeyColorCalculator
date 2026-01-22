@@ -3203,3 +3203,269 @@ window.addEventListener("load", () => {
 
 })();
 
+////////////////////////////
+// =====================================================
+// HARD FIX: Variety suggestion dropdown (FF/Safari safe)
+// - Removes any old dropdowns to prevent conflicts
+// - Waits for mappings to exist
+// - Sire/Dam only
+// =====================================================
+(function VarietyDropdown_HardFix(){
+  if (window._varietyDropdownHardFixInstalled) return;
+  window._varietyDropdownHardFixInstalled = true;
+
+  var MAX_RESULTS = 50;
+  var cached = [];
+  var lastBuild = 0;
+
+  function norm(s){
+    s = String(s || "").trim();
+    if (!s) return "";
+    try{
+      if (typeof window.normalizeVarietyInput === "function") {
+        return String(window.normalizeVarietyInput(s) || "").trim().toLowerCase();
+      }
+    }catch(e){}
+    return s.toLowerCase();
+  }
+
+  function getMaps(){
+    try{
+      if (typeof window.getAllPhenotypeMappings === "function") {
+        var maps = window.getAllPhenotypeMappings();
+        return Array.isArray(maps) ? maps.filter(Boolean) : [];
+      }
+    }catch(e){}
+    return [];
+  }
+
+  function buildCache(force){
+    var now = Date.now();
+    if (!force && now - lastBuild < 300) return;
+    lastBuild = now;
+
+    var maps = getMaps();
+    if (!maps.length) { cached = []; return; }
+
+    var names = Object.create(null);
+    for (var i=0;i<maps.length;i++){
+      var map = maps[i];
+      for (var k in map){
+        if (!Object.prototype.hasOwnProperty.call(map,k)) continue;
+        var p = map[k];
+        if (!p) continue;
+        var s = String(p).trim();
+        if (s) names[s] = true;
+      }
+    }
+    cached = Object.keys(names).sort(function(a,b){
+      return a.localeCompare(b, undefined, { sensitivity:"base" });
+    });
+  }
+
+  function escapeHtml(str){
+    return String(str)
+      .replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;")
+      .replace(/"/g,"&quot;").replace(/'/g,"&#039;");
+  }
+
+  function highlight(label, q){
+    var safe = escapeHtml(label);
+    q = String(q||"").trim();
+    if (!q) return safe;
+    var esc = q.replace(/[.*+?^${}()|[\]\\]/g,"\\$&");
+    var rx = new RegExp("(" + esc + ")", "ig");
+    return safe.replace(rx, "<mark>$1</mark>");
+  }
+
+  function matches(qRaw){
+    var q = norm(qRaw);
+    if (!q) return [];
+    var starts=[], wordStarts=[], contains=[];
+    for (var i=0;i<cached.length;i++){
+      var v=cached[i], low=v.toLowerCase();
+      if (low.indexOf(q)===0) starts.push(v);
+      else{
+        var parts=low.split(/\s+/), ws=false;
+        for (var w=0;w<parts.length;w++){
+          if (parts[w].indexOf(q)===0){ ws=true; break; }
+        }
+        if (ws) wordStarts.push(v);
+        else if (low.indexOf(q)!==-1) contains.push(v);
+      }
+    }
+    return starts.concat(wordStarts, contains).slice(0, MAX_RESULTS);
+  }
+
+  function removeOldDropdowns(){
+    document.querySelectorAll(".variety-dd").forEach(function(el){
+      try{ el.remove(); }catch(e){}
+    });
+  }
+
+  function makeDropdown(inputEl, role){
+    // remove any existing dropdowns (conflict killer)
+    removeOldDropdowns();
+
+    var dd = document.createElement("div");
+    dd.className = "variety-dd";
+    dd.style.display = "none";
+    dd.setAttribute("role","listbox");
+    document.body.appendChild(dd);
+
+    var state = { open:false, items:[], active:-1, last:"" };
+
+    function position(){
+      var r = inputEl.getBoundingClientRect();
+      dd.style.left  = (window.scrollX + r.left) + "px";
+      dd.style.top   = (window.scrollY + r.bottom + 2) + "px";
+      dd.style.width = r.width + "px";
+    }
+
+    function close(){
+      state.open=false; state.items=[]; state.active=-1;
+      dd.style.display="none"; dd.innerHTML="";
+    }
+
+    function setActive(idx){
+      var rows = dd.querySelectorAll(".variety-dd-item");
+      for (var i=0;i<rows.length;i++) rows[i].classList.remove("active");
+      if (idx>=0 && idx<rows.length){
+        rows[idx].classList.add("active");
+        state.active = idx;
+        var top = rows[idx].offsetTop;
+        var bot = top + rows[idx].offsetHeight;
+        var vTop = dd.scrollTop;
+        var vBot = vTop + dd.clientHeight;
+        if (top < vTop) dd.scrollTop = top;
+        else if (bot > vBot) dd.scrollTop = bot - dd.clientHeight;
+      } else state.active=-1;
+    }
+
+    function applySelection(label){
+      inputEl.value = label;
+
+      // apply using your existing functions (do NOT change these)
+      if (role === "sire" && typeof window.applyVarietyToSire === "function") window.applyVarietyToSire();
+      if (role === "dam"  && typeof window.applyVarietyToDam  === "function") window.applyVarietyToDam();
+
+      close();
+    }
+
+    function render(qRaw){
+      dd.innerHTML="";
+      state.active=-1;
+
+      for (var i=0;i<state.items.length;i++){
+        (function(label, idx){
+          var row = document.createElement("div");
+          row.className="variety-dd-item";
+          row.setAttribute("role","option");
+          row.innerHTML = highlight(label, norm(qRaw));
+
+          // Touch + mouse safe
+          row.addEventListener("touchstart", function(e){
+            e.preventDefault();
+            applySelection(label);
+          }, { passive:false });
+
+          row.addEventListener("mousedown", function(e){
+            e.preventDefault();
+            applySelection(label);
+          });
+
+          dd.appendChild(row);
+        })(state.items[i], i);
+      }
+
+      position();
+      dd.style.display = state.items.length ? "block" : "none";
+      state.open = dd.style.display === "block";
+    }
+
+    function update(){
+      if (!cached.length) buildCache(true);
+
+      var qRaw = inputEl.value || "";
+      var qN = norm(qRaw);
+      if (!qN) return close();
+
+      if (state.open && qN === state.last) return;
+      state.last = qN;
+
+      state.items = matches(qRaw);
+      if (!state.items.length) return close();
+      render(qRaw);
+    }
+
+    inputEl.setAttribute("autocomplete","off");
+
+    inputEl.addEventListener("focus", function(){
+      buildCache(true);
+      update();
+    });
+
+    inputEl.addEventListener("input", function(){
+      update();
+    });
+
+    inputEl.addEventListener("keydown", function(e){
+      if (!state.open && (e.key==="ArrowDown" || e.key==="ArrowUp")) update();
+      if (!state.open) return;
+
+      if (e.key==="ArrowDown"){
+        e.preventDefault();
+        setActive(Math.min(state.active+1, state.items.length-1));
+      } else if (e.key==="ArrowUp"){
+        e.preventDefault();
+        setActive(Math.max(state.active-1, 0));
+      } else if (e.key==="Enter"){
+        if (state.active>=0){
+          e.preventDefault();
+          applySelection(state.items[state.active]);
+        } else close();
+      } else if (e.key==="Escape"){
+        e.preventDefault(); close();
+      }
+    });
+
+    // Blur race fix
+    inputEl.addEventListener("blur", function(){ setTimeout(close, 200); });
+
+    window.addEventListener("scroll", function(){ if (state.open) position(); }, true);
+    window.addEventListener("resize", function(){ if (state.open) position(); });
+  }
+
+  function initWhenReady(){
+    var tries = 0;
+    var maxTries = 200; // ~20s
+    var t = setInterval(function(){
+      tries++;
+      buildCache(true);
+
+      var sire = document.getElementById("sireVarietyInput");
+      var dam  = document.getElementById("damVarietyInput");
+
+      if ((sire || dam) && cached.length){
+        clearInterval(t);
+        if (sire) makeDropdown(sire, "sire");
+        if (dam)  makeDropdown(dam,  "dam");
+      }
+
+      if (tries >= maxTries){
+        clearInterval(t);
+        // still install (focus/input will rebuild)
+        var s2 = document.getElementById("sireVarietyInput");
+        var d2 = document.getElementById("damVarietyInput");
+        if (s2) makeDropdown(s2, "sire");
+        if (d2) makeDropdown(d2, "dam");
+      }
+    }, 100);
+  }
+
+  window.addEventListener("load", initWhenReady);
+})();
+
+
+
+
