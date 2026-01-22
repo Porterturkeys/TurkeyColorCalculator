@@ -657,21 +657,20 @@ function cleanParentPhenotypesOnce() {
   ["sireImageContainer", "damImageContainer"].forEach(id => {
     const container = document.getElementById(id);
     if (!container) return;
-
     const strong = container.querySelector("strong");
     if (!strong) return;
-
     const spans = strong.querySelectorAll("span");
     if (!spans.length) return;
-
     const phenoSpan = spans[0]; // Phenotype/Variety line
     if (!phenoSpan.textContent) return;
 
     phenoSpan.textContent = phenoSpan.textContent
-      .replace(/\s*\(Split.*?\)/gi, "")
+      .replace(/\s*\(Split.*?\)/gi, "")           // existing
+      .replace(/\s*\(Semi-?Pencilled.*?\)/gi, "") // new: covers (Semi-Pencilled), (semi-pencilled), (Semi Pencilled), etc.
       .trim();
   });
 }
+
 
 // Hook into Allele Dropdown Flow (SAFE)
 if (typeof updateSireGenotype === "function") {
@@ -721,18 +720,15 @@ function cleanOffspringPhenotypesOnce() {
     document.getElementById("maleOffspringResults"),
     document.getElementById("femaleOffspringResults")
   ];
-
   offspringContainers.forEach(container => {
     if (!container) return;
-
     container.querySelectorAll(".offspring-item").forEach(item => {
-      // Your offspring phenotype lives here:
-      // <span class="variety-name">PHENOTYPE</span>
       const span = item.querySelector(".variety-name");
       if (!span || !span.textContent) return;
 
       span.textContent = span.textContent
-        .replace(/\s*\(Split.*?\)/gi, "")
+        .replace(/\s*\(Split.*?\)/gi, "")           // existing
+        .replace(/\s*\(Semi-?Pencilled.*?\)/gi, "") // new
         .trim();
     });
   });
@@ -756,17 +752,17 @@ if (typeof displayResults === "function") {
 function cleanSummaryPhenotypesOnce() {
   const summaryTable = document.getElementById("summaryChart");
   if (!summaryTable) return;
-
   summaryTable.querySelectorAll("td").forEach(td => {
     if (!td.textContent) return;
-
-    if (/\(Split.*?\)/i.test(td.textContent)) {
+    if (/\(Split.*?\)/i.test(td.textContent) || /\(Semi-?Pencilled.*?\)/i.test(td.textContent)) {
       td.textContent = td.textContent
         .replace(/\s*\(Split.*?\)/gi, "")
+        .replace(/\s*\(Semi-?Pencilled.*?\)/gi, "")
         .trim();
     }
   });
 }
+
 
 // HARD HOOK: AFTER SUMMARY IS RENDERED
 if (typeof displaySummaryChart === "function") {
