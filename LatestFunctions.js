@@ -1,10 +1,10 @@
 // =====================================================
 // VARIETY SEARCH + SUGGESTIONS + DISPLAY CLEANING (ONE BLOCK)
 // - Dropdown suggestions: KEEP (Semi-Pencilled), STRIP (Split ...)
-// - Everywhere else (search results / parents / offspring / summary):
+// - Everywhere else (search results / parents / offspring / summary / input value):
 //     STRIP (Split ...) + (Semi-Pencilled)
 // - Cross-browser dropdown: works in Firefox + Chromium (Chrome/Edge/etc)
-//   by using pointerdown + preventDefault + fixed dropdown on <body>
+//   via pointerdown + preventDefault + fixed dropdown on <body>
 // =====================================================
 
 (function VarietyTools_AllInOne() {
@@ -27,7 +27,7 @@
       .trim();
   }
 
-  // Make these globally available if you call them elsewhere
+  // Expose globally (in case other code calls them)
   window.cleanForDropdown = cleanForDropdown;
   window.cleanDisplayLabel = cleanDisplayLabel;
 
@@ -35,30 +35,19 @@
   // MAPPINGS LOADER (safe)
   // ------------------------------
   function getAllPhenotypeMappings() {
-    return [
-      (typeof phenotypeMapping1  !== "undefined" ? phenotypeMapping1  : null),
-      (typeof phenotypeMapping1A !== "undefined" ? phenotypeMapping1A : null),
-      (typeof phenotypeMapping1B !== "undefined" ? phenotypeMapping1B : null),
-      (typeof phenotypeMapping1C !== "undefined" ? phenotypeMapping1C : null),
-      (typeof phenotypeMapping1D !== "undefined" ? phenotypeMapping1D : null),
-      (typeof phenotypeMapping1E !== "undefined" ? phenotypeMapping1E : null),
-      (typeof phenotypeMapping2  !== "undefined" ? phenotypeMapping2  : null),
-      (typeof phenotypeMapping2A !== "undefined" ? phenotypeMapping2A : null),
-      (typeof phenotypeMapping3  !== "undefined" ? phenotypeMapping3  : null),
-      (typeof phenotypeMapping3A !== "undefined" ? phenotypeMapping3A : null),
-      (typeof phenotypeMapping4  !== "undefined" ? phenotypeMapping4  : null),
-      (typeof phenotypeMapping5  !== "undefined" ? phenotypeMapping5  : null),
-      (typeof phenotypeMapping6  !== "undefined" ? phenotypeMapping6  : null),
-      (typeof phenotypeMapping7  !== "undefined" ? phenotypeMapping7  : null),
-      (typeof phenotypeMapping8  !== "undefined" ? phenotypeMapping8  : null),
-      (typeof phenotypeMapping9  !== "undefined" ? phenotypeMapping9  : null),
-      (typeof phenotypeMapping10 !== "undefined" ? phenotypeMapping10 : null),
-      (typeof phenotypeMapping11 !== "undefined" ? phenotypeMapping11 : null),
-      (typeof phenotypeMapping12 !== "undefined" ? phenotypeMapping12 : null),
-      (typeof phenotypeMapping13 !== "undefined" ? phenotypeMapping13 : null),
-      (typeof phenotypeMapping14 !== "undefined" ? phenotypeMapping14 : null),
-      (typeof phenotypeMapping15 !== "undefined" ? phenotypeMapping15 : null),
-    ].filter(Boolean);
+    const keys = [
+      "phenotypeMapping1","phenotypeMapping1A","phenotypeMapping1B","phenotypeMapping1C",
+      "phenotypeMapping1D","phenotypeMapping1E","phenotypeMapping2","phenotypeMapping2A",
+      "phenotypeMapping3","phenotypeMapping3A","phenotypeMapping4","phenotypeMapping5",
+      "phenotypeMapping6","phenotypeMapping7","phenotypeMapping8","phenotypeMapping9",
+      "phenotypeMapping10","phenotypeMapping11","phenotypeMapping12","phenotypeMapping13",
+      "phenotypeMapping14","phenotypeMapping15"
+    ];
+    const out = [];
+    for (const k of keys) {
+      if (typeof window[k] !== "undefined" && window[k]) out.push(window[k]);
+    }
+    return out;
   }
   window.getAllPhenotypeMappings = getAllPhenotypeMappings;
 
@@ -121,7 +110,6 @@
     a = String(a || "");
     b = String(b || "");
     const m = Array.from({ length: a.length + 1 }, () => new Array(b.length + 1).fill(0));
-
     for (let i = 0; i <= a.length; i++) m[i][0] = i;
     for (let j = 0; j <= b.length; j++) m[0][j] = j;
 
@@ -139,13 +127,13 @@
 
   // ------------------------------
   // SEARCH RESULTS (ONE)
+  // (Display is cleaned so Semi-Pencilled never appears here)
   // ------------------------------
   function searchResults() {
     const inputEl = document.getElementById("searchInput");
     const results = document.getElementById("results");
     const resultsHeader = document.getElementById("resultsHeader");
     const additionalText = document.getElementById("resultsAdditionalText");
-
     if (!inputEl || !results || !resultsHeader || !additionalText) return;
 
     const rawInput = inputEl.value.trim();
@@ -182,21 +170,10 @@
       for (const [, phenotype] of Object.entries(mapping)) {
         const ph = String(phenotype || "").toLowerCase().trim();
         const phSorted = normalizeWordOrder(ph);
+        const d = Math.min(getEditDistance(rawLower, ph), getEditDistance(sortedRawLower, phSorted));
 
-        const d = Math.min(
-          getEditDistance(rawLower, ph),
-          getEditDistance(sortedRawLower, phSorted)
-        );
-
-        if (d === 0) {
-          bestMatch = phenotype;
-          bestDistance = 0;
-          break;
-        }
-        if (d < bestDistance && d <= 3) {
-          bestMatch = phenotype;
-          bestDistance = d;
-        }
+        if (d === 0) { bestMatch = phenotype; bestDistance = 0; break; }
+        if (d < bestDistance && d <= 3) { bestMatch = phenotype; bestDistance = d; }
       }
       if (bestDistance === 0) break;
     }
@@ -205,9 +182,7 @@
       ? String(bestMatch).toLowerCase().trim()
       : String(normalizedInput).toLowerCase().trim();
 
-    let maleMatch = null;
-    let femaleMatch = null;
-    let sharedMatch = null;
+    let maleMatch = null, femaleMatch = null, sharedMatch = null;
 
     for (const mapping of allMappings) {
       for (const [genotype, phenotype] of Object.entries(mapping)) {
@@ -261,7 +236,6 @@
     const results = document.getElementById("results");
     const resultsHeader = document.getElementById("resultsHeader");
     const additionalText = document.getElementById("resultsAdditionalText");
-
     if (inputEl) inputEl.value = "";
     if (results) { results.innerHTML = ""; results.style.display = "none"; }
     if (resultsHeader) resultsHeader.style.display = "none";
@@ -269,28 +243,7 @@
   }
 
   window.searchResults = searchResults;
-  window.resetSearch = resetSearch;
-
-  // ------------------------------
-  // PHENOTYPE -> GENOTYPE HELPERS (kept)
-  // ------------------------------
-  function findFirstGenotypeForPhenotype(phenotypeInput) {
-    const allMaps = getAllPhenotypeMappings();
-    if (!phenotypeInput) return null;
-
-    const normalized = normalizeVarietyInput(phenotypeInput);
-    const sortedNorm = normalizeWordOrder(normalized);
-
-    for (const map of allMaps) {
-      for (const [genotype, pheno] of Object.entries(map)) {
-        const phNorm = normalizeVarietyInput(pheno);
-        const phSorted = normalizeWordOrder(phNorm);
-        if (phNorm === normalized || phSorted === sortedNorm) return genotype;
-      }
-    }
-    return null;
-  }
-  window.findFirstGenotypeForPhenotype = findFirstGenotypeForPhenotype;
+  window.resetSearch  = resetSearch;
 
   // ------------------------------
   // DISPLAY CLEANERS (parents / offspring / summary)
@@ -323,16 +276,13 @@
   function cleanSummaryPhenotypesOnce() {
     const summaryTable = document.getElementById("summaryChart");
     if (!summaryTable) return;
-
     summaryTable.querySelectorAll("td").forEach(td => {
       if (!td || !td.textContent) return;
-      if (/\((Split|Semi-Pencilled)\b.*?\)/i.test(td.textContent)) {
-        td.textContent = cleanDisplayLabel(td.textContent);
-      }
+      td.textContent = cleanDisplayLabel(td.textContent);
     });
   }
 
-  // Wrap ONCE helpers
+  // Wrap ONCE helper (no duplicate wraps)
   function wrapOnce(fnName, afterFn) {
     const orig = window[fnName];
     if (typeof orig !== "function" || orig._wrappedOnce) return;
@@ -345,16 +295,12 @@
     window[fnName] = wrapped;
   }
 
-  // Clean after parent updates + image builds
   wrapOnce("updateSireGenotype", () => setTimeout(cleanParentPhenotypesOnce, 0));
   wrapOnce("updateDamGenotype",  () => setTimeout(cleanParentPhenotypesOnce, 0));
   wrapOnce("setGenotypeImage",   () => setTimeout(cleanParentPhenotypesOnce, 0));
+  wrapOnce("displayResults",     () => setTimeout(cleanOffspringPhenotypesOnce, 0));
+  wrapOnce("displaySummaryChart",() => setTimeout(cleanSummaryPhenotypesOnce, 0));
 
-  // Clean after offspring render + summary render
-  wrapOnce("displayResults",      () => setTimeout(cleanOffspringPhenotypesOnce, 0));
-  wrapOnce("displaySummaryChart", () => setTimeout(cleanSummaryPhenotypesOnce, 0));
-
-  // Run once on load
   window.addEventListener("DOMContentLoaded", () => {
     cleanParentPhenotypesOnce();
     cleanOffspringPhenotypesOnce();
@@ -363,7 +309,6 @@
 
   // ------------------------------
   // CROSS-BROWSER CUSTOM SUGGESTION DROPDOWN
-  // (No native list required, and does not depend on it)
   // ------------------------------
   const MAX_RESULTS = 60;
   let cachedNames = null;
@@ -372,10 +317,14 @@
     if (cachedNames) return cachedNames;
     const maps = getAllPhenotypeMappings();
     const set = new Set();
-    maps.forEach(m => Object.values(m).forEach(v => {
-      const name = String(v || "").trim();
-      if (name) set.add(name);
-    }));
+    maps.forEach(m => {
+      try {
+        Object.values(m).forEach(v => {
+          const name = String(v || "").trim();
+          if (name) set.add(name);
+        });
+      } catch (e) {}
+    });
     cachedNames = Array.from(set);
     return cachedNames;
   }
@@ -435,11 +384,10 @@
     placeDropdownUnderInput(input);
 
     dd.innerHTML = items.map(name => {
-      // suggestions KEEP Semi-Pencilled, strip Split
-      const label = cleanForDropdown(name);
+      const label = cleanForDropdown(name); // keep Semi-Pencilled; remove Split
       return `<div class="varSuggestionItem"
-                   data-value="${encodeURIComponent(name)}"
-                   style="padding:6px 8px; cursor:pointer; border-radius:6px;">
+                  data-value="${encodeURIComponent(name)}"
+                  style="padding:6px 8px; cursor:pointer; border-radius:6px;">
                 ${label}
               </div>`;
     }).join("");
@@ -447,7 +395,7 @@
     dd.style.display = "block";
   }
 
-  // Pointerdown prevents Chromium blur-before-click
+  // KEY: pointerdown + preventDefault for Chromium
   dd.addEventListener("pointerdown", (e) => {
     const item = e.target.closest(".varSuggestionItem");
     if (!item) return;
@@ -457,10 +405,8 @@
 
     const raw = decodeURIComponent(item.getAttribute("data-value") || "");
     if (activeInput) {
-      // When it lands in input, remove BOTH Split and Semi-Pencilled
+      // Input should NOT keep Semi-Pencilled OR Split
       activeInput.value = cleanDisplayLabel(raw);
-
-      // Fire input/change so your existing handlers run
       activeInput.dispatchEvent(new Event("input", { bubbles: true }));
       activeInput.dispatchEvent(new Event("change", { bubbles: true }));
     }
@@ -504,21 +450,24 @@
     });
   }
 
-  // Change IDs here ONLY if yours differ
+  // Bind by IDs (your stated IDs)
   bindSuggestInput(document.getElementById("sireVarietyInput"));
   bindSuggestInput(document.getElementById("damVarietyInput"));
 
+  // (optional) If you ever add more inputs, set data-variety-suggest="1"
+  document.querySelectorAll('input[data-variety-suggest="1"]').forEach(bindSuggestInput);
+
 })();
 
-///////////////////////////
-
+/////////////////////////////////////////////////////
+// IMAGE SIZE (unchanged from your request)
+/////////////////////////////////////////////////////
 function updateImageSize(value) {
   const sireImg = document.querySelector('#sireImageContainer img');
   const damImg  = document.querySelector('#damImageContainer img');
 
   if (sireImg) {
     sireImg.style.width = value + 'px';
-    // ONLY set max-width when shrinking - NEVER when at default
     if (value < 200) {
       sireImg.style.maxWidth = value + 'px';
     } else {
@@ -537,7 +486,6 @@ function updateImageSize(value) {
   }
 }
 
-// Clean start on page load
 window.addEventListener('DOMContentLoaded', () => {
   const slider = document.getElementById('imageSizeSlider');
   if (slider) {
@@ -546,14 +494,12 @@ window.addEventListener('DOMContentLoaded', () => {
   }
 });
 
-
-// When user clicks to enlarge - removes any inline limits so CSS wins
 document.addEventListener('click', function(e) {
   const img = e.target.closest('#sireImageContainer img, #damImageContainer img');
   if (img && img.classList.contains('enlarged')) {
     img.style.removeProperty('max-width');
     img.style.removeProperty('max-height');
-    img.style.removeProperty('width');        
+    img.style.removeProperty('width');
   }
 });
 
