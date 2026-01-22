@@ -2207,6 +2207,13 @@ window.addEventListener("load", () => {
       };
     }
 
+
+window.applyBronzeToParent = applyBronzeToParent;
+window.applyBroadWhiteToParent = applyBroadWhiteToParent;
+
+
+      
+
 ///////////////////////////////////
 
 // =====================================================
