@@ -1,3 +1,11 @@
+function cleanDisplayLabel(s) {
+  return String(s || "")
+    .replace(/\s*\((Split|Semi-Pencilled).*?\)/gi, "")
+    .trim();
+}
+
+
+
 function searchResults() {
     const input = document.getElementById('searchInput').value.trim();
     const results = document.getElementById('results');
@@ -456,10 +464,20 @@ function resetVarietyAutocomplete() {
    ////////////////////////////////////////////////////////     
         
 // =====================================================
+// DISPLAY CLEANER (PARENTS / OFFSPRING / SUMMARY ONLY)
+// - Removes "(Split ...)" everywhere it appears in those UI areas
+// - DOES NOT remove "(Semi-Pencilled)" so it can stay visible in the custom dropdown
+// =====================================================
+function cleanDisplayText_NoSplit(s) {
+  return String(s || "")
+    .replace(/\s*\(Split.*?\)/gi, "")
+    .trim();
+}
+
+// =====================================================
 // SAFE PARENT PHENOTYPE CLEANER (NO OBSERVERS, NO LOOPS)
 // Works for BOTH variety entry and allele dropdowns
 // =====================================================
-
 function cleanParentPhenotypesOnce() {
   ["sireImageContainer", "damImageContainer"].forEach(id => {
     const container = document.getElementById(id);
@@ -472,61 +490,52 @@ function cleanParentPhenotypesOnce() {
     if (!spans.length) return;
 
     const phenoSpan = spans[0]; // Phenotype/Variety line
-    if (!phenoSpan.textContent) return;
+    if (!phenoSpan || !phenoSpan.textContent) return;
 
-    phenoSpan.textContent = phenoSpan.textContent
-     td.textContent = td.textContent
-  .replace(/\s*\(Split.*?\)/gi, "")
-  .replace(/\s*\(Semi-Pencilled\)/gi, "")
-  .trim();
-
+    phenoSpan.textContent = cleanDisplayText_NoSplit(phenoSpan.textContent);
   });
 }
 
 // Hook into Allele Dropdown Flow (SAFE)
-if (typeof updateSireGenotype === "function") {
+if (typeof updateSireGenotype === "function" && !updateSireGenotype._cleanWrapped) {
   const _updateSireGenotypeSafe = updateSireGenotype;
   updateSireGenotype = function () {
     _updateSireGenotypeSafe();
     setTimeout(cleanParentPhenotypesOnce, 0);
   };
+  updateSireGenotype._cleanWrapped = true;
 }
 
-if (typeof updateDamGenotype === "function") {
+if (typeof updateDamGenotype === "function" && !updateDamGenotype._cleanWrapped) {
   const _updateDamGenotypeSafe = updateDamGenotype;
   updateDamGenotype = function () {
     _updateDamGenotypeSafe();
     setTimeout(cleanParentPhenotypesOnce, 0);
   };
+  updateDamGenotype._cleanWrapped = true;
 }
 
 // Run once on page load
 window.addEventListener("DOMContentLoaded", cleanParentPhenotypesOnce);
 
-
 // =====================================================
 // HARD HOOK: CLEAN AFTER setGenotypeImage() (ALLELE FLOW)
 // Guarantees cleaning on EVERY allele change
 // =====================================================
-
-if (typeof setGenotypeImage === "function") {
+if (typeof setGenotypeImage === "function" && !setGenotypeImage._cleanWrapped) {
   const _setGenotypeImageSafe = setGenotypeImage;
 
   setGenotypeImage = function (...args) {
-    // Run the original image + phenotype builder
     _setGenotypeImageSafe.apply(this, args);
-
-    // Immediately clean the displayed parent phenotype
     setTimeout(cleanParentPhenotypesOnce, 0);
   };
+
+  setGenotypeImage._cleanWrapped = true;
 }
-
-
 
 // =====================================================
 // OFFSPRING PHENOTYPE CLEANER (MALE + FEMALE RESULTS)
 // =====================================================
-
 function cleanOffspringPhenotypesOnce() {
   const offspringContainers = [
     document.getElementById("maleOffspringResults"),
@@ -537,52 +546,54 @@ function cleanOffspringPhenotypesOnce() {
     if (!container) return;
 
     container.querySelectorAll(".offspring-item").forEach(item => {
-      // Your offspring phenotype lives here:
       // <span class="variety-name">PHENOTYPE</span>
       const span = item.querySelector(".variety-name");
       if (!span || !span.textContent) return;
 
-      span.textContent = span.textContent
-        td.textContent = td.textContent
-  .replace(/\s*\(Split.*?\)/gi, "")
-  .replace(/\s*\(Semi-Pencilled\)/gi, "")
-  .trim();
-
+      span.textContent = cleanDisplayText_NoSplit(span.textContent);
     });
   });
 }
 
 // HARD HOOK: ANY time offspring are rendered
-if (typeof displayResults === "function") {
+if (typeof displayResults === "function" && !displayResults._cleanWrapped) {
   const _displayResultsFinal = displayResults;
 
   displayResults = function (...args) {
     _displayResultsFinal.apply(this, args);
     setTimeout(cleanOffspringPhenotypesOnce, 0);
   };
-}
 
+  displayResults._cleanWrapped = true;
+}
 
 // =====================================================
 // SUMMARY CHART PHENOTYPE CLEANER (DISPLAY-ONLY, SAFE)
 // =====================================================
-
 function cleanSummaryPhenotypesOnce() {
   const summaryTable = document.getElementById("summaryChart");
   if (!summaryTable) return;
 
   summaryTable.querySelectorAll("td").forEach(td => {
-    if (!td.textContent) return;
+    if (!td || !td.textContent) return;
 
+    // Clean only if needed (minor perf win)
     if (/\(Split.*?\)/i.test(td.textContent)) {
-      td.textContent = td.textContent
-       td.textContent = td.textContent
-  .replace(/\s*\(Split.*?\)/gi, "")
-  .replace(/\s*\(Semi-Pencilled\)/gi, "")
-  .trim();
-
+      td.textContent = cleanDisplayText_NoSplit(td.textContent);
     }
   });
+}
+
+// HARD HOOK: AFTER SUMMARY IS RENDERED
+if (typeof displaySummaryChart === "function" && !displaySummaryChart._cleanWrapped) {
+  const _displaySummaryChartSafe = displaySummaryChart;
+
+  displaySummaryChart = function (...args) {
+    _displaySummaryChartSafe.apply(this, args);
+    setTimeout(cleanSummaryPhenotypesOnce, 0);
+  };
+
+  displaySummaryChart._cleanWrapped = true;
 }
 
 // HARD HOOK: AFTER SUMMARY IS RENDERED
