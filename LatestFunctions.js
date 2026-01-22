@@ -1806,548 +1806,491 @@ window.addEventListener("load", () => {
 
 })(); 
 
-
+/////////////////////////
 // ===========================================
-// BROAD BREASTED BRONZE OVERLAY (Enhanced for BB Bronze -BB White)
+// BROAD BREASTED OVERLAY (parents + offspring)
+// Template-matched to your WILD overlay style
+// Supports:
+//  - BB Bronze parent overlay (image + name + forces bb)
+//  - BB White parent overlay (image + name + forces bb + cc)
+//  - Offspring overlay for:
+//      a) BB Bronze x BB Bronze  => Broad Breasted Bronze
+//      b) BB White  x BB White   => Broad Breasted White
+//      c) BB Bronze x BB White   => Bronze text -> BB Bronze, White(...) -> BB White
+//  - Transfer offspring to parent keeps BB state
+//  - Favorites keep BB state
 // ===========================================
 (function () {
-    'use strict';
+  'use strict';
 
-    const BB_DISPLAY_NAME = "Broad Breasted Bronze";
+  const PICS_BASE = "https://portersturkeys.github.io/Pictures/";
 
-    const BRONZE_VARIANTS = {
-        broad: {
-            name: BB_DISPLAY_NAME,
-            male: "MBroadBreastedBronze.jpg",
-            female: "FBroadBreastedBronze.jpg",
-            poult: "PBroadBreastedBronze.jpg"
-        }
-    };
-    
-    const BB_WHITE_DISPLAY_NAME = "Broad Breasted White";
-    const BB_WHITE_IMAGES = {
-        male:   "MBroadBreastedWhite.jpg",
-        female: "FBroadBreastedWhite.jpg",
-        poult:  "PBroadBreastedWhite.jpg"
-    };
+  const BB_VARIANTS = {
+    bronze: {
+      name:  "Broad Breasted Bronze",
+      male:  "MBroadBreastedBronze.jpg",
+      female:"FBroadBreastedBronze.jpg",
+      poult: "PBroadBreastedBronze.jpg"
+    },
+    white: {
+      name:  "Broad Breasted White",
+      male:  "MBroadBreastedWhite.jpg",
+      female:"FBroadBreastedWhite.jpg",
+      poult: "PBroadBreastedWhite.jpg"
+    }
+  };
 
-    
+  // What the user actually types in the variety box -> variant key
+  const BB_VARIETY_MAP = {
+    // ---- BB Bronze aliases ----
+    "broad breasted bronze": "bronze",
+    "broad-breasted bronze": "bronze",
+    "mammoth bronze":        "bronze",
+    "orlopp bronze":         "bronze",
+    "breasted bronze":       "bronze",
+    "bronze breasted":       "bronze",
+    "large bronze":          "bronze",
+    "broad bronze":          "bronze",
 
-    // Variety maps (expanded for aliases)
-    const BRONZE_VARIETY_MAP = {
-        "broad breasted bronze": "broad",
-        "broad-breasted bronze": "broad",
-        "mammoth bronze": "broad",
-        "orlopp bronze": "broad",
-        "breasted bronze": "broad",
-        "bronze breasted": "broad",
-        "large bronze": "broad"
-    };
+    // ---- BB White aliases ----
+    "broad breasted white":  "white",
+    "broad-breasted white":  "white",
+    "large white":           "white",
+    "commercial white":      "white",
+    "giant white":           "white",
+    "broad white":           "white",
+    "breasted white":        "white"
+  };
 
-    const WHITE_VARIETY_MAP = {
-        "broad breasted white": "broad",
-        "broad-breasted white": "broad",
-        "giant white": "broad",
-        "commercial white": "broad",
-        "large white": "broad",
-        "broad white": "broad",
-        "breasted white": "broad"
-    };
+  // Track current BB variant per parent
+  const bbState = {
+    sire: null,   // "bronze" | "white" | null
+    dam:  null
+  };
 
-    // Track state for both parents
-    const bronzeState = { sire: null, dam: null };
+  function norm(str) {
+    return (str || "").trim().toLowerCase();
+  }
 
-    function norm(str) {
-        return (str || "").trim().toLowerCase();
+  // When user types / uses variety autocomplete, figure out if it's BB bronze/white
+  function detectBBFromVariety(prefix) {
+    const input = document.getElementById(prefix + "VarietyInput");
+    const val   = norm(input && input.value);
+    const key   = BB_VARIETY_MAP[val] || null;
+
+    bbState[prefix] = key;
+
+    const container = document.getElementById(prefix + "ImageContainer");
+    if (container) {
+      if (key) container.dataset.bbKey = key;
+      else delete container.dataset.bbKey;
     }
 
-        function detectBronzeFromVariety(prefix) {
-        const input = document.getElementById(prefix + "VarietyInput");
-        const val = norm(input?.value);
-        const key = BRONZE_VARIETY_MAP[val] || null;
+    return key;
+  }
 
-        if (key) {
-            // This variety is a Broad Breasted Bronze alias
-            bronzeState[prefix] = key;   // "broad"
-        } else {
-            // Not a broad-breasted bronze variety - clear stale state
-            bronzeState[prefix] = null;
-        }
+  // Helper: force alleles for BB variant
+  function forceAllelesForBB(prefix, key) {
+    // Always force bronze locus to bb for BOTH BB Bronze and BB White
+    const bId = prefix === "sire" ? "sireAlleleb" : "damAlleleb";
+    const bEl = document.getElementById(bId);
 
-        return key;
+    let changed = false;
+
+    if (bEl && bEl.value !== "bb") {
+      bEl.value = "bb";
+      changed = true;
     }
 
-
-    function detectBroadWhiteFromVariety(prefix) {
-        const input = document.getElementById(prefix + "VarietyInput");
-        const val = norm(input?.value);
-        return !!WHITE_VARIETY_MAP[val];
+    // BB White also forces cc at C locus
+    if (key === "white") {
+      const cId = prefix === "sire" ? "sireAlleleC" : "damAlleleC";
+      const cEl = document.getElementById(cId);
+      if (cEl && cEl.value !== "cc") {
+        cEl.value = "cc";
+        changed = true;
+      }
     }
 
-    // Helper to get displayed phenotype name
-    function getParentPhenotype(containerId) {
-        const container = document.getElementById(containerId);
-        if (!container) return "";
-        const strong = container.querySelector("strong");
-        if (!strong) return norm(container.textContent);
-        const spans = strong.querySelectorAll("span");
-        return norm(spans[0]?.textContent || strong.textContent);
+    if (changed) {
+      if (prefix === "sire" && typeof updateSireGenotype === "function") updateSireGenotype();
+      if (prefix === "dam"  && typeof updateDamGenotype  === "function") updateDamGenotype();
+    }
+  }
+
+  // Overlay BB variant on a parent (image + visible name)
+  function applyBBToParent(prefix) {
+    const container = document.getElementById(prefix + "ImageContainer");
+    if (!container) return;
+
+    const key = container.dataset.bbKey || bbState[prefix];
+    if (!key) return;
+
+    const data = BB_VARIANTS[key];
+    if (!data) return;
+
+    // 0) Force genotype controls to match BB variant
+    forceAllelesForBB(prefix, key);
+
+    // 1) Swap parent image
+    const img = container.querySelector("img");
+    if (img) {
+      img.src = PICS_BASE + (prefix === "dam" ? data.female : data.male);
     }
 
-    // Check if name matches Broad Breasted Bronze (with aliases)
-    function isBroadBreastedBronzeName(name) {
-        if (!name) return false;
-        const n = norm(name);
-        return Object.keys(BRONZE_VARIETY_MAP).some(alias => n.includes(alias)) || n.includes("broad breasted bronze");
+    // 2) Fix visible phenotype/variety label
+    const strong = container.querySelector("strong");
+    if (strong) {
+      const spans = strong.querySelectorAll("span");
+      const phenoSpan = spans[0];
+      if (phenoSpan) phenoSpan.textContent = data.name;
     }
 
-    // Check if name matches Broad Breasted White (with aliases)
-    function isBroadBreastedWhiteName(name) {
-        if (!name) return false;
-        const n = norm(name);
-        return Object.keys(WHITE_VARIETY_MAP).some(alias => n.includes(alias)) || n.includes("broad breasted white");
+    // 3) Fix any "To Be Defined" in info container
+    const info = document.getElementById(prefix + "InfoContainer");
+    if (info) {
+      info.querySelectorAll("span, div, strong").forEach(el => {
+        if (/to be defined/i.test(el.textContent)) el.textContent = data.name;
+      });
     }
-    
-    
-        function parentIsBroadBronze(prefix) {
-        const container = document.getElementById(prefix + "ImageContainer");
-        const pheno = getParentPhenotype(prefix + "ImageContainer");
-        const varietyInput = document.getElementById(prefix + "VarietyInput");
-        const varietyVal = norm(varietyInput?.value);
+  }
 
-        // 1) Variety text matches a Broad Breasted Bronze alias
-        if (BRONZE_VARIETY_MAP[varietyVal]) return true;
+  // Determine what offspring overlay should do
+  function getOffspringBBContext() {
+    const sireKey = bbState.sire;
+    const damKey  = bbState.dam;
 
-        // 2) Displayed name looks like Broad Breasted Bronze
-        if (isBroadBreastedBronzeName(pheno)) return true;
+    if (!sireKey || !damKey) return null;
 
-        // 3) We previously marked this container as broad bronze
-        if (container?.dataset.bronzeKey === "broad") return true;
+    // Same strain
+    if (sireKey === damKey) return { mode: "same", key: sireKey };
 
-        return false;
-    }
+    // Cross strain
+    return { mode: "cross", sireKey, damKey };
+  }
 
-    function parentIsBroadWhite(prefix) {
-        const container = document.getElementById(prefix + "ImageContainer");
-        const pheno = getParentPhenotype(prefix + "ImageContainer");
-        const varietyInput = document.getElementById(prefix + "VarietyInput");
-        const varietyVal = norm(varietyInput?.value);
+  // Broad Breasted offspring naming + images
+  function applyBBToOffspring() {
+    const ctx = getOffspringBBContext();
+    if (!ctx) return;
 
-        // 1) Variety text matches a Broad Breasted White alias
-        if (WHITE_VARIETY_MAP[varietyVal]) return true;
+    const bbBronzeName = BB_VARIANTS.bronze.name;
+    const bbWhiteName  = BB_VARIANTS.white.name;
 
-        // 2) Displayed name looks like Broad Breasted White
-        if (isBroadBreastedWhiteName(pheno)) return true;
+    // 1) Patch visible offspring text lines (male + female lists)
+    document
+      .querySelectorAll("#maleOffspringResults li, #femaleOffspringResults li")
+      .forEach(li => {
+        let html = li.innerHTML;
+        if (!html) return;
 
-        // 3) We previously marked this container as broad white
-        if (container?.dataset.whiteKey === "broad") return true;
-
-        return false;
-    }
-
-    
-    
-      function isSameStrainBroadBronze() {
-        // Both parents must currently be Broad Breasted Bronze
-        return parentIsBroadBronze("sire") && parentIsBroadBronze("dam");
-        
-        }
-        
-        
-           function isSameStrainBroadWhite() {
-        // Both parents must currently be Broad Breasted White
-        return parentIsBroadWhite("sire") && parentIsBroadWhite("dam");
-    }
- 
-        
-
-    function isBroadBronzeWhiteCross() {
-        // EXACTLY: one Broad Breasted Bronze parent, one Broad Breasted White parent
-        const sireBronze = parentIsBroadBronze("sire");
-        const damBronze  = parentIsBroadBronze("dam");
-        const sireWhite  = parentIsBroadWhite("sire");
-        const damWhite   = parentIsBroadWhite("dam");
-
-        return (sireBronze && damWhite) || (damBronze && sireWhite);
-    }
-
-
-
-    // Apply overlay to offspring (names + images)
-    function applyBronzeToOffspring() {
-      
-                let shouldApply =
-            isSameStrainBroadBronze() ||
-            isBroadBronzeWhiteCross() ||
-            isSameStrainBroadWhite();
-
-        if (!shouldApply) return;
-
-
-        const data = BRONZE_VARIANTS.broad; // your Broad Breasted Bronze image data
-
-        // ==============================
-        // 1) Patch text in offspring lists
-        // ==============================
-        document.querySelectorAll("#maleOffspringResults li, #femaleOffspringResults li").forEach(li => {
-            let html = li.innerHTML;
-            if (!html) return;
-
-            // If already converted, skip
-            if (html.includes(BB_DISPLAY_NAME) || html.includes("Broad Breasted White")) return;
-
-            // Bronze - Broad Breasted Bronze
-            html = html.replace(/\bBronze\b/gi, BB_DISPLAY_NAME);
-
-            // White (Dark Brown Eyes) - Broad Breasted White
-            html = html.replace(/White\s*\(Dark Brown Eyes\)/gi, "Broad Breasted White");
-
-            // To Be Defined -Broad Breasted Bronze
-            html = html
-                .replace(/To Be Defined/gi, BB_DISPLAY_NAME)
-                .replace(/to be defined/gi, BB_DISPLAY_NAME);
-
-            li.innerHTML = html;
-        });
-
-        // ==============================
-        // 2) Patch summary chart text
-        // ==============================
-        const summaryBody = document.querySelector("#summaryChart tbody");
-        if (summaryBody) {
-            summaryBody.querySelectorAll("tr").forEach(tr => {
-                const phenoCell = tr.cells?.[1];
-                if (!phenoCell) return;
-
-                let text = phenoCell.textContent || "";
-                if (!text) return;
-
-                if (text.includes(BB_DISPLAY_NAME) || text.includes("Broad Breasted White")) return;
-
-                // Bronze- Broad Breasted Bronze
-                text = text.replace(/\bBronze\b/gi, BB_DISPLAY_NAME);
-
-                // White (Dark Brown Eyes)  Broad Breasted White
-                text = text.replace(/White\s*\(Dark Brown Eyes\)/gi, "Broad Breasted White");
-
-                // To Be Defined- Broad Breasted Bronze
-                text = text
-                    .replace(/To Be Defined/gi, BB_DISPLAY_NAME)
-                    .replace(/to be defined/gi, BB_DISPLAY_NAME);
-
-                phenoCell.textContent = text;
-            });
+        // If already fully converted, skip
+        if (html.includes(bbBronzeName) || html.includes(bbWhiteName)) {
+          // still allow some cleanup for "To Be Defined"
+          html = html.replace(/To Be Defined/gi, bbBronzeName);
+          li.innerHTML = html;
+          return;
         }
 
-        // ==============================
-        // 3) Patch internal arrays (names + images)
-        //   Bronze logic restored exactly, plus BB White on top
-        // ==============================
-        function patchArray(arr, sex) {
-            if (!Array.isArray(arr)) return;
+        // Convert "White (Dark Brown Eyes)" -> BB White
+        html = html.replace(/White\s*\(Dark Brown Eyes\)/gi, bbWhiteName);
 
-            arr.forEach(o => {
-                // ---- Names ----
-                if (o.phenotype) {
-                    let p = o.phenotype;
+        // Convert "Bronze" -> BB Bronze
+        html = html.replace(/\bBronze\b/gi, bbBronzeName);
 
-                    // Bronze - Broad Breasted Bronze
-                    p = p.replace(/\bBronze\b/gi, BB_DISPLAY_NAME);
+        // Convert "To Be Defined" -> BB Bronze (your normal default)
+        html = html.replace(/To Be Defined/gi, bbBronzeName);
 
-                    // White (Dark Brown Eyes) - Broad Breasted White
-                    p = p.replace(/White\s*\(Dark Brown Eyes\)/gi, "Broad Breasted White");
+        li.innerHTML = html;
+      });
 
-                    // To Be Defined - Broad Breasted Bronze
-                    p = p
-                        .replace(/To Be Defined/gi, BB_DISPLAY_NAME)
-                        .replace(/to be defined/gi, BB_DISPLAY_NAME);
+    // 2) Patch summary chart text
+    const summaryBody = document.querySelector("#summaryChart tbody");
+    if (summaryBody) {
+      summaryBody.querySelectorAll("tr").forEach(tr => {
+        const phenoCell = tr.cells && tr.cells[1];
+        if (!phenoCell) return;
 
-                    o.phenotype = p;
-                }
+        let text = phenoCell.textContent || "";
+        if (!text) return;
 
-                // ---- ORIGINAL BRONZE IMAGE REPLACEMENT (as you had it) ----
-                if (o.picturePath) {
-    const file = (o.picturePath.split("/").pop() || "").toLowerCase();
-    if (file === "mbronze.jpg") o.picturePath = "https://portersturkeys.github.io/Pictures/" + data.male;
-    if (file === "fbronze.jpg") o.picturePath = "https://portersturkeys.github.io/Pictures/" + data.female;
-    if (file === "pbronze.jpg") o.picturePath = "https://portersturkeys.github.io/Pictures/" + data.poult;
+        text = text.replace(/White\s*\(Dark Brown Eyes\)/gi, bbWhiteName);
+        text = text.replace(/\bBronze\b/gi, bbBronzeName);
+        text = text.replace(/to be defined/gi, bbBronzeName);
 
-    // NEW: White (Dark Brown Eyes) poult- Broad Breasted White poult
-    if (file === "pwhite(darkbrowneyes).jpg") {
-        o.picturePath = "https://portersturkeys.github.io/Pictures/PBroadBreastedWhite.jpg";
+        phenoCell.textContent = text;
+      });
     }
-}
 
-               if (o.poultImagePath) {
-    const file2 = (o.poultImagePath.split("/").pop() || "").toLowerCase();
-    if (file2 === "pbronze.jpg") o.poultImagePath = "https://portersturkeys.github.io/Pictures/" + data.poult;
+    // 3) Patch internal offspring arrays' image paths (Bronze/White -> BB files)
+    function patchBBOffspringArray(arr, sex) {
+      if (!Array.isArray(arr)) return;
 
-    // NEW: White (Dark Brown Eyes) poult - Broad Breasted White poult
-    if (file2 === "pwhite(darkbrowneyes).jpg") {
-        o.poultImagePath = "https://portersturkeys.github.io/Pictures/PBroadBreastedWhite.jpg";
-    }
-}
+      arr.forEach(o => {
+        if (!o) return;
 
-
-                // ---- EXTRA: Broad Breasted White images (male/female/poult) ----
-                const pheno = (o.phenotype || "");
-                if (/Broad Breasted White/i.test(pheno)) {
-                    // Force correct adult image based on which array this is
-                    if (sex === "male") {
-                        o.picturePath = "https://portersturkeys.github.io/Pictures/MBroadBreastedWhite.jpg";
-                    } else if (sex === "female") {
-                        o.picturePath = "https://portersturkeys.github.io/Pictures/FBroadBreastedWhite.jpg";
-                    } else if (sex === "poult") {
-                        // in case you store poult-only objects
-                        o.picturePath = "https://portersturkeys.github.io/Pictures/PBroadBreastedWhite.jpg";
-                    }
-
-                    // If an explicit poult path exists, force it to BB White poult
-                    if (o.poultImagePath !== undefined) {
-                        o.poultImagePath = "https://portersturkeys.github.io/Pictures/PBroadBreastedWhite.jpg";
-                    }
-                }
-            });
+        // Normalize phenotype text stored in the data
+        if (o.phenotype) {
+          o.phenotype = String(o.phenotype)
+            .replace(/White\s*\(Dark Brown Eyes\)/gi, bbWhiteName)
+            .replace(/\bBronze\b/gi, bbBronzeName)
+            .replace(/to be defined/gi, bbBronzeName);
         }
 
-        // Call with sex so we know what image to force for BB White
-        if (window.maleOffspring)   patchArray(window.maleOffspring,   "male");
-        if (window.femaleOffspring) patchArray(window.femaleOffspring, "female");
-        if (window.poultOffspring)  patchArray(window.poultOffspring,  "poult");
+        // Swap picturePath based on base filenames OR phenotype result
+        const ph = String(o.phenotype || "");
 
-        // ==============================
-        // 4) Patch visible images in DOM (bronze logic restored)
-        // ==============================
-        document
-    .querySelectorAll("#maleOffspringResults img, #femaleOffspringResults img")
-    .forEach(img => {
-        const file = (img.src.split("/").pop() || "").toLowerCase();
-        if (file === "mbronze.jpg") img.src = "https://portersturkeys.github.io/Pictures/" + data.male;
-        if (file === "fbronze.jpg") img.src = "https://portersturkeys.github.io/Pictures/" + data.female;
-        if (file === "pbronze.jpg") img.src = "https://portersturkeys.github.io/Pictures/" + data.poult;
+        if (o.picturePath) {
+          const file = (o.picturePath.split("/").pop() || "").toLowerCase();
 
-        // NEW: White (Dark Brown Eyes) poult - Broad Breasted White poult
-        if (file === "pwhite(darkbrowneyes).jpg") {
-            img.src = "https://portersturkeys.github.io/Pictures/PBroadBreastedWhite.jpg";
+          // Base Bronze -> BB Bronze
+          if (file === "mbronze.jpg") o.picturePath = PICS_BASE + BB_VARIANTS.bronze.male;
+          if (file === "fbronze.jpg") o.picturePath = PICS_BASE + BB_VARIANTS.bronze.female;
+          if (file === "pbronze.jpg") o.picturePath = PICS_BASE + BB_VARIANTS.bronze.poult;
+
+          // Base White(Dark Brown Eyes) poult -> BB White poult
+          if (file === "pwhite(darkbrowneyes).jpg") o.picturePath = PICS_BASE + BB_VARIANTS.white.poult;
         }
+
+        if (o.poultImagePath) {
+          const file2 = (o.poultImagePath.split("/").pop() || "").toLowerCase();
+          if (file2 === "pbronze.jpg") o.poultImagePath = PICS_BASE + BB_VARIANTS.bronze.poult;
+          if (file2 === "pwhite(darkbrowneyes).jpg") o.poultImagePath = PICS_BASE + BB_VARIANTS.white.poult;
+        }
+
+        // If phenotype is BB White, force correct adult image for sex arrays
+        if (/Broad Breasted White/i.test(ph)) {
+          if (sex === "male")   o.picturePath = PICS_BASE + BB_VARIANTS.white.male;
+          if (sex === "female") o.picturePath = PICS_BASE + BB_VARIANTS.white.female;
+
+          if (o.poultImagePath !== undefined) {
+            o.poultImagePath = PICS_BASE + BB_VARIANTS.white.poult;
+          }
+        }
+      });
+    }
+
+    if (window.maleOffspring)   patchBBOffspringArray(window.maleOffspring, "male");
+    if (window.femaleOffspring) patchBBOffspringArray(window.femaleOffspring, "female");
+    if (window.poultOffspring)  patchBBOffspringArray(window.poultOffspring, "poult");
+
+    // 4) Patch visible offspring <img> elements in the DOM
+    document
+      .querySelectorAll("#maleOffspringResults img, #femaleOffspringResults img")
+      .forEach(img => {
+        const src  = img.getAttribute("src") || "";
+        const file = (src.split("/").pop() || "").toLowerCase();
+
+        if (file === "mbronze.jpg") img.src = PICS_BASE + BB_VARIANTS.bronze.male;
+        if (file === "fbronze.jpg") img.src = PICS_BASE + BB_VARIANTS.bronze.female;
+        if (file === "pbronze.jpg") img.src = PICS_BASE + BB_VARIANTS.bronze.poult;
+
+        if (file === "pwhite(darkbrowneyes).jpg") img.src = PICS_BASE + BB_VARIANTS.white.poult;
+      });
+
+    // 5) Force BB White images in DOM lists based on text (male/female)
+    document.querySelectorAll("#maleOffspringResults li").forEach(li => {
+      if (/Broad Breasted White/i.test(li.textContent || "")) {
+        const img = li.querySelector("img");
+        if (img) img.src = PICS_BASE + BB_VARIANTS.white.male;
+      }
     });
 
+    document.querySelectorAll("#femaleOffspringResults li").forEach(li => {
+      if (/Broad Breasted White/i.test(li.textContent || "")) {
+        const img = li.querySelector("img");
+        if (img) img.src = PICS_BASE + BB_VARIANTS.white.female;
+      }
+    });
 
-        // ==============================
-        // 5) Force BB White images in DOM lists based on text
-        // ==============================
-
-        // Male list- MBroadBreastedWhite
-        document.querySelectorAll("#maleOffspringResults li").forEach(li => {
-            if (/Broad Breasted White/i.test(li.textContent || "")) {
-                const img = li.querySelector("img");
-                if (img) img.src = "https://portersturkeys.github.io/Pictures/MBroadBreastedWhite.jpg";
-            }
-        });
-
-        // Female list - FBroadBreastedWhite
-        document.querySelectorAll("#femaleOffspringResults li").forEach(li => {
-            if (/Broad Breasted White/i.test(li.textContent || "")) {
-                const img = li.querySelector("img");
-                if (img) img.src = "https://portersturkeys.github.io/Pictures/FBroadBreastedWhite.jpg";
-            }
-        });
-
-        // Poult list (if present) - PBroadBreastedWhite
-        const poultList = document.getElementById("poultOffspringResults");
-        if (poultList) {
-            poultList.querySelectorAll("li").forEach(li => {
-                if (/Broad Breasted White/i.test(li.textContent || "")) {
-                    const img = li.querySelector("img");
-                    if (img) img.src = "https://portersturkeys.github.io/Pictures/PBroadBreastedWhite.jpg";
-                }
-            });
+    const poultList = document.getElementById("poultOffspringResults");
+    if (poultList) {
+      poultList.querySelectorAll("li").forEach(li => {
+        if (/Broad Breasted White/i.test(li.textContent || "")) {
+          const img = li.querySelector("img");
+          if (img) img.src = PICS_BASE + BB_VARIANTS.white.poult;
         }
+      });
     }
+  }
 
+  // Offspring/summary observer
+  function installBBOffspringObserver() {
+    let patching = false;
 
+    const targets = [
+      document.getElementById("maleOffspringResults"),
+      document.getElementById("femaleOffspringResults"),
+      document.getElementById("summaryChart")
+    ].filter(Boolean);
 
+    if (!targets.length) return;
 
-    // Apply overlay to parent (for BB Bronze parents)
-    function applyBronzeToParent(prefix) {
+    targets.forEach(target => {
+      const obs = new MutationObserver(() => {
+        if (patching) return;
+        patching = true;
+        setTimeout(() => {
+          applyBBToOffspring();
+          patching = false;
+        }, 0);
+      });
+
+      obs.observe(target, { childList: true, subtree: true });
+    });
+  }
+
+  // Watch parents for DOM changes and re-apply BB overlay
+  function installParentObservers() {
+    const parentFlags = { sire: false, dam: false };
+
+    ["sire", "dam"].forEach(prefix => {
+      const container = document.getElementById(prefix + "ImageContainer");
+      if (!container) return;
+
+      const obs = new MutationObserver(() => {
+        if (parentFlags[prefix]) return;
+        parentFlags[prefix] = true;
+        setTimeout(() => {
+          applyBBToParent(prefix);
+          parentFlags[prefix] = false;
+        }, 0);
+      });
+
+      obs.observe(container, { childList: true, subtree: true });
+    });
+  }
+
+  // Wrap variety functions so they record BB state + apply overlay
+  function wrapVarietyFn(fnName, prefix) {
+    const original = window[fnName];
+    if (typeof original !== "function") return;
+
+    window[fnName] = function () {
+      const res = original.apply(this, arguments);
+
+      const key = detectBBFromVariety(prefix);
+      if (key) {
+        setTimeout(() => applyBBToParent(prefix), 0);
+      } else {
         const container = document.getElementById(prefix + "ImageContainer");
-       if (!container) return;
-if (bronzeState[prefix] !== "broad" && container.dataset.bronzeKey !== "broad") return;
+        if (container) delete container.dataset.bbKey;
+        bbState[prefix] = null;
+      }
 
-// If dataset says broad, re-sync bronzeState so future checks stay consistent
-if (container.dataset.bronzeKey === "broad") bronzeState[prefix] = "broad";
+      return res;
+    };
+  }
 
+  // Hook everything after core is loaded
+  window.addEventListener("load", () => {
+    // Variety handlers
+    wrapVarietyFn("applyVarietyToSire", "sire");
+    wrapVarietyFn("applyVarietyToDam",  "dam");
 
-        const data = BRONZE_VARIANTS.broad;
+    // Make Reset clear BB overlay state
+    if (typeof window.resetCalculator === "function") {
+      const originalReset = window.resetCalculator;
 
-        // Force bb at bronze
-        const bronzeSelect = document.getElementById(prefix + "Alleleb");
-        if (bronzeSelect && bronzeSelect.value !== "bb") {
-            bronzeSelect.value = "bb";
-            (prefix === "sire" ? updateSireGenotype : updateDamGenotype)?.();
-        }
+      window.resetCalculator = function(initial) {
+        const result = originalReset.apply(this, arguments);
 
-        // Image
-        const img = container.querySelector("img");
-        if (img) img.src = "https://portersturkeys.github.io/Pictures/" + (prefix === "dam" ? data.female : data.male);
+        bbState.sire = null;
+        bbState.dam  = null;
 
-        // Name
-        const strong = container.querySelector("strong");
-        if (strong) {
-            const spans = strong.querySelectorAll("span");
-            if (spans[0]) spans[0].textContent = data.name;
-        }
-
-        const info = document.getElementById(prefix + "InfoContainer");
-        if (info) {
-            info.querySelectorAll("span, div, strong").forEach(el => {
-                if (/to be defined/i.test(el.textContent)) el.textContent = data.name;
-            });
-        }
-
-        // Persist via dataset for robustness
-        container.dataset.bronzeKey = "broad";
-    }
-
-
-
-
-    function applyBroadWhiteToParent(prefix) {
-        const container = document.getElementById(prefix + "ImageContainer");
-        if (!container) return;
-
-        // Make sure whiteState exists and mark this parent as broad white
-        if (!window.whiteState) {
-            window.whiteState = { sire: null, dam: null };
-        }
-        window.whiteState[prefix] = "broad";
-
-        // IMAGE
-        const img = container.querySelector("img");
-        if (img) {
-            img.src = "https://portersturkeys.github.io/Pictures/" + (prefix === "dam" ? BB_WHITE_IMAGES.female : BB_WHITE_IMAGES.male);
-        }
-
-        // NAME
-        const strong = container.querySelector("strong");
-        if (strong) {
-            const spans = strong.querySelectorAll("span");
-            if (spans[0]) {
-                spans[0].textContent = BB_WHITE_DISPLAY_NAME;
-            } else {
-                strong.textContent = BB_WHITE_DISPLAY_NAME;
-            }
-        }
-
-        // INFO PANEL: replace any placeholder/bad text with Broad Breasted White
-        const info = document.getElementById(prefix + "InfoContainer");
-        if (info) {
-            info.querySelectorAll("span, div, strong").forEach(el => {
-                if (/to be defined/i.test(el.textContent) ||
-                    /broad breasted bronze/i.test(el.textContent) ||
-                    /white\s*\(dark brown eyes\)/i.test(el.textContent)) {
-                    el.textContent = BB_WHITE_DISPLAY_NAME;
-                }
-            });
-        }
-
-        // Optional dataset flag for later detection
-        container.dataset.whiteKey = "broad";
-
-        // IMPORTANT: clear any bronze flag on this parent
-        if (container.dataset.bronzeKey) {
-            delete container.dataset.bronzeKey;
-        }
-    }
-
-
- // Install observers (parents + offspring/summary)
-    function installObservers() {
-        const parentFlags = { sire: false, dam: false };
         ["sire", "dam"].forEach(prefix => {
-            const container = document.getElementById(prefix + "ImageContainer");
-            if (!container) return;
-            const obs = new MutationObserver(() => {
-                if (parentFlags[prefix]) return;
-                parentFlags[prefix] = true;
-                setTimeout(() => {
-                    applyBronzeToParent(prefix);
-                    parentFlags[prefix] = false;
-                }, 0);
-            });
-            obs.observe(container, { childList: true, subtree: true });
+          const container = document.getElementById(prefix + "ImageContainer");
+          if (container && container.dataset.bbKey) delete container.dataset.bbKey;
         });
 
-        let patching = false;
-        const targets = [
-            document.getElementById("maleOffspringResults"),
-            document.getElementById("femaleOffspringResults"),
-            document.getElementById("summaryChart")
-        ].filter(Boolean);
-        targets.forEach(target => {
-            const obs = new MutationObserver(() => {
-                if (patching) return;
-                patching = true;
-                setTimeout(() => {
-                    applyBronzeToOffspring();
-                    patching = false;
-                }, 0);
-            });
-            obs.observe(target, { childList: true, subtree: true });
-        });
+        return result;
+      };
     }
 
-        // Transfer patch - preserve state/overlay after transfer
-    if (typeof window.transferOffspringToParent === "function" && !window._bbTransferPatched) {
-        window._bbTransferPatched = true;
-        const orig = window.transferOffspringToParent;
+    // Keep BB overlay alive through Calculate / redraws
+    installParentObservers();
+    installBBOffspringObserver();
 
-        window.transferOffspringToParent = function(genotype, parent) {
-          
-                       const wasCross =
-                isBroadBronzeWhiteCross() ||
-                isSameStrainBroadBronze() ||
-                isSameStrainBroadWhite();
+    // Transfer offspring to parent: preserve BB White vs BB Bronze based on genotype
+    if (typeof window.transferOffspringToParent === "function" && !window._bbTransferPatched2) {
+      window._bbTransferPatched2 = true;
 
-            
-            const result = orig.apply(this, arguments);
+      const originalTransfer = window.transferOffspringToParent;
 
-            if (wasCross && (parent === "sire" || parent === "dam")) {
-    const g = String(genotype || "");
+      window.transferOffspringToParent = function(genotype, parent) {
+        const result = originalTransfer.apply(this, arguments);
 
-    // bb cc (with lowercase cc) = Broad Breasted White
-    const isBroadWhiteOffspring = /\bcc\b/.test(g);
+        if (parent === "sire" || parent === "dam") {
+          const g = String(genotype || "");
 
-    if (isBroadWhiteOffspring) {
-        // ----- OFFSPRING IS BROAD BREASTED WHITE -----
-        if (!window.whiteState) {
-            window.whiteState = { sire: null, dam: null };
-        }
-        window.whiteState[parent] = "broad";
+          // If bb + cc => BB White, otherwise if bb => BB Bronze
+          const isBBWhite  = /\bbb\b/i.test(g) && /\bcc\b/i.test(g);
+          const isBBBronze = /\bbb\b/i.test(g) && !/\bcc\b/i.test(g);
 
-        bronzeState[parent] = null;
-        const container = document.getElementById(parent + "ImageContainer");
-        if (container && container.dataset.bronzeKey) {
-            delete container.dataset.bronzeKey;
+          const container = document.getElementById(parent + "ImageContainer");
+
+          if (isBBWhite) {
+            bbState[parent] = "white";
+            if (container) container.dataset.bbKey = "white";
+            setTimeout(() => applyBBToParent(parent), 0);
+          } else if (isBBBronze) {
+            bbState[parent] = "bronze";
+            if (container) container.dataset.bbKey = "bronze";
+            setTimeout(() => applyBBToParent(parent), 0);
+          } else {
+            // Not BB genotype: clear BB overlay for that parent
+            bbState[parent] = null;
+            if (container && container.dataset.bbKey) delete container.dataset.bbKey;
+          }
         }
 
-        setTimeout(() => applyBroadWhiteToParent(parent), 50);
-
-    } else {
-        // ----- OFFSPRING IS BROAD BREASTED BRONZE (bb Cc etc.) -----
-        bronzeState[parent] = "broad";
-        const container = document.getElementById(parent + "ImageContainer");
-        if (container) container.dataset.bronzeKey = "broad";
-
-        setTimeout(() => applyBronzeToParent(parent), 50);
-    }
-}
-
-
-            return result;
-        };
+        return result;
+      };
     }
 
+    // Favorites: re-apply BB overlay when loading a saved favorite name
+    if (typeof window.handleDropdownChange === "function" && !window._bbFavoritesPatched2) {
+      window._bbFavoritesPatched2 = true;
+
+      const originalHandleDropdownChange = window.handleDropdownChange;
+
+      window.handleDropdownChange = function (type, dropdownId, alleleIds) {
+        const result = originalHandleDropdownChange.apply(this, arguments);
+
+        if (type === "sire" || type === "dam") {
+          const dropdown = document.getElementById(dropdownId);
+          const selectedName = dropdown && dropdown.value;
+          if (selectedName) {
+            const lowerName = norm(selectedName);
+            const baseName  = lowerName.replace(/\s*\(\d+\)\s*$/, "");
+
+            let key = null;
+            // Match against BB_VARIANTS by display name
+            for (const [k, data] of Object.entries(BB_VARIANTS)) {
+              if (norm(data.name) === baseName) { key = k; break; }
+            }
+
+            const container = document.getElementById(type + "ImageContainer");
+
+            if (key) {
+              bbState[type] = key;
+              if (container) container.dataset.bbKey = key;
+              setTimeout(() => applyBBToParent(type), 0);
+            } else {
+              bbState[type] = null;
+              if (container && container.dataset.bbKey) delete container.dataset.bbKey;
+            }
+          }
+        }
+
+        return result;
+      };
+    }
+  });
+
+})();
+
+////////////////////////////
     // Hook variety + reset
     window.addEventListener("load", () => {
         function wrapVarietyFn(fnName, prefix) {
