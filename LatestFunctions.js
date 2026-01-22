@@ -3205,38 +3205,56 @@ window.addEventListener("load", () => {
 
 ////////////////////////////
 // =====================================================
-// FIXED: Variety suggestion dropdown (ALL browsers)
-// - Builds ONE dropdown per input (sire + dam)
-// - Removes old installs ONCE (no cross-deleting)
+// GUARANTEED VARIETY DROPDOWN FIX (ALL BROWSERS)
+// - Removes old .variety-dd
+// - Removes old event listeners by cloning inputs
+// - Builds variety list from getAllPhenotypeMappings() OR phenotypeMapping1..15 fallback
 // - Waits for mappings to exist
 // =====================================================
-(function VarietyDropdown_FixedAllBrowsers(){
-  if (window._varietyDropdownFixedAllBrowsersInstalled) return;
-  window._varietyDropdownFixedAllBrowsersInstalled = true;
+(function VarietyDropdown_GuaranteedReset(){
+  if (window._VarietyDropdown_GuaranteedReset_Installed) return;
+  window._VarietyDropdown_GuaranteedReset_Installed = true;
 
-  var MAX_RESULTS = 50;
+  var MAX_RESULTS = 60;
   var cached = [];
   var lastBuild = 0;
 
-  function norm(s){
-    s = String(s || "").trim();
-    if (!s) return "";
-    try{
-      if (typeof window.normalizeVarietyInput === "function") {
-        return String(window.normalizeVarietyInput(s) || "").trim().toLowerCase();
-      }
-    }catch(e){}
-    return s.toLowerCase();
+  function removeAllOldDropdowns(){
+    document.querySelectorAll(".variety-dd").forEach(function(el){
+      try { el.remove(); } catch(e){}
+    });
   }
 
-  function getMaps(){
+  function cloneInput(id){
+    var el = document.getElementById(id);
+    if (!el) return null;
+    var clone = el.cloneNode(true); // removes all previous listeners
+    el.parentNode.replaceChild(clone, el);
+    return clone;
+  }
+
+  function safeMaps(){
+    // 1) Preferred: your helper
     try{
       if (typeof window.getAllPhenotypeMappings === "function") {
-        var maps = window.getAllPhenotypeMappings();
-        return Array.isArray(maps) ? maps.filter(Boolean) : [];
+        var m = window.getAllPhenotypeMappings();
+        if (Array.isArray(m) && m.length) return m.filter(Boolean);
       }
     }catch(e){}
-    return [];
+
+    // 2) Fallback: direct globals (phenotypeMapping1..15 + A..E etc already in your site)
+    var out = [];
+    for (var i=1;i<=15;i++){
+      var base = window["phenotypeMapping"+i];
+      if (base) out.push(base);
+
+      // include any lettered variants if present
+      ["A","B","C","D","E"].forEach(function(suf){
+        var v = window["phenotypeMapping"+i+suf];
+        if (v) out.push(v);
+      });
+    }
+    return out.filter(Boolean);
   }
 
   function buildCache(force){
@@ -3244,7 +3262,7 @@ window.addEventListener("load", () => {
     if (!force && now - lastBuild < 300) return;
     lastBuild = now;
 
-    var maps = getMaps();
+    var maps = safeMaps();
     if (!maps.length) { cached = []; return; }
 
     var names = Object.create(null);
@@ -3258,9 +3276,21 @@ window.addEventListener("load", () => {
         if (s) names[s] = true;
       }
     }
+
     cached = Object.keys(names).sort(function(a,b){
       return a.localeCompare(b, undefined, { sensitivity:"base" });
     });
+  }
+
+  function norm(s){
+    s = String(s || "").trim();
+    if (!s) return "";
+    try{
+      if (typeof window.normalizeVarietyInput === "function") {
+        return String(window.normalizeVarietyInput(s) || "").trim().toLowerCase();
+      }
+    }catch(e){}
+    return s.toLowerCase();
   }
 
   function escapeHtml(str){
@@ -3278,53 +3308,72 @@ window.addEventListener("load", () => {
     return safe.replace(rx, "<mark>$1</mark>");
   }
 
-  function matches(qRaw){
+  function getMatches(qRaw){
     var q = norm(qRaw);
     if (!q) return [];
+
     var starts=[], wordStarts=[], contains=[];
     for (var i=0;i<cached.length;i++){
-      var v=cached[i], low=v.toLowerCase();
-      if (low.indexOf(q)===0) starts.push(v);
+      var v = cached[i];
+      var low = v.toLowerCase();
+
+      if (low.indexOf(q) === 0) starts.push(v);
       else{
-        var parts=low.split(/\s+/), ws=false;
-        for (var w=0;w<parts.length;w++){
-          if (parts[w].indexOf(q)===0){ ws=true; break; }
+        var parts = low.split(/\s+/);
+        var ws = false;
+        for (var w=0; w<parts.length; w++){
+          if (parts[w].indexOf(q) === 0) { ws = true; break; }
         }
         if (ws) wordStarts.push(v);
-        else if (low.indexOf(q)!==-1) contains.push(v);
+        else if (low.indexOf(q) !== -1) contains.push(v);
       }
     }
     return starts.concat(wordStarts, contains).slice(0, MAX_RESULTS);
   }
 
-  // Remove ONLY older installs once (previous blocks), then never again
-  function removeOldOnce(){
-    if (window._varietyDropdownOldRemovedOnce) return;
-    window._varietyDropdownOldRemovedOnce = true;
-
-    document.querySelectorAll(".variety-dd").forEach(function(el){
-      // Only remove dropdowns that are NOT ours (or that have no owner)
-      // (If you had multiple installs earlier, this clears them.)
-      try { el.remove(); } catch(e){}
-    });
+  function ensureDropdownCss(){
+    // If your CSS already defines .variety-dd, this does nothing harmful.
+    if (document.getElementById("variety-dd-style")) return;
+    var st = document.createElement("style");
+    st.id = "variety-dd-style";
+    st.textContent = `
+      .variety-dd{
+        position: fixed !important;
+        z-index: 2147483647 !important;
+        background: #fff;
+        border: 2px solid blue;
+        border-radius: 8px;
+        box-shadow: 0 6px 16px rgba(0,0,0,.15);
+        max-height: 260px;
+        overflow-y: auto;
+        padding: 4px;
+      }
+      .variety-dd-item{
+        padding: 6px 8px;
+        cursor: pointer;
+        border-radius: 6px;
+        user-select: none;
+      }
+      .variety-dd-item.active{ outline: 2px solid #000; }
+      .variety-dd mark{ background: yellow; }
+    `;
+    document.head.appendChild(st);
   }
 
   function makeDropdown(inputEl, role){
-    // Unique dropdown per input
     var dd = document.createElement("div");
     dd.className = "variety-dd";
     dd.style.display = "none";
     dd.setAttribute("role","listbox");
-    dd.dataset.owner = inputEl.id; // tie dropdown to that input
     document.body.appendChild(dd);
 
     var state = { open:false, items:[], active:-1, last:"" };
 
     function position(){
       var r = inputEl.getBoundingClientRect();
-      dd.style.left  = (window.scrollX + r.left) + "px";
-      dd.style.top   = (window.scrollY + r.bottom + 2) + "px";
-      dd.style.width = r.width + "px";
+      dd.style.left  = (r.left) + "px";
+      dd.style.top   = (r.bottom + 2) + "px";
+      dd.style.width = (r.width) + "px";
     }
 
     function close(){
@@ -3338,18 +3387,13 @@ window.addEventListener("load", () => {
       if (idx>=0 && idx<rows.length){
         rows[idx].classList.add("active");
         state.active = idx;
-        var top = rows[idx].offsetTop;
-        var bot = top + rows[idx].offsetHeight;
-        var vTop = dd.scrollTop;
-        var vBot = vTop + dd.clientHeight;
-        if (top < vTop) dd.scrollTop = top;
-        else if (bot > vBot) dd.scrollTop = bot - dd.clientHeight;
-      } else state.active=-1;
+      } else state.active = -1;
     }
 
     function applySelection(label){
       inputEl.value = label;
 
+      // call your existing apply fns
       if (role === "sire" && typeof window.applyVarietyToSire === "function") window.applyVarietyToSire();
       if (role === "dam"  && typeof window.applyVarietyToDam  === "function") window.applyVarietyToDam();
 
@@ -3357,25 +3401,25 @@ window.addEventListener("load", () => {
     }
 
     function render(qRaw){
-      dd.innerHTML="";
-      state.active=-1;
+      dd.innerHTML = "";
+      state.active = -1;
 
       for (var i=0;i<state.items.length;i++){
         (function(label){
           var row = document.createElement("div");
-          row.className="variety-dd-item";
+          row.className = "variety-dd-item";
           row.setAttribute("role","option");
           row.innerHTML = highlight(label, norm(qRaw));
-
-          row.addEventListener("touchstart", function(e){
-            e.preventDefault();
-            applySelection(label);
-          }, { passive:false });
 
           row.addEventListener("mousedown", function(e){
             e.preventDefault();
             applySelection(label);
           });
+
+          row.addEventListener("touchstart", function(e){
+            e.preventDefault();
+            applySelection(label);
+          }, { passive:false });
 
           dd.appendChild(row);
         })(state.items[i]);
@@ -3396,7 +3440,7 @@ window.addEventListener("load", () => {
       if (state.open && qN === state.last) return;
       state.last = qN;
 
-      state.items = matches(qRaw);
+      state.items = getMatches(qRaw);
       if (!state.items.length) return close();
       render(qRaw);
     }
@@ -3428,11 +3472,13 @@ window.addEventListener("load", () => {
           applySelection(state.items[state.active]);
         } else close();
       } else if (e.key==="Escape"){
-        e.preventDefault(); close();
+        e.preventDefault();
+        close();
       }
     });
 
-    inputEl.addEventListener("blur", function(){ setTimeout(close, 200); });
+    // small delay so click/touch wins
+    inputEl.addEventListener("blur", function(){ setTimeout(close, 180); });
 
     window.addEventListener("scroll", function(){ if (state.open) position(); }, true);
     window.addEventListener("resize", function(){ if (state.open) position(); });
@@ -3440,45 +3486,36 @@ window.addEventListener("load", () => {
     return { update:update, close:close };
   }
 
-  function initWhenReady(){
-    removeOldOnce();
+  function init(){
+    ensureDropdownCss();
+    removeAllOldDropdowns();
 
+    // CLONE inputs to remove all old listeners installed earlier
+    var sire = cloneInput("sireVarietyInput");
+    var dam  = cloneInput("damVarietyInput");
+
+    // Wait for mappings to exist (your external files timing)
     var tries = 0;
-    var maxTries = 200; // ~20s
-    var t = setInterval(function(){
+    var timer = setInterval(function(){
       tries++;
       buildCache(true);
 
-      var sire = document.getElementById("sireVarietyInput");
-      var dam  = document.getElementById("damVarietyInput");
-
-      if ((sire || dam) && cached.length){
-        clearInterval(t);
-
-        // Also remove any duplicates that might exist for these inputs specifically
-        document.querySelectorAll('.variety-dd').forEach(function(el){
-          if (el.dataset && (el.dataset.owner === "sireVarietyInput" || el.dataset.owner === "damVarietyInput")) {
-            try{ el.remove(); }catch(e){}
-          }
-        });
-
+      if (cached.length) {
+        clearInterval(timer);
         if (sire) makeDropdown(sire, "sire");
         if (dam)  makeDropdown(dam,  "dam");
       }
 
-      if (tries >= maxTries){
-        clearInterval(t);
-        var s2 = document.getElementById("sireVarietyInput");
-        var d2 = document.getElementById("damVarietyInput");
-        if (s2) makeDropdown(s2, "sire");
-        if (d2) makeDropdown(d2, "dam");
+      if (tries >= 250) { // ~25 sec
+        clearInterval(timer);
+        if (sire) makeDropdown(sire, "sire");
+        if (dam)  makeDropdown(dam,  "dam");
       }
     }, 100);
   }
 
-  window.addEventListener("load", initWhenReady);
+  window.addEventListener("load", init);
 })();
-
 
 
 
