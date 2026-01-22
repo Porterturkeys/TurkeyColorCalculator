@@ -1179,14 +1179,67 @@ const phenotypeMapping7 = {
 "b1b1 Ccg nn Pnpn rr Slsl": "Pencilled Light Buff",
 
 
-// PENCILLED LIGHT SWEETGRASS
+// b1b1 cgc Pencilled Light Sweetgrass
 "b1b1 cgc pnpn": "Pencilled Light Sweetgrass",
 "b1b1 cgc Ee pnpn": "Pencilled Light Sweetgrass",
 "b1b1 cgc Nn pnpn": "Pencilled Light Sweetgrass",
 "b1b1 cgc pnpn Slsl": "Pencilled Light Sweetgrass",
 "b1b1 cgc Ee Nn pnpn": "Pencilled Light Sweetgrass",
+"b1b1 cgc Ee pnpn Slsl": "Pencilled Light Sweetgrass",
 "b1b1 cgc Nn pnpn Slsl": "Pencilled Light Sweetgrass",
 "b1b1 cgc Ee Nn pnpn Slsl": "Pencilled Light Sweetgrass",
+
+"b1b1 cgc pnpn Spsp": "Pencilled Light Sweetgrass",
+"b1b1 cgc Ee pnpn Spsp": "Pencilled Light Sweetgrass",
+"b1b1 cgc Nn pnpn Spsp": "Pencilled Light Sweetgrass",
+"b1b1 cgc pnpn Slsl Spsp": "Pencilled Light Sweetgrass",
+"b1b1 cgc Ee Nn pnpn Spsp": "Pencilled Light Sweetgrass",
+"b1b1 cgc Ee pnpn Slsl Spsp": "Pencilled Light Sweetgrass",
+"b1b1 cgc Nn pnpn Slsl Spsp": "Pencilled Light Sweetgrass",
+"b1b1 cgc Ee Nn pnpn Slsl Spsp": "Pencilled Light Sweetgrass",
+
+// b1b1 cgc fdfd Pencilled Light Sweetgrass
+"b1b1 cgc fdfd pnpn": "Pencilled Light Sweetgrass",
+"b1b1 cgc Ee fdfd pnpn": "Pencilled Light Sweetgrass",
+"b1b1 cgc fdfd Nn pnpn": "Pencilled Light Sweetgrass",
+"b1b1 cgc fdfd pnpn Slsl": "Pencilled Light Sweetgrass",
+"b1b1 cgc Ee fdfd Nn pnpn": "Pencilled Light Sweetgrass",
+"b1b1 cgc Ee fdfd pnpn Slsl": "Pencilled Light Sweetgrass",
+"b1b1 cgc fdfd Nn pnpn Slsl": "Pencilled Light Sweetgrass",
+"b1b1 cgc Ee fdfd Nn pnpn Slsl": "Pencilled Light Sweetgrass",
+
+"b1b1 cgc fdfd pnpn Spsp": "Pencilled Light Sweetgrass",
+"b1b1 cgc Ee fdfd pnpn Spsp": "Pencilled Light Sweetgrass",
+"b1b1 cgc fdfd Nn pnpn Spsp": "Pencilled Light Sweetgrass",
+"b1b1 cgc fdfd pnpn Slsl Spsp": "Pencilled Light Sweetgrass",
+"b1b1 cgc Ee fdfd Nn pnpn Spsp": "Pencilled Light Sweetgrass",
+"b1b1 cgc Ee fdfd pnpn Slsl Spsp": "Pencilled Light Sweetgrass",
+"b1b1 cgc fdfd Nn pnpn Slsl Spsp": "Pencilled Light Sweetgrass",
+"b1b1 cgc Ee fdfd Nn pnpn Slsl Spsp": "Pencilled Light Sweetgrass",
+
+// b1b1 cgc Fdfd Pencilled Light Sweetgrass
+"b1b1 cgc Fdfd pnpn": "Pencilled Light Sweetgrass",
+"b1b1 cgc Ee Fdfd pnpn": "Pencilled Light Sweetgrass",
+"b1b1 cgc Fdfd Nn pnpn": "Pencilled Light Sweetgrass",
+"b1b1 cgc Fdfd pnpn Slsl": "Pencilled Light Sweetgrass",
+"b1b1 cgc Ee Fdfd Nn pnpn": "Pencilled Light Sweetgrass",
+"b1b1 cgc Ee Fdfd pnpn Slsl": "Pencilled Light Sweetgrass",
+"b1b1 cgc Fdfd Nn pnpn Slsl": "Pencilled Light Sweetgrass",
+"b1b1 cgc Ee Fdfd Nn pnpn Slsl": "Pencilled Light Sweetgrass",
+
+"b1b1 cgc Fdfd pnpn Spsp": "Pencilled Light Sweetgrass",
+"b1b1 cgc Ee Fdfd pnpn Spsp": "Pencilled Light Sweetgrass",
+"b1b1 cgc Fdfd Nn pnpn Spsp": "Pencilled Light Sweetgrass",
+"b1b1 cgc Fdfd pnpn Slsl Spsp": "Pencilled Light Sweetgrass",
+"b1b1 cgc Ee Fdfd Nn pnpn Spsp": "Pencilled Light Sweetgrass",
+"b1b1 cgc Ee Fdfd pnpn Slsl Spsp": "Pencilled Light Sweetgrass",
+"b1b1 cgc Fdfd Nn pnpn Slsl Spsp": "Pencilled Light Sweetgrass",
+"b1b1 cgc Ee Fdfd Nn pnpn Slsl Spsp": "Pencilled Light Sweetgrass",
+
+
+
+
+
 // SEMI pn PENCILLED LIGHT SWEETGRASS
 "b1b1 cgc Pnpn": "Pencilled Light Sweetgrass.",
 "b1b1 cgc Ee Pnpn": "Pencilled Light Sweetgrass.",
@@ -1464,34 +1517,186 @@ const phenotypeMapping7 = {
 
 
 
-
- // PENCILLED SWEETGRASS
+// b1b1 cgcg Pencilled Sweetgrass 
 "b1b1 cgcg pnpn": "Pencilled Sweetgrass",
 "b1b1 cgcg Ee pnpn": "Pencilled Sweetgrass",
 "b1b1 cgcg Nn pnpn": "Pencilled Sweetgrass",
 "b1b1 cgcg pnpn Slsl": "Pencilled Sweetgrass",
 "b1b1 cgcg Ee Nn pnpn": "Pencilled Sweetgrass",
+"b1b1 cgcg Ee pnpn Slsl": "Pencilled Sweetgrass",
 "b1b1 cgcg Nn pnpn Slsl": "Pencilled Sweetgrass",
 "b1b1 cgcg Ee Nn pnpn Slsl": "Pencilled Sweetgrass",
+
+"b1b1 cgcg pnpn Spsp": "Pencilled Sweetgrass",
+"b1b1 cgcg Ee pnpn Spsp": "Pencilled Sweetgrass",
+"b1b1 cgcg Nn pnpn Spsp": "Pencilled Sweetgrass",
+"b1b1 cgcg pnpn Slsl Spsp": "Pencilled Sweetgrass",
+"b1b1 cgcg Ee Nn pnpn Spsp": "Pencilled Sweetgrass",
+"b1b1 cgcg Ee pnpn Slsl Spsp": "Pencilled Sweetgrass",
+"b1b1 cgcg Nn pnpn Slsl Spsp": "Pencilled Sweetgrass",
+"b1b1 cgcg Ee Nn pnpn Slsl Spsp": "Pencilled Sweetgrass",
+
+// b1b1 cgcg fdfd Pencilled Sweetgrass 
+"b1b1 cgcg Ee fdfd pnpn": "Pencilled Sweetgrass",
+"b1b1 cgcg fdfd Nn pnpn": "Pencilled Sweetgrass",
+"b1b1 cgcg fdfd pnpn": "Pencilled Sweetgrass",
+"b1b1 cgcg fdfd pnpn Slsl": "Pencilled Sweetgrass",
+"b1b1 cgcg Ee fdfd Nn pnpn": "Pencilled Sweetgrass",
+"b1b1 cgcg Ee fdfd pnpn Slsl": "Pencilled Sweetgrass",
+"b1b1 cgcg fdfd Nn pnpn Slsl": "Pencilled Sweetgrass",
+"b1b1 cgcg Ee fdfd Nn pnpn Slsl": "Pencilled Sweetgrass",
+
+"b1b1 cgcg fdfd pnpn Spsp": "Pencilled Sweetgrass",
+"b1b1 cgcg Ee fdfd pnpn Spsp": "Pencilled Sweetgrass",
+"b1b1 cgcg fdfd Nn pnpn Spsp": "Pencilled Sweetgrass",
+"b1b1 cgcg fdfd pnpn Slsl Spsp": "Pencilled Sweetgrass",
+"b1b1 cgcg Ee fdfd Nn pnpn Spsp": "Pencilled Sweetgrass",
+"b1b1 cgcg Ee fdfd pnpn Slsl Spsp": "Pencilled Sweetgrass",
+"b1b1 cgcg fdfd Nn pnpn Slsl Spsp": "Pencilled Sweetgrass",
+"b1b1 cgcg Ee fdfd Nn pnpn Slsl Spsp": "Pencilled Sweetgrass",
+
+// b1b1 cgcg Fdfd Pencilled Sweetgrass 
+"b1b1 cgcg Ee Fdfd pnpn": "Pencilled Sweetgrass",
+"b1b1 cgcg Fdfd Nn pnpn": "Pencilled Sweetgrass",
+"b1b1 cgcg Fdfd pnpn": "Pencilled Sweetgrass",
+"b1b1 cgcg Fdfd pnpn Slsl": "Pencilled Sweetgrass",
+"b1b1 cgcg Ee Fdfd Nn pnpn": "Pencilled Sweetgrass",
+"b1b1 cgcg Ee Fdfd pnpn Slsl": "Pencilled Sweetgrass",
+"b1b1 cgcg Fdfd Nn pnpn Slsl": "Pencilled Sweetgrass",
+"b1b1 cgcg Ee Fdfd Nn pnpn Slsl": "Pencilled Sweetgrass",
+
+"b1b1 cgcg Fdfd pnpn Spsp": "Pencilled Sweetgrass",
+"b1b1 cgcg Ee Fdfd pnpn Spsp": "Pencilled Sweetgrass",
+"b1b1 cgcg Fdfd Nn pnpn Spsp": "Pencilled Sweetgrass",
+"b1b1 cgcg Fdfd pnpn Slsl Spsp": "Pencilled Sweetgrass",
+"b1b1 cgcg Ee Fdfd Nn pnpn Spsp": "Pencilled Sweetgrass",
+"b1b1 cgcg Ee Fdfd pnpn Slsl Spsp": "Pencilled Sweetgrass",
+"b1b1 cgcg Fdfd Nn pnpn Slsl Spsp": "Pencilled Sweetgrass",
+"b1b1 cgcg Ee Fdfd Nn pnpn Slsl Spsp": "Pencilled Sweetgrass",
+
+ 
+ // b1b1 cgcm Pencilled Sweetgrass
 "b1b1 cgcm pnpn": "Pencilled Sweetgrass",
 "b1b1 cgcm Ee pnpn": "Pencilled Sweetgrass",
-"b1b1 cgcm Nn pnpn": " Pencilled Sweetgrass",
+"b1b1 cgcm Nn pnpn": "Pencilled Sweetgrass",
 "b1b1 cgcm pnpn Slsl": "Pencilled Sweetgrass",
 "b1b1 cgcm Ee Nn pnpn": "Pencilled Sweetgrass",
+"b1b1 cgcm Ee pnpn Slsl": "Pencilled Sweetgrass",
 "b1b1 cgcm Nn pnpn Slsl": "Pencilled Sweetgrass",
 "b1b1 cgcm Ee Nn pnpn Slsl": "Pencilled Sweetgrass",
-// SEMI pn PENCILLED SWEETGRASS
-"b1b1 cgcg Pnpn": "Pencilled Sweetgrass.",
-"b1b1 cgcg Ee Pnpn": "Pencilled Sweetgrass.",
-"b1b1 cgcg Nn Pnpn": "Pencilled Sweetgrass.",
-"b1b1 cgcg Pnpn Slsl": "Pencilled Sweetgrass.",
-"b1b1 cgcg Ee Nn Pnpn": "Pencilled Sweetgrass.",
-"b1b1 cgcg Nn Pnpn Slsl": "Pencilled Sweetgrass.",
-"b1b1 cgcg Ee Nn Pnpn Slsl": "Pencilled Sweetgrass.",
-"b1b1 cgcm Pnpn": "Pencilled Sweetgrass.",
-"b1b1 cgcm Ee Pnpn": "Pencilled Sweetgrass.",
-"b1b1 cgcm Nn Pnpn": "Pencilled Sweetgrass.",
-"b1b1 cgcm Pnpn Slsl":"Pencilled Sweetgrass.",
+
+"b1b1 cgcm pnpn Spsp": "Pencilled Sweetgrass",
+"b1b1 cgcm Ee pnpn Spsp": "Pencilled Sweetgrass",
+"b1b1 cgcm Nn pnpn Spsp": "Pencilled Sweetgrass",
+"b1b1 cgcm pnpn Slsl Spsp": "Pencilled Sweetgrass",
+"b1b1 cgcm Ee Nn pnpn Spsp": "Pencilled Sweetgrass",
+"b1b1 cgcm Ee pnpn Slsl Spsp": "Pencilled Sweetgrass",
+"b1b1 cgcm Nn pnpn Slsl Spsp": "Pencilled Sweetgrass",
+"b1b1 cgcm Ee Nn pnpn Slsl Spsp": "Pencilled Sweetgrass",
+
+// b1b1 cgcm fdfd Pencilled Sweetgrass
+"b1b1 cgcm fdfd pnpn": "Pencilled Sweetgrass",
+"b1b1 cgcm Ee fdfd pnpn": "Pencilled Sweetgrass",
+"b1b1 cgcm fdfd Nn pnpn": "Pencilled Sweetgrass",
+"b1b1 cgcm fdfd pnpn Slsl": "Pencilled Sweetgrass",
+"b1b1 cgcm Ee fdfd Nn pnpn": "Pencilled Sweetgrass",
+"b1b1 cgcm Ee fdfd pnpn Slsl": "Pencilled Sweetgrass",
+"b1b1 cgcm fdfd Nn pnpn Slsl": "Pencilled Sweetgrass",
+"b1b1 cgcm Ee fdfd Nn pnpn Slsl": "Pencilled Sweetgrass",
+
+"b1b1 cgcm fdfd pnpn Spsp": "Pencilled Sweetgrass",
+"b1b1 cgcm Ee fdfd pnpn Spsp": "Pencilled Sweetgrass",
+"b1b1 cgcm fdfd Nn pnpn Spsp": "Pencilled Sweetgrass",
+"b1b1 cgcm fdfd pnpn Slsl Spsp": "Pencilled Sweetgrass",
+"b1b1 cgcm Ee fdfd Nn pnpn Spsp": "Pencilled Sweetgrass",
+"b1b1 cgcm Ee fdfd pnpn Slsl Spsp": "Pencilled Sweetgrass",
+"b1b1 cgcm fdfd Nn pnpn Slsl Spsp": "Pencilled Sweetgrass",
+"b1b1 cgcm Ee fdfd Nn pnpn Slsl Spsp": "Pencilled Sweetgrass",
+
+// b1b1 cgcm Fdfd Pencilled Sweetgrass
+"b1b1 cgcm Fdfd pnpn": "Pencilled Sweetgrass",
+"b1b1 cgcm Ee Fdfd pnpn": "Pencilled Sweetgrass",
+"b1b1 cgcm Fdfd Nn pnpn": "Pencilled Sweetgrass",
+"b1b1 cgcm Fdfd pnpn Slsl": "Pencilled Sweetgrass",
+"b1b1 cgcm Ee Fdfd Nn pnpn": "Pencilled Sweetgrass",
+"b1b1 cgcm Ee Fdfd pnpn Slsl": "Pencilled Sweetgrass",
+"b1b1 cgcm Fdfd Nn pnpn Slsl": "Pencilled Sweetgrass",
+"b1b1 cgcm Ee Fdfd Nn pnpn Slsl": "Pencilled Sweetgrass",
+
+"b1b1 cgcm Fdfd pnpn Spsp": "Pencilled Sweetgrass",
+"b1b1 cgcm Ee Fdfd pnpn Spsp": "Pencilled Sweetgrass",
+"b1b1 cgcm Fdfd Nn pnpn Spsp": "Pencilled Sweetgrass",
+"b1b1 cgcm Fdfd pnpn Slsl Spsp": "Pencilled Sweetgrass",
+"b1b1 cgcm Ee Fdfd Nn pnpn Spsp": "Pencilled Sweetgrass",
+"b1b1 cgcm Ee Fdfd pnpn Slsl Spsp": "Pencilled Sweetgrass",
+"b1b1 cgcm Fdfd Nn pnpn Slsl Spsp": "Pencilled Sweetgrass",
+"b1b1 cgcm Ee Fdfd Nn pnpn Slsl Spsp": "Pencilled Sweetgrass",
+
+
+
+ 
+ 
+ 
+
+
+
+// b1b1 cgcg Pencilled Sweetgrass (Semi-Pencilled) 
+"b1b1 cgcg Pnpn": "Pencilled Sweetgrass (Semi-Pencilled)",
+"b1b1 cgcg Ee Pnpn": "Pencilled Sweetgrass (Semi-Pencilled)",
+"b1b1 cgcg Nn Pnpn": "Pencilled Sweetgrass (Semi-Pencilled)",
+"b1b1 cgcg Pnpn Slsl": "Pencilled Sweetgrass (Semi-Pencilled)",
+"b1b1 cgcg Ee Nn Pnpn": "Pencilled Sweetgrass (Semi-Pencilled)",
+"b1b1 cgcg Ee Pnpn Slsl": "Pencilled Sweetgrass (Semi-Pencilled)",
+"b1b1 cgcg Nn Pnpn Slsl": "Pencilled Sweetgrass (Semi-Pencilled)",
+"b1b1 cgcg Ee Nn Pnpn Slsl": "Pencilled Sweetgrass (Semi-Pencilled)",
+
+"b1b1 cgcg Pnpn Spsp": "Pencilled Sweetgrass (Semi-Pencilled)",
+"b1b1 cgcg Ee Pnpn Spsp": "Pencilled Sweetgrass (Semi-Pencilled)",
+"b1b1 cgcg Nn Pnpn Spsp": "Pencilled Sweetgrass (Semi-Pencilled)",
+"b1b1 cgcg Pnpn Slsl Spsp": "Pencilled Sweetgrass (Semi-Pencilled)",
+"b1b1 cgcg Ee Nn Pnpn Spsp": "Pencilled Sweetgrass (Semi-Pencilled)",
+"b1b1 cgcg Ee Pnpn Slsl Spsp": "Pencilled Sweetgrass (Semi-Pencilled)",
+"b1b1 cgcg Nn Pnpn Slsl Spsp": "Pencilled Sweetgrass (Semi-Pencilled)",
+"b1b1 cgcg Ee Nn Pnpn Slsl Spsp": "Pencilled Sweetgrass (Semi-Pencilled)",
+
+// b1b1 cgcg fdfd Pencilled Sweetgrass (Semi-Pencilled) 
+"b1b1 cgcg Ee fdfd Pnpn": "Pencilled Sweetgrass (Semi-Pencilled)",
+"b1b1 cgcg fdfd Nn Pnpn": "Pencilled Sweetgrass (Semi-Pencilled)",
+"b1b1 cgcg fdfd Pnpn": "Pencilled Sweetgrass (Semi-Pencilled)",
+"b1b1 cgcg fdfd Pnpn Slsl": "Pencilled Sweetgrass (Semi-Pencilled)",
+"b1b1 cgcg Ee fdfd Nn Pnpn": "Pencilled Sweetgrass (Semi-Pencilled)",
+"b1b1 cgcg Ee fdfd Pnpn Slsl": "Pencilled Sweetgrass (Semi-Pencilled)",
+"b1b1 cgcg fdfd Nn Pnpn Slsl": "Pencilled Sweetgrass (Semi-Pencilled)",
+"b1b1 cgcg Ee fdfd Nn Pnpn Slsl": "Pencilled Sweetgrass (Semi-Pencilled)",
+
+"b1b1 cgcg fdfd Pnpn Spsp": "Pencilled Sweetgrass (Semi-Pencilled)",
+"b1b1 cgcg Ee fdfd Pnpn Spsp": "Pencilled Sweetgrass (Semi-Pencilled)",
+"b1b1 cgcg fdfd Nn Pnpn Spsp": "Pencilled Sweetgrass (Semi-Pencilled)",
+"b1b1 cgcg fdfd Pnpn Slsl Spsp": "Pencilled Sweetgrass (Semi-Pencilled)",
+"b1b1 cgcg Ee fdfd Nn Pnpn Spsp": "Pencilled Sweetgrass (Semi-Pencilled)",
+"b1b1 cgcg Ee fdfd Pnpn Slsl Spsp": "Pencilled Sweetgrass (Semi-Pencilled)",
+"b1b1 cgcg fdfd Nn Pnpn Slsl Spsp": "Pencilled Sweetgrass (Semi-Pencilled)",
+"b1b1 cgcg Ee fdfd Nn Pnpn Slsl Spsp": "Pencilled Sweetgrass (Semi-Pencilled)",
+
+// b1b1 cgcg Fdfd Pencilled Sweetgrass (Semi-Pencilled) 
+"b1b1 cgcg Ee Fdfd Pnpn": "Pencilled Sweetgrass (Semi-Pencilled)",
+"b1b1 cgcg Fdfd Nn Pnpn": "Pencilled Sweetgrass (Semi-Pencilled)",
+"b1b1 cgcg Fdfd Pnpn": "Pencilled Sweetgrass (Semi-Pencilled)",
+"b1b1 cgcg Fdfd Pnpn Slsl": "Pencilled Sweetgrass (Semi-Pencilled)",
+"b1b1 cgcg Ee Fdfd Nn Pnpn": "Pencilled Sweetgrass (Semi-Pencilled)",
+"b1b1 cgcg Ee Fdfd Pnpn Slsl": "Pencilled Sweetgrass (Semi-Pencilled)",
+"b1b1 cgcg Fdfd Nn Pnpn Slsl": "Pencilled Sweetgrass (Semi-Pencilled)",
+"b1b1 cgcg Ee Fdfd Nn Pnpn Slsl": "Pencilled Sweetgrass (Semi-Pencilled)",
+
+"b1b1 cgcg Fdfd Pnpn Spsp": "Pencilled Sweetgrass (Semi-Pencilled)",
+"b1b1 cgcg Ee Fdfd Pnpn Spsp": "Pencilled Sweetgrass (Semi-Pencilled)",
+"b1b1 cgcg Fdfd Nn Pnpn Spsp": "Pencilled Sweetgrass (Semi-Pencilled)",
+"b1b1 cgcg Fdfd Pnpn Slsl Spsp": "Pencilled Sweetgrass (Semi-Pencilled)",
+"b1b1 cgcg Ee Fdfd Nn Pnpn Spsp": "Pencilled Sweetgrass (Semi-Pencilled)",
+"b1b1 cgcg Ee Fdfd Pnpn Slsl Spsp": "Pencilled Sweetgrass (Semi-Pencilled)",
+"b1b1 cgcg Fdfd Nn Pnpn Slsl Spsp": "Pencilled Sweetgrass (Semi-Pencilled)",
+"b1b1 cgcg Ee Fdfd Nn Pnpn Slsl Spsp": "Pencilled Sweetgrass (Semi-Pencilled)",
+
 
 
 
@@ -2747,3 +2952,8 @@ const phenotypeMapping7 = {
 
 
   };
+
+
+
+
+
