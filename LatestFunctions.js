@@ -1806,12 +1806,16 @@ window.addEventListener("load", () => {
 
 ////////////////////////////
 // ===========================================
-// BROAD BREASTED OVERLAY (parents + offspring)
-//  - GitHub-safe (matches Wild overlay pattern)
-//  - Broad Breasted Bronze + Broad Breasted White
+// BROAD BREASTED OVERLAY (NO WRAPPING)
+//  - does NOT override applyVarietyToSire/Dam
+//  - preserves suggestion dropdown behavior
+//  - GitHub-safe paths
 // ===========================================
 (function () {
   'use strict';
+
+  if (window._bbOverlayInstalled) return;
+  window._bbOverlayInstalled = true;
 
   const PICS_BASE = "https://portersturkeys.github.io/Pictures/";
 
@@ -1830,29 +1834,25 @@ window.addEventListener("load", () => {
     }
   };
 
-  // What the user types into the variety box -> which BB variant
   const BB_VARIETY_MAP = {
     // Bronze
-    "broad breasted bronze":    "bronze",
-    "broad-breasted bronze":    "bronze",
-    "breasted bronze":          "bronze",
-    "mammoth bronze":           "bronze",
-    "orlopp bronze":            "bronze",
-    "broad breast bronze":      "bronze",
-    "broadbreasted bronze":     "bronze",
+    "broad breasted bronze": "bronze",
+    "broad-breasted bronze": "bronze",
+    "mammoth bronze": "bronze",
+    "orlopp bronze": "bronze",
+    "breasted bronze": "bronze",
+    "bb bronze": "bronze",
+    "broadbreasted bronze": "bronze",
 
     // White
-    "broad breasted white":     "white",
-    "broad-breasted white":     "white",
-    "breasted white":           "white",
-    "mammoth white":            "white",
-    "broad breast white":       "white",
-    "broadbreasted white":      "white",
-    "bb white":                 "white",
-    "bb bronze":                "bronze"
+    "broad breasted white": "white",
+    "broad-breasted white": "white",
+    "mammoth white": "white",
+    "breasted white": "white",
+    "bb white": "white",
+    "broadbreasted white": "white"
   };
 
-  // Track current BB variant per parent
   const bbState = { sire: null, dam: null };
 
   function norm(str) {
@@ -1875,7 +1875,6 @@ window.addEventListener("load", () => {
     return key;
   }
 
-  // Overlay BB variant on a parent (image + visible name)
   function applyBBToParent(prefix) {
     const container = document.getElementById(prefix + "ImageContainer");
     if (!container) return;
@@ -1886,13 +1885,13 @@ window.addEventListener("load", () => {
     const data = BB_VARIANTS[key];
     if (!data) return;
 
-    // 1) Swap parent image to correct BB file
+    // Swap parent image
     const img = container.querySelector("img");
     if (img) {
       img.src = PICS_BASE + (prefix === "dam" ? data.female : data.male);
     }
 
-    // 2) Fix visible phenotype/variety label (first <span> under <strong>)
+    // Fix visible label
     const strong = container.querySelector("strong");
     if (strong) {
       const spans = strong.querySelectorAll("span");
@@ -1900,7 +1899,7 @@ window.addEventListener("load", () => {
       if (phenoSpan) phenoSpan.textContent = data.name;
     }
 
-    // 3) Clean up "To Be Defined" in parent info container, if present
+    // Cleanup "To Be Defined"
     const info = document.getElementById(prefix + "InfoContainer");
     if (info) {
       info.querySelectorAll("span, div, strong").forEach(el => {
@@ -1909,138 +1908,69 @@ window.addEventListener("load", () => {
     }
   }
 
-  // ===========================================
-  // BB offspring images (and text touch-ups)
-  // ===========================================
   function applyBBToOffspring() {
-    // If neither parent is BB, don't do anything.
-    if (!bbState.sire && !bbState.dam) return;
-
-    function pickVariantFromPhenotype(pheno) {
-      const p = String(pheno || "");
-      if (/Broad\s*Breasted\s*White/i.test(p))  return "white";
-      if (/Broad\s*Breasted\s*Bronze/i.test(p)) return "bronze";
+    function variantFromText(t) {
+      t = String(t || "");
+      if (/Broad\s*Breasted\s*White/i.test(t))  return "white";
+      if (/Broad\s*Breasted\s*Bronze/i.test(t)) return "bronze";
       return null;
     }
 
-    // 1) Patch internal offspring arrays' image paths based on phenotype
-    function patchBBOffspringArray(arr) {
-      if (!Array.isArray(arr)) return;
-
-      arr.forEach(o => {
-        if (!o) return;
-
-        const key = pickVariantFromPhenotype(o.phenotype);
-        if (!key) return;
-
-        const data = BB_VARIANTS[key];
-        if (!data) return;
-
-        // Ensure consistent phenotype label casing (optional, safe)
-        if (o.phenotype) {
-          if (key === "white")  o.phenotype = o.phenotype.replace(/Broad\s*Breasted\s*White/ig, data.name);
-          if (key === "bronze") o.phenotype = o.phenotype.replace(/Broad\s*Breasted\s*Bronze/ig, data.name);
-        }
-
-        // Force correct adult image based on which array this is
-        if (o.picturePath) {
-          // If it already points somewhere, we still override to ensure GitHub paths win
-          const file = (o.picturePath.split("/").pop() || "").toLowerCase();
-
-          // If the item is using base bronze/white art, replace it.
-          // (also replaces any prior bb art if wrong)
-          if (key === "white") {
-            if (file) o.picturePath = PICS_BASE + data.male; // will be corrected below for female list
-          } else if (key === "bronze") {
-            if (file) o.picturePath = PICS_BASE + data.male;
-          }
-        } else {
-          o.picturePath = PICS_BASE + data.male;
-        }
-
-        // If an explicit poult path exists, force it to BB poult
-        if (o.poultImagePath !== undefined) {
-          o.poultImagePath = PICS_BASE + data.poult;
-        }
-      });
-    }
-
-    if (window.maleOffspring)   patchBBOffspringArray(window.maleOffspring);
-    if (window.femaleOffspring) patchBBOffspringArray(window.femaleOffspring);
-
-    // 1b) Correct adult sex images after array patching (male list vs female list)
-    function forceAdultSexImages(arr, sex) {
+    function patchArray(arr, sex) {
       if (!Array.isArray(arr)) return;
       arr.forEach(o => {
         if (!o) return;
-        const key = pickVariantFromPhenotype(o.phenotype);
+        const key = variantFromText(o.phenotype);
         if (!key) return;
         const data = BB_VARIANTS[key];
-        if (!data) return;
 
         o.picturePath = PICS_BASE + (sex === "female" ? data.female : data.male);
         if (o.poultImagePath !== undefined) o.poultImagePath = PICS_BASE + data.poult;
       });
     }
-    if (window.maleOffspring)   forceAdultSexImages(window.maleOffspring, "male");
-    if (window.femaleOffspring) forceAdultSexImages(window.femaleOffspring, "female");
 
-    // 2) Patch visible offspring <img> elements in the DOM (based on nearby text)
-    function patchOffspringDom(sectionId, sex) {
-      const root = document.getElementById(sectionId);
+    if (window.maleOffspring)   patchArray(window.maleOffspring, "male");
+    if (window.femaleOffspring) patchArray(window.femaleOffspring, "female");
+
+    function patchDom(listId, sex) {
+      const root = document.getElementById(listId);
       if (!root) return;
 
       root.querySelectorAll("li").forEach(li => {
-        const text = li.textContent || "";
-        const key  =
-          /Broad\s*Breasted\s*White/i.test(text)  ? "white"  :
-          /Broad\s*Breasted\s*Bronze/i.test(text) ? "bronze" :
-          null;
-
+        const key = variantFromText(li.textContent || "");
         if (!key) return;
-
         const data = BB_VARIANTS[key];
-        if (!data) return;
 
-        // image inside this li (if present)
         const img = li.querySelector("img");
-        if (img) {
-          img.src = PICS_BASE + (sex === "female" ? data.female : data.male);
-        }
+        if (img) img.src = PICS_BASE + (sex === "female" ? data.female : data.male);
       });
     }
 
-    patchOffspringDom("maleOffspringResults", "male");
-    patchOffspringDom("femaleOffspringResults", "female");
-
-    // 3) Patch summary chart images if you render any there (optional safe no-op)
-    // (If your summary chart has no images, this does nothing.)
-    const summary = document.getElementById("summaryChart");
-    if (summary) {
-      summary.querySelectorAll("tr").forEach(tr => {
-        const phenoCell = tr.cells && tr.cells[1];
-        if (!phenoCell) return;
-
-        const t = phenoCell.textContent || "";
-        const key =
-          /Broad\s*Breasted\s*White/i.test(t)  ? "white"  :
-          /Broad\s*Breasted\s*Bronze/i.test(t) ? "bronze" :
-          null;
-
-        if (!key) return;
-        const data = BB_VARIANTS[key];
-        if (!data) return;
-
-        tr.querySelectorAll("img").forEach(img => {
-          // Don't guess sex here; if you use a generic icon, prefer poult.
-          img.src = PICS_BASE + data.poult;
-        });
-      });
-    }
+    patchDom("maleOffspringResults", "male");
+    patchDom("femaleOffspringResults", "female");
   }
 
-  // Offspring/summary observer
-  function installBBOffspringObserver() {
+  function installParentObservers() {
+    const flags = { sire: false, dam: false };
+
+    ["sire", "dam"].forEach(prefix => {
+      const container = document.getElementById(prefix + "ImageContainer");
+      if (!container) return;
+
+      const obs = new MutationObserver(() => {
+        if (flags[prefix]) return;
+        flags[prefix] = true;
+        setTimeout(() => {
+          applyBBToParent(prefix);
+          flags[prefix] = false;
+        }, 0);
+      });
+
+      obs.observe(container, { childList: true, subtree: true });
+    });
+  }
+
+  function installOffspringObserver() {
     let patching = false;
 
     const targets = [
@@ -2065,130 +1995,46 @@ window.addEventListener("load", () => {
     });
   }
 
-  // Wrap variety functions so they record BB state + apply overlay
-  function wrapVarietyFn(fnName, prefix) {
-    const original = window[fnName];
-    if (typeof original !== "function") return;
-
-    window[fnName] = function () {
-      const res = original.apply(this, arguments);
-
-      const key = detectBBFromVariety(prefix);
-      if (key) {
-        // Let core finish DOM changes, then overlay BB variant
-        setTimeout(() => applyBBToParent(prefix), 0);
-      } else {
-        const container = document.getElementById(prefix + "ImageContainer");
-        if (container) delete container.dataset.bbKey;
-        bbState[prefix] = null;
-      }
-
-      return res;
-    };
-  }
-
-  // Watch parents for DOM changes and re-apply BB overlay
-  function installParentObservers() {
-    const parentFlags = { sire: false, dam: false };
-
+  function hookVarietyInputs() {
     ["sire", "dam"].forEach(prefix => {
-      const container = document.getElementById(prefix + "ImageContainer");
-      if (!container) return;
+      const input = document.getElementById(prefix + "VarietyInput");
+      if (!input) return;
 
-      const obs = new MutationObserver(() => {
-        if (parentFlags[prefix]) return;
-        parentFlags[prefix] = true;
-        setTimeout(() => {
-          applyBBToParent(prefix);
-          parentFlags[prefix] = false;
-        }, 0);
-      });
+      const run = () => {
+        detectBBFromVariety(prefix);
+        setTimeout(() => applyBBToParent(prefix), 0);
+      };
 
-      obs.observe(container, { childList: true, subtree: true });
+      // These do NOT interfere with suggestion dropdown scripts
+      input.addEventListener("input",  run, true);
+      input.addEventListener("change", run, true);
+      input.addEventListener("blur",   run, true);
+
+      // When user picks from suggestion list via keyboard/mouse,
+      // this often fires after input -> so run again shortly after.
+      input.addEventListener("keydown", () => setTimeout(run, 0), true);
+      input.addEventListener("mouseup", () => setTimeout(run, 0), true);
     });
   }
 
-  // Hook everything after core is loaded
   window.addEventListener("load", () => {
-    // Variety handlers
-    wrapVarietyFn("applyVarietyToSire", "sire");
-    wrapVarietyFn("applyVarietyToDam",  "dam");
+    hookVarietyInputs();
+    installParentObservers();
+    installOffspringObserver();
 
-    // Make Reset clear BB overlay state
-    if (typeof window.resetCalculator === "function" && !window._bbResetPatched) {
-      window._bbResetPatched = true;
-
+    // Reset clears BB state
+    if (typeof window.resetCalculator === "function" && !window._bbResetPatched2) {
+      window._bbResetPatched2 = true;
       const originalReset = window.resetCalculator;
-      window.resetCalculator = function (initial) {
-        const result = originalReset.apply(this, arguments);
 
-        bbState.sire = null;
-        bbState.dam  = null;
+      window.resetCalculator = function () {
+        const result = originalReset.apply(this, arguments);
+        bbState.sire = null; bbState.dam = null;
 
         ["sire", "dam"].forEach(prefix => {
-          const container = document.getElementById(prefix + "ImageContainer");
-          if (container && container.dataset.bbKey) delete container.dataset.bbKey;
+          const c = document.getElementById(prefix + "ImageContainer");
+          if (c && c.dataset.bbKey) delete c.dataset.bbKey;
         });
-
-        return result;
-      };
-    }
-
-    // DOM observers: keep BB overlay alive through redraws
-    installParentObservers();
-
-    // Offspring/summary overlay
-    installBBOffspringObserver();
-
-    // When an offspring is used as sire/dam, try to keep BB overlay if name indicates it
-    if (typeof window.transferOffspringToParent === "function" && !window._bbTransferPatched) {
-      window._bbTransferPatched = true;
-
-      const originalTransfer = window.transferOffspringToParent;
-      window.transferOffspringToParent = function (genotype, parent) {
-        const result = originalTransfer.apply(this, arguments);
-
-        if (parent === "sire" || parent === "dam") {
-          // Re-detect from the variety input (in case transfer writes it)
-          const key = detectBBFromVariety(parent);
-          if (key) setTimeout(() => applyBBToParent(parent), 0);
-        }
-
-        return result;
-      };
-    }
-
-    // FAVORITES -> re-apply BB overlay when loading a saved favorite
-    if (typeof window.handleDropdownChange === "function" && !window._bbFavoritesPatched) {
-      window._bbFavoritesPatched = true;
-
-      const originalHandleDropdownChange = window.handleDropdownChange;
-      window.handleDropdownChange = function (type, dropdownId, alleleIds) {
-        const result = originalHandleDropdownChange.apply(this, arguments);
-
-        if (type === "sire" || type === "dam") {
-          const dropdown = document.getElementById(dropdownId);
-          const selectedName = dropdown && dropdown.value;
-          if (selectedName) {
-            const baseName = selectedName.trim().toLowerCase().replace(/\s*\(\d+\)\s*$/, "");
-
-            // Match against BB_VARIANTS names or alias map
-            let variantKey = null;
-            if (baseName === BB_VARIANTS.bronze.name.toLowerCase()) variantKey = "bronze";
-            if (baseName === BB_VARIANTS.white.name.toLowerCase())  variantKey = "white";
-            if (!variantKey) variantKey = BB_VARIETY_MAP[baseName] || null;
-
-            const container = document.getElementById(type + "ImageContainer");
-            if (variantKey) {
-              bbState[type] = variantKey;
-              if (container) container.dataset.bbKey = variantKey;
-              setTimeout(() => applyBBToParent(type), 0);
-            } else {
-              bbState[type] = null;
-              if (container && container.dataset.bbKey) delete container.dataset.bbKey;
-            }
-          }
-        }
 
         return result;
       };
@@ -2196,7 +2042,6 @@ window.addEventListener("load", () => {
   });
 
 })();
-
 
 /////////////////////////////////////
 
