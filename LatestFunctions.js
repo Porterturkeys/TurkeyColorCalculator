@@ -475,7 +475,8 @@ function cleanParentPhenotypesOnce() {
     if (!phenoSpan.textContent) return;
 
     phenoSpan.textContent = phenoSpan.textContent
-      .replace(/\s*\(Split.*?\)/gi, "")
+      .replace(/\s*\((Split|Semi-Pencilled).*?\)/gi, "")
+
       .trim();
   });
 }
@@ -540,7 +541,8 @@ function cleanOffspringPhenotypesOnce() {
       if (!span || !span.textContent) return;
 
       span.textContent = span.textContent
-        .replace(/\s*\(Split.*?\)/gi, "")
+        .replace(/\s*\((Split|Semi-Pencilled).*?\)/gi, "")
+
         .trim();
     });
   });
@@ -570,7 +572,8 @@ function cleanSummaryPhenotypesOnce() {
 
     if (/\(Split.*?\)/i.test(td.textContent)) {
       td.textContent = td.textContent
-        .replace(/\s*\(Split.*?\)/gi, "")
+       .replace(/\s*\((Split|Semi-Pencilled).*?\)/gi, "")
+
         .trim();
     }
   });
