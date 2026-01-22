@@ -2210,43 +2210,57 @@ window.addEventListener("load", () => {
     // Keep BB overlay alive through Calculate / redraws
     installParentObservers();
     installBBOffspringObserver();
+//////////////////////////
+   // Transfer offspring to parent: ALWAYS keep BB state for bb offspring
+if (typeof window.transferOffspringToParent === "function" && !window._bbTransferPatched_STICKY) {
+  window._bbTransferPatched_STICKY = true;
 
-    // Transfer offspring to parent: preserve BB White vs BB Bronze based on genotype
-    if (typeof window.transferOffspringToParent === "function" && !window._bbTransferPatched2) {
-      window._bbTransferPatched2 = true;
+  const originalTransfer = window.transferOffspringToParent;
 
-      const originalTransfer = window.transferOffspringToParent;
+  function scheduleBBParentReapply(parent) {
+    // Firefox/Safari style timing hammer: beats core redraws + other overlays
+    setTimeout(() => applyBBToParent(parent), 0);
+    setTimeout(() => applyBBToParent(parent), 50);
+    setTimeout(() => applyBBToParent(parent), 150);
+    setTimeout(() => applyBBToParent(parent), 300);
+    setTimeout(() => applyBBToParent(parent), 600);
+  }
 
-      window.transferOffspringToParent = function(genotype, parent) {
-        const result = originalTransfer.apply(this, arguments);
+  window.transferOffspringToParent = function (genotype, parent) {
+    const result = originalTransfer.apply(this, arguments);
 
-        if (parent === "sire" || parent === "dam") {
-          const g = String(genotype || "");
+    if (parent === "sire" || parent === "dam") {
+      const g = String(genotype || "");
 
-          // If bb + cc => BB White, otherwise if bb => BB Bronze
-          const isBBWhite  = /\bbb\b/i.test(g) && /\bcc\b/i.test(g);
-          const isBBBronze = /\bbb\b/i.test(g) && !/\bcc\b/i.test(g);
+      // Any bb offspring should remain Broad Breasted:
+      // - bb + cc  => BB White
+      // - bb + NOT cc (Cc/CC/anything else) => BB Bronze
+      const hasBB = /\bbb\b/i.test(g);
+      const hasCC = /\bcc\b/i.test(g); // matches cc only (your white is cc)
 
-          const container = document.getElementById(parent + "ImageContainer");
+      const container = document.getElementById(parent + "ImageContainer");
 
-          if (isBBWhite) {
-            bbState[parent] = "white";
-            if (container) container.dataset.bbKey = "white";
-            setTimeout(() => applyBBToParent(parent), 0);
-          } else if (isBBBronze) {
-            bbState[parent] = "bronze";
-            if (container) container.dataset.bbKey = "bronze";
-            setTimeout(() => applyBBToParent(parent), 0);
-          } else {
-            // Not BB genotype: clear BB overlay for that parent
-            bbState[parent] = null;
-            if (container && container.dataset.bbKey) delete container.dataset.bbKey;
-          }
-        }
-
-        return result;
-      };
+      if (hasBB && hasCC) {
+        // BB WHITE
+        bbState[parent] = "white";
+        if (container) container.dataset.bbKey = "white";
+        scheduleBBParentReapply(parent);
+      } else if (hasBB) {
+        // BB BRONZE (bb Cc, bb CC, etc.)
+        bbState[parent] = "bronze";
+        if (container) container.dataset.bbKey = "bronze";
+        scheduleBBParentReapply(parent);
+      } else {
+        // Not bb: drop BB overlay for that parent
+        bbState[parent] = null;
+        if (container && container.dataset.bbKey) delete container.dataset.bbKey;
+      }
     }
+
+    return result;
+  };
+}
+///////////////////////
 
     // Favorites: re-apply BB overlay when loading a saved favorite name
     if (typeof window.handleDropdownChange === "function" && !window._bbFavoritesPatched2) {
