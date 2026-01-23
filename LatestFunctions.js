@@ -820,6 +820,45 @@ document.addEventListener('click', function(e) {
   }
 });
 
+/////////////////////////
+
+// =============================================================================
+// TOGGLE: Keep (Split ...) and (Semi-Pencilled) visible in summary chart
+// Paste at the BOTTOM of your file.
+// To hide qualifiers again: change true → false and reload
+// =============================================================================
+
+const KEEP_QUALIFIERS_IN_SUMMARY = true;  // ← change to false to revert to cleaning
+
+if (KEEP_QUALIFIERS_IN_SUMMARY && typeof cleanSummaryPhenotypesOnce === "function") {
+  // Save original so we can restore it easily if needed
+  window.originalCleanSummaryPhenotypesOnce = cleanSummaryPhenotypesOnce;
+
+  // Replace with a no-op version (no cleaning happens)
+  cleanSummaryPhenotypesOnce = function () {
+    const summaryTable = document.getElementById("summaryChart");
+    if (!summaryTable) return;
+
+    console.log(
+      "cleanSummaryPhenotypesOnce: SKIPPED — (Split) and (Semi-Pencilled) kept visible in summary chart"
+    );
+    // No replaces performed → full text stays in the table
+  };
+
+  console.log(
+    "Summary chart override ACTIVE: qualifiers will be VISIBLE (KEEP_QUALIFIERS_IN_SUMMARY = true)"
+  );
+} else if (!KEEP_QUALIFIERS_IN_SUMMARY && window.originalCleanSummaryPhenotypesOnce) {
+  // Optional: auto-restore original when flag is false (nice for toggling without deleting code)
+  cleanSummaryPhenotypesOnce = window.originalCleanSummaryPhenotypesOnce;
+  console.log(
+    "Summary chart cleaning RESTORED (KEEP_QUALIFIERS_IN_SUMMARY = false)"
+  );
+}
+
+
+
+
 //////////////////////////
 
 // ===========================================
@@ -3240,9 +3279,5 @@ window.addEventListener("load", () => {
 
 
 })();
-
-
-
-
 
 
