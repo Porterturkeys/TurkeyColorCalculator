@@ -823,9 +823,10 @@ document.addEventListener('click', function(e) {
 /////////////////////////
 
 // =============================================================================
-// TOGGLE: Keep (Split ...) and (Semi-Pencilled) visible in summary chart
+// TOGGLE: Keep (Split ...) and (Semi-Pencilled) visible in SUMMARY CHART
+//        (but still clean them out of the offspring results)
 // Paste at the BOTTOM of your file.
-// To hide qualifiers again: change true → false and reload
+// To hide qualifiers again in summary chart: change true → false and reload
 // =============================================================================
 
 const KEEP_QUALIFIERS_IN_SUMMARY = true;  // ← change to false to revert to cleaning
@@ -834,7 +835,7 @@ if (KEEP_QUALIFIERS_IN_SUMMARY && typeof cleanSummaryPhenotypesOnce === "functio
   // Save original so we can restore it easily if needed
   window.originalCleanSummaryPhenotypesOnce = cleanSummaryPhenotypesOnce;
 
-  // Replace with a no-op version (no cleaning happens)
+  // Replace with a no-op version (no cleaning happens in summary chart)
   cleanSummaryPhenotypesOnce = function () {
     const summaryTable = document.getElementById("summaryChart");
     if (!summaryTable) return;
@@ -842,21 +843,19 @@ if (KEEP_QUALIFIERS_IN_SUMMARY && typeof cleanSummaryPhenotypesOnce === "functio
     console.log(
       "cleanSummaryPhenotypesOnce: SKIPPED — (Split) and (Semi-Pencilled) kept visible in summary chart"
     );
-    // No replaces performed → full text stays in the table
+    // No replaces performed → full text stays in the <td> cells
   };
 
   console.log(
     "Summary chart override ACTIVE: qualifiers will be VISIBLE (KEEP_QUALIFIERS_IN_SUMMARY = true)"
   );
 } else if (!KEEP_QUALIFIERS_IN_SUMMARY && window.originalCleanSummaryPhenotypesOnce) {
-  // Optional: auto-restore original when flag is false (nice for toggling without deleting code)
+  // Optional: auto-restore original when flag is false
   cleanSummaryPhenotypesOnce = window.originalCleanSummaryPhenotypesOnce;
   console.log(
     "Summary chart cleaning RESTORED (KEEP_QUALIFIERS_IN_SUMMARY = false)"
   );
 }
-
-
 
 
 //////////////////////////
