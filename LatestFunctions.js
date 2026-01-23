@@ -829,7 +829,7 @@ document.addEventListener('click', function(e) {
 // To hide qualifiers again in summary chart: change true → false and reload
 // =============================================================================
 
-const KEEP_QUALIFIERS_IN_SUMMARY = true;  // ← change to false to revert to cleaning
+const KEEP_QUALIFIERS_IN_SUMMARY = false;  // ← change to false to revert to cleaning or true to leave
 
 if (KEEP_QUALIFIERS_IN_SUMMARY && typeof cleanSummaryPhenotypesOnce === "function") {
   // Save original so we can restore it easily if needed
