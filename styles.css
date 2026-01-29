@@ -1937,3 +1937,72 @@ button:disabled {
   padding:0 2px;
   border-radius:3px;
 }
+
+/* NEW STUFF */
+
+/* ========= FIREFOX MOBILE PORTRAIT: STOPS SIRE/DAM "BLOW UP" ========= */
+@media (max-width: 600px) and (orientation: portrait) {
+
+
+  *, *::before, *::after { box-sizing: border-box; }
+
+
+  #sireImageContainer, #damImageContainer,
+  #sireInfoContainer,  #damInfoContainer {
+    max-width: 100vw !important;
+    width: 100% !important;
+    overflow-x: hidden !important;
+  }
+
+  
+  #sireImageContainer *, #damImageContainer *,
+  #sireInfoContainer *,  #damInfoContainer * {
+    min-width: 0 !important;
+    max-width: 100% !important;
+  }
+
+  #sireImageContainer, #damImageContainer,
+  #sireInfoContainer,  #damInfoContainer {
+    overflow-wrap: anywhere !important;
+    word-break: break-word !important;
+  }
+  #sireImageContainer span, #damImageContainer span,
+  #sireInfoContainer span,  #damInfoContainer span,
+  #sireImageContainer strong, #damImageContainer strong,
+  #sireInfoContainer strong,  #damInfoContainer strong,
+  #sireImageContainer div, #damImageContainer div,
+  #sireInfoContainer div,  #damInfoContainer div,
+  #sireImageContainer p, #damImageContainer p,
+  #sireInfoContainer p,  #damInfoContainer p {
+    overflow-wrap: anywhere !important;
+    word-break: break-word !important;
+    white-space: normal !important;
+  }
+
+
+  #sireImageContainer img, #damImageContainer img {
+    max-width: 100% !important;
+    height: auto !important;
+    display: block !important;
+  }
+}
+
+
+
+
+
+@media (max-width: 600px) and (orientation: portrait) {
+ 
+  #sireVarietyInput,
+  #damVarietyInput,
+  
+  #sireInfoContainer input,
+  #damInfoContainer input,
+  #sireImageContainer input,
+  #damImageContainer input {
+    font-size: 16px !important;   
+    line-height: 1.2 !important;
+  }
+}
+
+
