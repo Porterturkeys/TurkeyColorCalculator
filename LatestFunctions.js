@@ -3279,4 +3279,98 @@ window.addEventListener("load", () => {
 
 })();
 
+/////////////////////////////////
+
+/* ==========================================================
+   MOBILE FIREFOX/iOS PORTRAIT:
+   Prevent "blow up" / zoom when tapping into Sire/Dam inputs
+
+   ========================================================== */
+(function () {
+  // Only target small portrait screens 
+  function isPortraitMobile() {
+    return window.matchMedia && window.matchMedia("(max-width: 700px) and (orientation: portrait)").matches;
+  }
+
+
+  function getViewportMeta() {
+    let m = document.querySelector('meta[name="viewport"]');
+    if (!m) {
+      m = document.createElement("meta");
+      m.name = "viewport";
+      document.head.appendChild(m);
+    }
+    return m;
+  }
+
+  const vp = getViewportMeta();
+  const originalContent = vp.getAttribute("content") || "";
+
+  // Lock scaling while typing (prevents iOS/Firefox focus zoom)
+  function lockViewport() {
+    if (!isPortraitMobile()) return;
+
+    
+    const base = originalContent || "width=device-width, initial-scale=1";
+    let c = base;
+
+  
+    c = c.replace(/,\s*(maximum-scale|minimum-scale|user-scalable)\s*=\s*[^,]+/gi, "");
+
+  
+    c += ", maximum-scale=1, user-scalable=no";
+    vp.setAttribute("content", c);
+
+   
+    const styleId = "noFocusZoomStyle";
+    if (!document.getElementById(styleId)) {
+      const st = document.createElement("style");
+      st.id = styleId;
+      st.textContent = `
+        @media (max-width:700px) and (orientation: portrait) {
+          #sireVarietyInput, #damVarietyInput,
+          input, select, textarea {
+            font-size:16px !important;
+          }
+        }
+      `;
+      document.head.appendChild(st);
+    }
+  }
+
+  
+  function unlockViewport() {
+ 
+    vp.setAttribute("content", originalContent || "width=device-width, initial-scale=1");
+  }
+
+  
+  function hook() {
+    const sire = document.getElementById("sireVarietyInput");
+    const dam  = document.getElementById("damVarietyInput");
+
+    [sire, dam].forEach(el => {
+      if (!el || el._noZoomHooked) return;
+      el._noZoomHooked = true;
+
+      el.addEventListener("focus", lockViewport, true);
+      el.addEventListener("blur", unlockViewport, true);
+
+      // Some mobile browsers fire pointerdown before focus; lock early
+      el.addEventListener("pointerdown", lockViewport, true);
+      el.addEventListener("touchstart", lockViewport, { passive:true, capture:true });
+    });
+  }
+
+ 
+  window.addEventListener("load", () => {
+    hook();
+    setTimeout(hook, 250);
+    setTimeout(hook, 1000);
+    setTimeout(hook, 2500);
+  });
+})();
+
+
+
 
