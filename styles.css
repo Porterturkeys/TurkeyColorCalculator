@@ -1,4 +1,4 @@
-////* CSS styles for layout and appearance */
+/* CSS styles for layout and appearance */
         h1 {
             text-align: center;
             margin-top: 20px; /* Adds some space at the top */
@@ -1562,8 +1562,8 @@
   .genotype-selection.sire-genotypes select,
   .genotype-selection.dam-genotypes select {
     display: inline-block !important;
-    width: 17% !important;     /* controls compactness */
-    max-width: 17% !important;
+    width: 20% !important;     /* controls compactness */
+    max-width: 20% !important;
     box-sizing: border-box !important;
     margin: 2px 1px !important;
     padding: 2px 3px !important;
