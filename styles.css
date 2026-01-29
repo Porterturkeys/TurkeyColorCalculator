@@ -1562,8 +1562,8 @@
   .genotype-selection.sire-genotypes select,
   .genotype-selection.dam-genotypes select {
     display: inline-block !important;
-    width: 17% !important;     /* controls compactness */
-    max-width: 17% !important;
+    width: 18% !important;     /* controls compactness */
+    max-width: 18% !important;
     box-sizing: border-box !important;
     margin: 2px 1px !important;
     padding: 2px 3px !important;
