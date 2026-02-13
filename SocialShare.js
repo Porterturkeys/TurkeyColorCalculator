@@ -16,7 +16,7 @@
         shareSection.style.textAlign = "center";
         shareSection.style.marginTop = "40px"; // optional spacing from content
 
-        var url = "https://porters-rare-heritage-turkeys.neocities.org/TurkeyColorCalculators";
+        var url = "https://TurkeyColorCalculator.com";
 
         shareSection.innerHTML = `
             <p style="font-weight:bold;margin-bottom:10px;">Share This Calculator:</p>
