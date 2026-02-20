@@ -23,6 +23,7 @@ const scripts = [
   "https://porterturkeys.github.io/TurkeyColorCalculator/phenotypeMapping5.js",
   "https://porterturkeys.github.io/TurkeyColorCalculator/phenotypeMapping6.js",
   "https://porterturkeys.github.io/TurkeyColorCalculator/phenotypeMapping7.js",
+  "https://porterturkeys.github.io/TurkeyColorCalculator/phenotypeMapping7A.js,
   "https://porterturkeys.github.io/TurkeyColorCalculator/phenotypeMapping8.js",
   "https://porterturkeys.github.io/TurkeyColorCalculator/phenotypeMapping9.js",
   "https://porterturkeys.github.io/TurkeyColorCalculator/phenotypeMapping10.js",
