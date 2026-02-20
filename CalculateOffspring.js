@@ -95,6 +95,7 @@ document.querySelector('button[onclick="resetCalculator()"]').addEventListener('
                                     let phenotype5 = phenotypeMapping5[shortGenotype];
                                     let phenotype6 = phenotypeMapping6[shortGenotype];
                                     let phenotype7 = phenotypeMapping7[shortGenotype];
+                                    let phenotype7A = phenotypeMapping7A[shortGenotype]; 
                                     let phenotype8 = phenotypeMapping8[shortGenotype];
                                     let phenotype9 = phenotypeMapping9[shortGenotype];
                                     let phenotype10 = phenotypeMapping10[shortGenotype];
@@ -104,7 +105,7 @@ document.querySelector('button[onclick="resetCalculator()"]').addEventListener('
                                     let phenotype14 = phenotypeMapping14[shortGenotype];
                                     let phenotype15 = phenotypeMapping15[shortGenotype];
 
-                                    let phenotype = phenotype1 || phenotype1A || phenotype1B || phenotype1C || phenotype1D || phenotype1E || phenotype2 || phenotype2A ||  phenotype3 || phenotype3A || phenotype4 || phenotype5 || phenotype6 || phenotype7 || phenotype8 || phenotype9 || phenotype10 || phenotype11 || phenotype12 || phenotype13 || phenotype14 || phenotype15;
+                                    let phenotype = phenotype1 || phenotype1A || phenotype1B || phenotype1C || phenotype1D || phenotype1E || phenotype2 || phenotype2A ||  phenotype3 || phenotype3A || phenotype4 || phenotype5 || phenotype6 || phenotype7 || phenotype7A || phenotype8 || phenotype9 || phenotype10 || phenotype11 || phenotype12 || phenotype13 || phenotype14 || phenotype15;
 
                                     
                                            if (!phenotype && genotype.includes("cc")) {
