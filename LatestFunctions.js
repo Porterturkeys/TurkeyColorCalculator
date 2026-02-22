@@ -21,9 +21,10 @@ function searchResults() {
         phenotypeMapping1, phenotypeMapping1A, phenotypeMapping1B, phenotypeMapping1C,
         phenotypeMapping1D, phenotypeMapping1E, phenotypeMapping2, phenotypeMapping2A,
         phenotypeMapping3, phenotypeMapping3A, phenotypeMapping4, phenotypeMapping5,
-        phenotypeMapping6, phenotypeMapping7, phenotypeMapping7A, phenotypeMapping8, phenotypeMapping9,
-        phenotypeMapping10, phenotypeMapping11, phenotypeMapping12, phenotypeMapping13,
-        phenotypeMapping14, phenotypeMapping15
+        phenotypeMapping6, phenotypeMapping7, phenotypeMapping7A, phenotypeMapping7B,
+        phenotypeMapping7C, phenotypeMapping8, phenotypeMapping9, phenotypeMapping10,
+         phenotypeMapping11, phenotypeMapping12, phenotypeMapping13, phenotypeMapping14,
+         phenotypeMapping15
     ].filter(mapping => typeof mapping !== 'undefined');
 
     if (allMappings.length === 0) {
@@ -189,9 +190,10 @@ function getAllPhenotypeMappings() {
         phenotypeMapping1, phenotypeMapping1A, phenotypeMapping1B, phenotypeMapping1C,
         phenotypeMapping1D, phenotypeMapping1E, phenotypeMapping2, phenotypeMapping2A,
         phenotypeMapping3, phenotypeMapping3A, phenotypeMapping4, phenotypeMapping5,
-        phenotypeMapping6, phenotypeMapping7, phenotypeMapping7A, phenotypeMapping8, phenotypeMapping9,
-        phenotypeMapping10, phenotypeMapping11, phenotypeMapping12, phenotypeMapping13,
-        phenotypeMapping14, phenotypeMapping15
+        phenotypeMapping6, phenotypeMapping7, phenotypeMapping7A, phenotypeMapping7B,
+        phenotypeMapping7C, phenotypeMapping8, phenotypeMapping9, phenotypeMapping10,
+         phenotypeMapping11, phenotypeMapping12, phenotypeMapping13, phenotypeMapping14,
+         phenotypeMapping15
     ].filter(m => m); // keep only loaded mappings
 }
 
