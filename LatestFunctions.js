@@ -980,23 +980,24 @@ if (KEEP_QUALIFIERS_IN_SUMMARY && typeof cleanSummaryPhenotypesOnce === "functio
 
     const data = WILD_VARIANTS[key];
     if (!data) return;
-
-    // 0) Force Bronze locus dropdown to bb for Wild parents
-    //    (so the genotype actually becomes bb at the bronze locus)
+/////////////////////////
+        // Force bb ONLY the first time wild is selected — never again
     const bronzeSelectId = prefix === "sire" ? "sireAlleleb" : "damAlleleb";
-    const bronzeSelect   = document.getElementById(bronzeSelectId);
+    const bronzeSelect = document.getElementById(bronzeSelectId);
 
-    if (bronzeSelect && bronzeSelect.value !== "bb") {
+    // Use a simple one-time flag on the container
+    if (bronzeSelect && bronzeSelect.value !== "bb" && !container._wildBbForced) {
       bronzeSelect.value = "bb";
-
       if (prefix === "sire" && typeof updateSireGenotype === "function") {
         updateSireGenotype();
       }
       if (prefix === "dam" && typeof updateDamGenotype === "function") {
         updateDamGenotype();
       }
+      // Mark: we've already forced bb for this parent — stop forever
+      container._wildBbForced = true;
     }
-
+///////////////////
     // 1) Swap parent image to correct Wild file
     const img = container.querySelector("img");
     if (img) {
