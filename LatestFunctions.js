@@ -954,7 +954,6 @@ if (KEEP_QUALIFIERS_IN_SUMMARY && typeof cleanSummaryPhenotypesOnce === "functio
 
   // When user types / uses variety autocomplete, figure out if it's a Wild variant
   function detectWildFromVariety(prefix) {
-
     const input = document.getElementById(prefix + "VarietyInput");
     const val   = norm(input && input.value);
     const key   = WILD_VARIETY_MAP[val] || null;
@@ -981,18 +980,15 @@ if (KEEP_QUALIFIERS_IN_SUMMARY && typeof cleanSummaryPhenotypesOnce === "functio
 
     const data = WILD_VARIANTS[key];
     if (!data) return;
-      
-    ////////////////// 
 
-           // Force bb ONLY if current phenotype still looks wild-like
-    const strong = container.querySelector("strong");
-    const phenoText = strong ? (strong.querySelector("span")?.textContent || strong.textContent || "").trim().toLowerCase() : "";
-    const isStillWildLike = /wild|bronze|to be defined|hybrid/i.test(phenoText);
-
+    // 0) Force Bronze locus dropdown to bb for Wild parents
+    //    (so the genotype actually becomes bb at the bronze locus)
     const bronzeSelectId = prefix === "sire" ? "sireAlleleb" : "damAlleleb";
-    const bronzeSelect = document.getElementById(bronzeSelectId);
-    if (isStillWildLike && bronzeSelect && bronzeSelect.value !== "bb") {
+    const bronzeSelect   = document.getElementById(bronzeSelectId);
+
+    if (bronzeSelect && bronzeSelect.value !== "bb") {
       bronzeSelect.value = "bb";
+
       if (prefix === "sire" && typeof updateSireGenotype === "function") {
         updateSireGenotype();
       }
@@ -1000,7 +996,7 @@ if (KEEP_QUALIFIERS_IN_SUMMARY && typeof cleanSummaryPhenotypesOnce === "functio
         updateDamGenotype();
       }
     }
-///////////////////////////////////////
+
     // 1) Swap parent image to correct Wild file
     const img = container.querySelector("img");
     if (img) {
@@ -1250,61 +1246,6 @@ window.addEventListener("load", () => {
 
   // DOM observers: keep Wild overlay alive through Calculate / redraws
   installObservers();
-
-////////////////////
-
-   // New: More reliable release observer – watches the whole image container
-function installWildReleaseObserver() {
-  ["sire", "dam"].forEach(prefix => {
-    const container = document.getElementById(prefix + "ImageContainer");
-    if (!container) {
-      console.log(`[${prefix.toUpperCase()}] No container – skipping observer`);
-      return;
-    }
-    console.log(`[${prefix.toUpperCase()}] Attaching release observer to container`);
-
-    const obs = new MutationObserver((mutations) => {
-      // Find current phenotype text (robust: look for strong or fallback to container text)
-      let pheno = "";
-      const strong = container.querySelector("strong");
-      if (strong) {
-        const span = strong.querySelector("span");
-        pheno = (span ? span.textContent : strong.textContent || "").trim().toLowerCase();
-      } else {
-        pheno = container.textContent.trim().toLowerCase();
-      }
-
-      if (!pheno) return; // nothing to check
-
-      console.log(`[${prefix.toUpperCase()}] Phenotype changed/detected: "${pheno}"`);
-
-      if (!pheno.includes("wild") &&
-          !pheno.includes("bronze") &&
-          !pheno.includes("to be defined") &&
-          !pheno.includes("hybrid")) {
-
-        if (wildState[prefix]) {
-          console.log(`Releasing wild on ${prefix} → new pheno "${pheno}"`);
-          wildState[prefix] = null;
-          delete container.dataset.wildKey;
-          // Optional: force one last clean apply (removes old image/name if needed)
-          setTimeout(() => applyWildToParent(prefix), 0);
-        }
-      }
-    });
-
-    obs.observe(container, {
-      childList: true,
-      subtree: true,
-      characterData: true
-    });
-  });
-}
-
-// Call it (try delayed if needed)
-setTimeout(installWildReleaseObserver, 300);  // ← small delay helps if DOM is slow
-
-///////////////////    
 
   // Offspring/summary overlay (same-strain Wild -Wild only)
   installWildOffspringObserver();
@@ -3431,6 +3372,7 @@ window.addEventListener("load", () => {
     setTimeout(hook, 2500);
   });
 })();
+
 
 
 
