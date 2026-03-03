@@ -868,305 +868,181 @@ if (KEEP_QUALIFIERS_IN_SUMMARY && typeof cleanSummaryPhenotypesOnce === "functio
 (function () {
   'use strict';
 
-  // Adjust filenames to match actual picture names
-    const WILD_VARIANTS = {
-    eastern: {
-      name:  "Eastern Wild",
-      male:  "MEasternWild.jpg",
-      female:"FEasternWild.jpg",
-      poult: "PEasternWild.jpg"
-    },
-    goulds: {
-      name:  "Gould's Wild",
-      male:  "MGouldsWild.jpg",
-      female:"FGouldsWild.jpg",
-      poult: "PGouldsWild.jpg"
-    },
-    merriams: {
-      name:  "Merriam's Wild",
-      male:  "MMerriamsWild.jpg",
-      female:"FMerriamsWild.jpg",
-      poult: "PMerriamsWild.jpg"
-    },
-    osceola: {
-      name:  "Osceola Wild",
-      male:  "MOsceolaWild.jpg",
-      female:"FOsceolaWild.jpg",
-      poult: "POsceolaWild.jpg"
-    },
-    rio: {
-      name:  "Rio Grande Wild",
-      male:  "MRioGrandeWild.jpg",
-      female:"FRioGrandeWild.jpg",
-      poult: "PRioGrandeWild.jpg"
-    },
-    hybrid: {
-      name:  "Hybrid Wild",
-      male:  "MHybridWild.jpg",
-      female:"FHybridWild.jpg",
-      poult: "PHybridWild.jpg"
-    }
+  const WILD_VARIANTS = {
+    eastern: { name: "Eastern Wild", male: "MEasternWild.jpg", female: "FEasternWild.jpg", poult: "PEasternWild.jpg" },
+    goulds: { name: "Gould's Wild", male: "MGouldsWild.jpg", female: "FGouldsWild.jpg", poult: "PGouldsWild.jpg" },
+    merriams: { name: "Merriam's Wild", male: "MMerriamsWild.jpg", female: "FMerriamsWild.jpg", poult: "PMerriamsWild.jpg" },
+    osceola: { name: "Osceola Wild", male: "MOsceolaWild.jpg", female: "FOsceolaWild.jpg", poult: "POsceolaWild.jpg" },
+    rio: { name: "Rio Grande Wild", male: "MRioGrandeWild.jpg", female: "FRioGrandeWild.jpg", poult: "PRioGrandeWild.jpg" },
+    hybrid: { name: "Hybrid Wild", male: "MHybridWild.jpg", female: "FHybridWild.jpg", poult: "PHybridWild.jpg" }
   };
 
-  // What the user actually types in the variety box
   const WILD_VARIETY_MAP = {
-    "eastern wild":           "eastern",
-    "eastern":                "eastern",
-    "wild eastern":           "eastern",
-   
-
-    "goulds wild":           "goulds",
-    "gould's wild":          "goulds",
-    "goulds wild turkey":    "goulds",
-    "gould's wild turkey":   "goulds",
-    "goulds":                "goulds",
-    "gould's":               "goulds",
-    "gould":                 "goulds",
-
-
-    "merriams wild":   "merriams",
-    "merriam wild":    "merriams",
-    "merriam's wild":  "merriams",
-    "merriams":        "merriams",
-    "merriam's":       "merriams",
-    "merriam":         "merriams",
-
-    "osceola wild":           "osceola",
-    "osceola wild turkey":    "osceola",
-
-    "rio grande wild":        "rio",
-    "rio grande wild turkey": "rio",
-    "rio grand wild":         "rio"
-    
-    
+    "eastern wild": "eastern", "eastern": "eastern", "wild eastern": "eastern",
+    "goulds wild": "goulds", "gould's wild": "goulds", "goulds wild turkey": "goulds", "gould's wild turkey": "goulds",
+    "goulds": "goulds", "gould's": "goulds", "gould": "goulds",
+    "merriams wild": "merriams", "merriam wild": "merriams", "merriam's wild": "merriams",
+    "merriams": "merriams", "merriam's": "merriams", "merriam": "merriams",
+    "osceola wild": "osceola", "osceola wild turkey": "osceola",
+    "rio grande wild": "rio", "rio grande wild turkey": "rio", "rio grand wild": "rio"
   };
 
-
-  // Track current wild variant per parent
-  const wildState = {
-    sire: null,   // "eastern" | "goulds" | "merriams" | "osceola" | "rio" | null
-    dam:  null
-  };
+  const wildState = { sire: null, dam: null };
 
   function norm(str) {
     return (str || "").trim().toLowerCase();
   }
 
-  // When user types / uses variety autocomplete, figure out if it's a Wild variant
   function detectWildFromVariety(prefix) {
     const input = document.getElementById(prefix + "VarietyInput");
-    const val   = norm(input && input.value);
-    const key   = WILD_VARIETY_MAP[val] || null;
-
+    const val = norm(input && input.value);
+    const key = WILD_VARIETY_MAP[val] || null;
     wildState[prefix] = key;
-
     const container = document.getElementById(prefix + "ImageContainer");
     if (container) {
       if (key) container.dataset.wildKey = key;
       else delete container.dataset.wildKey;
     }
-
     return key;
   }
-  
 
-   function applyWildToParent(prefix) {
-  const container = document.getElementById(prefix + "ImageContainer");
-  if (!container) return;
-  const key = container.dataset.wildKey || wildState[prefix];
-  if (!key) return;
-  const data = WILD_VARIANTS[key];
-  if (!data) return;
+  function applyWildToParent(prefix) {
+    const container = document.getElementById(prefix + "ImageContainer");
+    if (!container) return;
 
-  // Force bb ONLY the first time wild is selected — never again
-  const bronzeSelectId = prefix === "sire" ? "sireAlleleb" : "damAlleleb";
-  const bronzeSelect = document.getElementById(bronzeSelectId);
-  if (bronzeSelect && bronzeSelect.value !== "bb" && !container._wildBbForced) {
-    bronzeSelect.value = "bb";
-    if (prefix === "sire" && typeof updateSireGenotype === "function") updateSireGenotype();
-    if (prefix === "dam" && typeof updateDamGenotype === "function") updateDamGenotype();
-    container._wildBbForced = true;
-  }
+    const key = container.dataset.wildKey || wildState[prefix];
+    if (!key) return;
 
-  // Get current phenotype text to decide if we should still overlay
-  const strong = container.querySelector("strong");
-  const currentPheno = strong ? (strong.querySelector("span")?.textContent || strong.textContent || "").trim().toLowerCase() : "";
-  const isStillWildLike = /wild|bronze|to be defined|hybrid/i.test(currentPheno);
+    const data = WILD_VARIANTS[key];
+    if (!data) return;
 
-     // Replace this whole image part with:
-    const img = container.querySelector("img");
-    if (img) {
-      // Get current phenotype text BEFORE deciding to apply
-      const strongCheck = container.querySelector("strong");
-      const currentPheno = strongCheck 
-        ? (strongCheck.querySelector("span")?.textContent || strongCheck.textContent || "").trim().toLowerCase() 
-        : "";
-
-      // Only apply wild image if it still looks wild/bronze/placeholder
-      if (/wild|bronze|to be defined|hybrid/i.test(currentPheno)) {
-        img.src = "https://portersturkeys.github.io/Pictures/" + (prefix === "dam" ? data.female : data.male);
-      }
+    // === ONE-TIME ONLY: Force bb on first wild selection ===
+    const bronzeSelectId = prefix === "sire" ? "sireAlleleb" : "damAlleleb";
+    const bronzeSelect = document.getElementById(bronzeSelectId);
+    if (bronzeSelect && bronzeSelect.value !== "bb" && !container._wildBbForced) {
+      bronzeSelect.value = "bb";
+      if (prefix === "sire" && typeof updateSireGenotype === "function") updateSireGenotype();
+      if (prefix === "dam" && typeof updateDamGenotype === "function") updateDamGenotype();
+      container._wildBbForced = true;
     }
 
-      // Replace this whole name part with:
+    // === CONDITIONAL: Only re-apply wild image/name if current phenotype still looks wild-like ===
     const strong = container.querySelector("strong");
+    let currentPheno = "";
     if (strong) {
       const spans = strong.querySelectorAll("span");
+      currentPheno = (spans[0] ? spans[0].textContent : strong.textContent || "").trim().toLowerCase();
+    }
+
+    const isStillWildLike = /wild|bronze|to be defined|hybrid/i.test(currentPheno);
+
+    // Image: only apply if still wild-like
+    const img = container.querySelector("img");
+    if (img && isStillWildLike) {
+      img.src = "https://portersturkeys.github.io/Pictures/" + (prefix === "dam" ? data.female : data.male);
+    }
+
+    // Name: only apply if still wild-like
+    if (strong && isStillWildLike) {
+      const spans = strong.querySelectorAll("span");
       const phenoSpan = spans[0];
-
-      // Get current phenotype text (same as above)
-      const currentPheno = (spans[0] ? spans[0].textContent : strong.textContent || "").trim().toLowerCase();
-
-      // Only apply wild name if it still looks wild-like
-      if (phenoSpan && /wild|bronze|to be defined|hybrid/i.test(currentPheno)) {
+      if (phenoSpan) {
         phenoSpan.textContent = data.name;
       }
     }
 
-  // 3) Clean up "To Be Defined" — unconditional (safe)
-  const info = document.getElementById(prefix + "InfoContainer");
-  if (info) {
-    info.querySelectorAll("span, div, strong").forEach(el => {
-      if (/to be defined/i.test(el.textContent)) {
-        el.textContent = data.name;
-      }
-    });
+    // "To Be Defined" cleanup: always safe to run
+    const info = document.getElementById(prefix + "InfoContainer");
+    if (info) {
+      info.querySelectorAll("span, div, strong").forEach(el => {
+        if (/to be defined/i.test(el.textContent)) {
+          el.textContent = data.name;
+        }
+      });
+    }
   }
-}
 
-          // ===========================================
-  // Wild offspring naming + images
-  //  - same-strain wild  that subspecies
-  //  - different wild- Hybrid Wild
-  // ===========================================
   function applyWildToOffspring() {
     const sireKey = wildState.sire;
-    const damKey  = wildState.dam;
-
-    // Need BOTH parents to be Wild variants
+    const damKey = wildState.dam;
     if (!sireKey || !damKey) return;
 
     const sameStrain = (sireKey === damKey);
-
-    // same wild that subspecies
-    // different wild - Hybrid Wild
-    const variantKey  = sameStrain ? sireKey : "hybrid";
-    const data        = WILD_VARIANTS[variantKey];
+    const variantKey = sameStrain ? sireKey : "hybrid";
+    const data = WILD_VARIANTS[variantKey];
     if (!data) return;
 
-    const displayName = data.name; // e.g. "Eastern Wild" or "Hybrid Wild"
+    const displayName = data.name;
 
-    // 1) Patch visible offspring text lines (male + female lists)
-    document
-      .querySelectorAll("#maleOffspringResults li, #femaleOffspringResults li")
-      .forEach(li => {
-        let html = li.innerHTML;
+    // Patch visible offspring text
+    document.querySelectorAll("#maleOffspringResults li, #femaleOffspringResults li").forEach(li => {
+      let html = li.innerHTML;
+      if (html.includes(displayName)) return;
+      html = html.replace(/\bWild\b(?=\s*\()/gi, displayName);
+      html = html.replace(/\bBronze\b/gi, displayName);
+      html = html.replace(/To Be Defined/gi, displayName);
+      li.innerHTML = html;
+    });
 
-        // If already shows the variety name, skip to prevent multiplying it
-        if (html.includes(displayName)) return;
-
-        // "Wild (Dark Brown Eyes)"  "Eastern Wild (Dark Brown Eyes)" or "Hybrid Wild (..)"
-        html = html.replace(/\bWild\b(?=\s*\()/gi, displayName);
-
-        // Bronze / "To Be Defined"  strain/hybrid name
-        html = html.replace(/\bBronze\b/gi, displayName);
-        html = html.replace(/To Be Defined/gi, displayName);
-
-        li.innerHTML = html;
-      });
-
-    // 2) Patch summary chart DOM if present
+    // Patch summary chart
     const summaryBody = document.querySelector("#summaryChart tbody");
     if (summaryBody) {
       summaryBody.querySelectorAll("tr").forEach(tr => {
-        const phenoCell = tr.cells && tr.cells[1];
+        const phenoCell = tr.cells?.[1];
         if (!phenoCell) return;
-
         let text = phenoCell.textContent || "";
-
-        // If already contains the variety name, skip
         if (text.includes(displayName)) return;
-
         text = text.replace(/\bWild\b(?=\s*\()/gi, displayName);
         text = text.replace(/\bBronze\b/gi, displayName);
         text = text.replace(/to be defined/gi, displayName);
-
         phenoCell.textContent = text;
       });
     }
 
-    // 3) Patch internal offspring arrays' image paths (Bronze  strain/hybrid images)
+    // Patch internal arrays
     function patchWildOffspringArray(arr) {
       if (!Array.isArray(arr)) return;
-
       arr.forEach(o => {
         if (!o) return;
-
-        // Fix phenotype text stored in the data
         if (o.phenotype) {
           o.phenotype = o.phenotype
             .replace(/\bWild\b(?=\s*\()/gi, displayName)
             .replace(/\bBronze\b/gi, displayName)
             .replace(/to be defined/gi, displayName);
         }
-
         if (o.picturePath) {
-          const file = (o.picturePath.split("/").pop() || "").toLowerCase();
-
-          // Base offspring from core are Bronze - swap to Wild/Hybrid files
-          if (file === "mbronze.jpg") {
-            o.picturePath = "https://portersturkeys.github.io/Pictures/" + data.male;
-          } else if (file === "fbronze.jpg") {
-            o.picturePath = "https://portersturkeys.github.io/Pictures/" + data.female;
-          } else if (file === "pbronze.jpg") {
-            o.picturePath = "https://portersturkeys.github.io/Pictures/" + data.poult;
-          }
+          const file = o.picturePath.split("/").pop()?.toLowerCase();
+          if (file === "mbronze.jpg") o.picturePath = "https://portersturkeys.github.io/Pictures/" + data.male;
+          if (file === "fbronze.jpg") o.picturePath = "https://portersturkeys.github.io/Pictures/" + data.female;
+          if (file === "pbronze.jpg") o.picturePath = "https://portersturkeys.github.io/Pictures/" + data.poult;
         }
-
         if (o.poultImagePath) {
-          const file2 = (o.poultImagePath.split("/").pop() || "").toLowerCase();
-
-          if (file2 === "pbronze.jpg") {
-            o.poultImagePath = "https://portersturkeys.github.io/Pictures/" + data.poult;
-          }
+          const file2 = o.poultImagePath.split("/").pop()?.toLowerCase();
+          if (file2 === "pbronze.jpg") o.poultImagePath = "https://portersturkeys.github.io/Pictures/" + data.poult;
         }
       });
     }
 
-    if (window.maleOffspring)  patchWildOffspringArray(window.maleOffspring);
+    if (window.maleOffspring) patchWildOffspringArray(window.maleOffspring);
     if (window.femaleOffspring) patchWildOffspringArray(window.femaleOffspring);
 
-    // 4) Patch visible offspring <img> elements in the DOM
-    document
-      .querySelectorAll("#maleOffspringResults img, #femaleOffspringResults img")
-      .forEach(img => {
-        const src  = img.getAttribute("src") || "";
-        const file = src.split("/").pop().toLowerCase();
-
-        // Swap visible Bronze images to the correct Wild or Hybrid images
-        if (file === "mbronze.jpg") {
-          img.src = "https://portersturkeys.github.io/Pictures/" + data.male;
-        } else if (file === "fbronze.jpg") {
-          img.src = "https://portersturkeys.github.io/Pictures/" + data.female;
-        } else if (file === "pbronze.jpg") {
-          img.src = "https://portersturkeys.github.io/Pictures/" + data.poult;
-        }
-      });
+    // Patch visible offspring images
+    document.querySelectorAll("#maleOffspringResults img, #femaleOffspringResults img").forEach(img => {
+      const file = img.src.split("/").pop()?.toLowerCase();
+      if (file === "mbronze.jpg") img.src = "https://portersturkeys.github.io/Pictures/" + data.male;
+      if (file === "fbronze.jpg") img.src = "https://portersturkeys.github.io/Pictures/" + data.female;
+      if (file === "pbronze.jpg") img.src = "https://portersturkeys.github.io/Pictures/" + data.poult;
+    });
   }
 
-
-  // Offspring/summary observer
   function installWildOffspringObserver() {
     let patching = false;
-
     const targets = [
       document.getElementById("maleOffspringResults"),
       document.getElementById("femaleOffspringResults"),
       document.getElementById("summaryChart")
     ].filter(Boolean);
-
     if (!targets.length) return;
-
     targets.forEach(target => {
       const obs = new MutationObserver(() => {
         if (patching) return;
@@ -1176,41 +1052,32 @@ if (KEEP_QUALIFIERS_IN_SUMMARY && typeof cleanSummaryPhenotypesOnce === "functio
           patching = false;
         }, 0);
       });
-
       obs.observe(target, { childList: true, subtree: true });
     });
   }
 
-  // Wrap variety functions so they record Wild state + apply overlay
   function wrapVarietyFn(fnName, prefix) {
     const original = window[fnName];
     if (typeof original !== "function") return;
-
     window[fnName] = function () {
       const res = original.apply(this, arguments);
-
       const key = detectWildFromVariety(prefix);
       if (key) {
-        // Let core finish DOM changes, then overlay Wild variant
         setTimeout(() => applyWildToParent(prefix), 0);
       } else {
         const container = document.getElementById(prefix + "ImageContainer");
         if (container) delete container.dataset.wildKey;
         wildState[prefix] = null;
       }
-
       return res;
     };
   }
 
-  // Watch parents for DOM changes and re-apply Wild overlay
   function installObservers() {
     const parentFlags = { sire: false, dam: false };
-
     ["sire", "dam"].forEach(prefix => {
       const container = document.getElementById(prefix + "ImageContainer");
       if (!container) return;
-
       const obs = new MutationObserver(() => {
         if (parentFlags[prefix]) return;
         parentFlags[prefix] = true;
@@ -1219,183 +1086,112 @@ if (KEEP_QUALIFIERS_IN_SUMMARY && typeof cleanSummaryPhenotypesOnce === "functio
           parentFlags[prefix] = false;
         }, 0);
       });
-
       obs.observe(container, { childList: true, subtree: true });
     });
   }
 
-  // Hook everything after core is loaded
-window.addEventListener("load", () => {
-  // Variety handlers 
-  wrapVarietyFn("applyVarietyToSire", "sire");
-  wrapVarietyFn("applyVarietyToDam",  "dam");
+  window.addEventListener("load", () => {
+    wrapVarietyFn("applyVarietyToSire", "sire");
+    wrapVarietyFn("applyVarietyToDam", "dam");
 
-   // Make Reset clear Wild overlay state AND the one-time forcing flags
-  if (typeof window.resetCalculator === "function") {
-    const originalReset = window.resetCalculator;
-    window.resetCalculator = function(initial) {
-      const result = originalReset.apply(this, arguments);
-      
-      // Clear Wild state
-      wildState.sire = null;
-      wildState.dam = null;
-      
-      // Clear dataset flags + our custom one-time forcing flags
-      ["sire", "dam"].forEach(prefix => {
-        const container = document.getElementById(prefix + "ImageContainer");
-        if (container) {
-          // Clear wildKey
-          if (container.dataset.wildKey) {
-            delete container.dataset.wildKey;
-          }
-          
-          // Clear forcing flags so wild works fresh after Reset
-          delete container._wildBbForced;
-          delete container._wildImageForced;
-          delete container._wildNameForced;
-        }
-      });
-      
-      return result;
-    };
-  }
-
-    
-  // DOM observers: keep Wild overlay alive through Calculate / redraws
-  installObservers();
-
-  // Offspring/summary overlay (same-strain Wild -Wild only)
-  installWildOffspringObserver();
-
-  // When an offspring is used as sire/dam, keep Wild / Hybrid Wild
-  // for wild-wild crosses; otherwise clear Wild overlay.
-  if (typeof window.transferOffspringToParent === "function" && !window._wildTransferPatched) {
-    window._wildTransferPatched = true;
-
-    const originalTransfer = window.transferOffspringToParent;
-
-    window.transferOffspringToParent = function(genotype, parent) {
-      // Run the core logic first (sets genotype, base image, etc.)
-      const result = originalTransfer.apply(this, arguments);
-
-      if (parent === "sire" || parent === "dam") {
-        const sireKey = wildState.sire;
-        const damKey  = wildState.dam;
-
-        if (sireKey && damKey) {
-          //  wild cross.
-          // same strain  that subspecies
-          // different strains  Hybrid Wild (if defined)
-          const sameStrain = (sireKey === damKey);
-          const variantKey = sameStrain ? sireKey : "hybrid";
-
-          if (WILD_VARIANTS[variantKey]) {
-            // Track this new parent as that wild / hybrid variant
-            wildState[parent] = variantKey;
-
-            const container = document.getElementById(parent + "ImageContainer");
-            if (container) {
-              container.dataset.wildKey = variantKey;
-            }
-
-            // Re-apply overlay so the parent shows correct wild name + image
-            setTimeout(() => applyWildToParent(parent), 0);
-          }
-        } else {
-          // Not a wild -wild context clear Wild overlay on this parent
-          wildState[parent] = null;
-          const container = document.getElementById(parent + "ImageContainer");
-          if (container && container.dataset.wildKey) {
-            delete container.dataset.wildKey;
-          }
-        }
-      }
-
-      return result;
-    };
-  }
-
-  // ===========================================
-  // FAVORITES  PARENT: keep Wild overlay
-  // when loading a saved favorite
-  // ===========================================
-  if (typeof window.handleDropdownChange === "function" && !window._wildFavoritesPatched) {
-    window._wildFavoritesPatched = true;
-
-    const originalHandleDropdownChange = window.handleDropdownChange;
-
-    window.handleDropdownChange = function (type, dropdownId, alleleIds) {
-      // 1) Let favorites logic run normally (sets alleles + genotype + base image/name)
-      const result = originalHandleDropdownChange.apply(this, arguments);
-
-      // 2) Then try to re-apply a Wild overlay based on the favorite's name
-      if (type === "sire" || type === "dam") {
-        const dropdown = document.getElementById(dropdownId);
-        const selectedName = dropdown && dropdown.value;
-        if (selectedName) {
-          // Strip duplicate suffix like "Eastern Wild (1)"
-          const lowerName = selectedName.trim().toLowerCase();
-          const baseName  = lowerName.replace(/\s*\(\d+\)\s*$/, "");
-
-          let variantKey = null;
-
-          // Match against WILD_VARIANT names (e.g. "Eastern Wild", "Goulds Wild")
-          for (const [key, data] of Object.entries(WILD_VARIANTS)) {
-            if (data.name.toLowerCase() === baseName) {
-              variantKey = key;
-              break;
-            }
-          }
-
-          const container = document.getElementById(type + "ImageContainer");
-
-          if (variantKey) {
-            // Saved favorite is a named Wild subspecies (or Hybrid Wild, if defined)
-            wildState[type] = variantKey;
-            if (container) {
-              container.dataset.wildKey = variantKey;
-            }
-            setTimeout(() => applyWildToParent(type), 0);
-          } else {
-            // Not a named wild favorite clear any previous wild overlay
-            wildState[type] = null;
-            if (container && container.dataset.wildKey) {
-              delete container.dataset.wildKey;
-            }
-          }
-        }
-      }
-
-      return result;
-    };
-  }
-
-
-
-  // Re-apply wild overlay to parents AFTER calculate (so they don't revert to Bronze)
-  if (typeof window.calculateOffspringWrapper === "function" && !window._wildCalcPatched) {
-    window._wildCalcPatched = true;
-    const origCalc = window.calculateOffspringWrapper;
-    window.calculateOffspringWrapper = function() {
-      const res = origCalc.apply(this, arguments);
-      
-      // Small delay so core finishes parent redraw, then re-apply wild if still selected
-      setTimeout(() => {
+    // Reset: clear state and forcing flags
+    if (typeof window.resetCalculator === "function") {
+      const originalReset = window.resetCalculator;
+      window.resetCalculator = function(initial) {
+        const result = originalReset.apply(this, arguments);
+        wildState.sire = null;
+        wildState.dam = null;
         ["sire", "dam"].forEach(prefix => {
-          if (wildState[prefix]) {  // only if still wild variant
-            applyWildToParent(prefix);
+          const container = document.getElementById(prefix + "ImageContainer");
+          if (container) {
+            delete container.dataset.wildKey;
+            delete container._wildBbForced;
           }
         });
-      }, 100);  // 100ms — adjust to 200 if needed
-      
-      return res;
-    };
-  }
+        return result;
+      };
+    }
 
-    
+    installObservers();
+    installWildOffspringObserver();
 
-});
+    // Transfer patch
+    if (typeof window.transferOffspringToParent === "function" && !window._wildTransferPatched) {
+      window._wildTransferPatched = true;
+      const originalTransfer = window.transferOffspringToParent;
+      window.transferOffspringToParent = function(genotype, parent) {
+        const res = originalTransfer.apply(this, arguments);
+        if (parent === "sire" || parent === "dam") {
+          const sireKey = wildState.sire;
+          const damKey = wildState.dam;
+          if (sireKey && damKey) {
+            const sameStrain = sireKey === damKey;
+            const variantKey = sameStrain ? sireKey : "hybrid";
+            if (WILD_VARIANTS[variantKey]) {
+              wildState[parent] = variantKey;
+              const container = document.getElementById(parent + "ImageContainer");
+              if (container) container.dataset.wildKey = variantKey;
+              setTimeout(() => applyWildToParent(parent), 0);
+            }
+          } else {
+            wildState[parent] = null;
+            const container = document.getElementById(parent + "ImageContainer");
+            if (container && container.dataset.wildKey) delete container.dataset.wildKey;
+          }
+        }
+        return res;
+      };
+    }
 
+    // Favorites patch
+    if (typeof window.handleDropdownChange === "function" && !window._wildFavoritesPatched) {
+      window._wildFavoritesPatched = true;
+      const originalHandle = window.handleDropdownChange;
+      window.handleDropdownChange = function(type, dropdownId, alleleIds) {
+        const res = originalHandle.apply(this, arguments);
+        if (type === "sire" || type === "dam") {
+          const dropdown = document.getElementById(dropdownId);
+          const selectedName = dropdown?.value?.trim();
+          if (selectedName) {
+            const lower = selectedName.toLowerCase();
+            const base = lower.replace(/\s*\(\d+\)\s*$/, "");
+            let key = null;
+            for (const [k, v] of Object.entries(WILD_VARIANTS)) {
+              if (v.name.toLowerCase() === base) {
+                key = k;
+                break;
+              }
+            }
+            const container = document.getElementById(type + "ImageContainer");
+            if (key) {
+              wildState[type] = key;
+              if (container) container.dataset.wildKey = key;
+              setTimeout(() => applyWildToParent(type), 0);
+            } else {
+              wildState[type] = null;
+              if (container && container.dataset.wildKey) delete container.dataset.wildKey;
+            }
+          }
+        }
+        return res;
+      };
+    }
+
+    // FINAL FIX: Re-apply wild parents after Calculate (prevents revert to Bronze)
+    if (typeof window.calculateOffspringWrapper === "function" && !window._wildCalcPatched) {
+      window._wildCalcPatched = true;
+      const origCalc = window.calculateOffspringWrapper;
+      window.calculateOffspringWrapper = function() {
+        const res = origCalc.apply(this, arguments);
+        setTimeout(() => {
+          ["sire", "dam"].forEach(prefix => {
+            if (wildState[prefix]) applyWildToParent(prefix);
+          });
+        }, 100);
+        return res;
+      };
+    }
+  });
 })();
 
 
