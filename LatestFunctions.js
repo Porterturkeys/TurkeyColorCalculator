@@ -983,18 +983,7 @@ if (KEEP_QUALIFIERS_IN_SUMMARY && typeof cleanSummaryPhenotypesOnce === "functio
     if (!data) return;
 /////////////////////////////////
 
-    // NEW: Release wild overlay if the core has already updated to a different phenotype
-    const strong = container.querySelector("strong");
-    let currentPheno = "";
-    if (strong) {
-      const spans = strong.querySelectorAll("span");
-      currentPheno = (spans[0] ? spans[0].textContent : strong.textContent || "").trim().toLowerCase();
-    }
-    if (currentPheno && !/wild|bronze|to be defined/i.test(currentPheno)) {
-      wildState[prefix] = null;
-      delete container.dataset.wildKey;
-      return;  // Stop here — let the real phenotype stay
-    }
+   
 
       //////////////////////
 
