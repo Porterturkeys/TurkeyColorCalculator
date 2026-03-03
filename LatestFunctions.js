@@ -1254,39 +1254,56 @@ window.addEventListener("load", () => {
 
 ////////////////////
 
-    // New: Dedicated observer to RELEASE wild overlay when core phenotype changes away
+   // New: More reliable release observer – watches the whole image container
 function installWildReleaseObserver() {
   ["sire", "dam"].forEach(prefix => {
     const container = document.getElementById(prefix + "ImageContainer");
-    if (!container) return;
+    if (!container) {
+      console.log(`[${prefix.toUpperCase()}] No container – skipping observer`);
+      return;
+    }
+    console.log(`[${prefix.toUpperCase()}] Attaching release observer to container`);
 
-    const strong = container.querySelector("strong");
-    if (!strong) return;
+    const obs = new MutationObserver((mutations) => {
+      // Find current phenotype text (robust: look for strong or fallback to container text)
+      let pheno = "";
+      const strong = container.querySelector("strong");
+      if (strong) {
+        const span = strong.querySelector("span");
+        pheno = (span ? span.textContent : strong.textContent || "").trim().toLowerCase();
+      } else {
+        pheno = container.textContent.trim().toLowerCase();
+      }
 
-    const obs = new MutationObserver(() => {
-      const spans = strong.querySelectorAll("span");
-      const pheno = (spans[0] ? spans[0].textContent : strong.textContent || "").trim().toLowerCase();
+      if (!pheno) return; // nothing to check
 
-      if (pheno && 
-          !pheno.includes("wild") && 
-          !pheno.includes("bronze") && 
-          !pheno.includes("to be defined") && 
+      console.log(`[${prefix.toUpperCase()}] Phenotype changed/detected: "${pheno}"`);
+
+      if (!pheno.includes("wild") &&
+          !pheno.includes("bronze") &&
+          !pheno.includes("to be defined") &&
           !pheno.includes("hybrid")) {
 
         if (wildState[prefix]) {
-          console.log(`Releasing wild overlay on ${prefix} → new pheno: "${pheno}"`);
+          console.log(`Releasing wild on ${prefix} → new pheno "${pheno}"`);
           wildState[prefix] = null;
           delete container.dataset.wildKey;
+          // Optional: force one last clean apply (removes old image/name if needed)
+          setTimeout(() => applyWildToParent(prefix), 0);
         }
       }
     });
 
-    obs.observe(strong, { childList: true, subtree: true, characterData: true });
+    obs.observe(container, {
+      childList: true,
+      subtree: true,
+      characterData: true
+    });
   });
 }
 
-// Call it after other observers
-installWildReleaseObserver();
+// Call it (try delayed if needed)
+setTimeout(installWildReleaseObserver, 300);  // ← small delay helps if DOM is slow
 
 ///////////////////    
 
