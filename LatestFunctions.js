@@ -870,11 +870,11 @@ if (KEEP_QUALIFIERS_IN_SUMMARY && typeof cleanSummaryPhenotypesOnce === "functio
 
   const WILD_VARIANTS = {
     eastern: { name: "Eastern Wild", male: "MEasternWild.jpg", female: "FEasternWild.jpg", poult: "PEasternWild.jpg" },
-    goulds: { name: "Gould's Wild", male: "MGouldsWild.jpg", female: "FGouldsWild.jpg", poult: "PGouldsWild.jpg" },
-    merriams: { name: "Merriam's Wild", male: "MMerriamsWild.jpg", female: "FMerriamsWild.jpg", poult: "PMerriamsWild.jpg" },
-    osceola: { name: "Osceola Wild", male: "MOsceolaWild.jpg", female: "FOsceolaWild.jpg", poult: "POsceolaWild.jpg" },
-    rio: { name: "Rio Grande Wild", male: "MRioGrandeWild.jpg", female: "FRioGrandeWild.jpg", poult: "PRioGrandeWild.jpg" },
-    hybrid: { name: "Hybrid Wild", male: "MHybridWild.jpg", female: "FHybridWild.jpg", poult: "PHybridWild.jpg" }
+    goulds:  { name: "Gould's Wild",  male: "MGouldsWild.jpg",  female: "FGouldsWild.jpg",  poult: "PGouldsWild.jpg" },
+    merriams:{ name: "Merriam's Wild",male: "MMerriamsWild.jpg", female: "FMerriamsWild.jpg", poult: "PMerriamsWild.jpg" },
+    osceola: { name: "Osceola Wild",  male: "MOsceolaWild.jpg",  female: "FOsceolaWild.jpg",  poult: "POsceolaWild.jpg" },
+    rio:     { name: "Rio Grande Wild",male: "MRioGrandeWild.jpg",female: "FRioGrandeWild.jpg",poult: "PRioGrandeWild.jpg" },
+    hybrid:  { name: "Hybrid Wild",   male: "MHybridWild.jpg",   female: "FHybridWild.jpg",   poult: "PHybridWild.jpg" }
   };
 
   const WILD_VARIETY_MAP = {
@@ -884,7 +884,8 @@ if (KEEP_QUALIFIERS_IN_SUMMARY && typeof cleanSummaryPhenotypesOnce === "functio
     "merriams wild": "merriams", "merriam wild": "merriams", "merriam's wild": "merriams",
     "merriams": "merriams", "merriam's": "merriams", "merriam": "merriams",
     "osceola wild": "osceola", "osceola wild turkey": "osceola",
-    "rio grande wild": "rio", "rio grande wild turkey": "rio", "rio grand wild": "rio"
+    "rio grande wild": "rio", "rio grande wild turkey": "rio", "rio grand wild": "rio",
+    "hybrid wild": "hybrid", "hybrid": "hybrid"
   };
 
   const wildState = { sire: null, dam: null };
@@ -895,14 +896,20 @@ if (KEEP_QUALIFIERS_IN_SUMMARY && typeof cleanSummaryPhenotypesOnce === "functio
 
   function detectWildFromVariety(prefix) {
     const input = document.getElementById(prefix + "VarietyInput");
-    const val = norm(input && input.value);
+    const val = norm(input?.value);
     const key = WILD_VARIETY_MAP[val] || null;
+
     wildState[prefix] = key;
+
     const container = document.getElementById(prefix + "ImageContainer");
     if (container) {
-      if (key) container.dataset.wildKey = key;
-      else delete container.dataset.wildKey;
+      if (key) {
+        container.dataset.wildKey = key;
+      } else {
+        delete container.dataset.wildKey;
+      }
     }
+
     return key;
   }
 
@@ -916,7 +923,7 @@ if (KEEP_QUALIFIERS_IN_SUMMARY && typeof cleanSummaryPhenotypesOnce === "functio
     const data = WILD_VARIANTS[key];
     if (!data) return;
 
-    // === ONE-TIME ONLY: Force bb on first wild selection ===
+    // One-time force bb when wild variety is first selected
     const bronzeSelectId = prefix === "sire" ? "sireAlleleb" : "damAlleleb";
     const bronzeSelect = document.getElementById(bronzeSelectId);
     if (bronzeSelect && bronzeSelect.value !== "bb" && !container._wildBbForced) {
@@ -926,35 +933,41 @@ if (KEEP_QUALIFIERS_IN_SUMMARY && typeof cleanSummaryPhenotypesOnce === "functio
       container._wildBbForced = true;
     }
 
-    // === CONDITIONAL: Only re-apply wild image/name if current phenotype still looks wild-like ===
+    // Only apply wild name & image if the current phenotype text still looks like it hasn't been overridden yet
+    // (i.e. still shows Bronze / Wild / To Be Defined / Hybrid)
     const strong = container.querySelector("strong");
-    let currentPheno = "";
+    let currentText = "";
     if (strong) {
-      const spans = strong.querySelectorAll("span");
-      currentPheno = (spans[0] ? spans[0].textContent : strong.textContent || "").trim().toLowerCase();
+      const span = strong.querySelector("span");
+      currentText = (span ? span.textContent : strong.textContent || "").trim().toLowerCase();
     }
 
-    const isStillWildLike = /wild|bronze|to be defined|hybrid/i.test(currentPheno);
+    const isWildEligible = /wild|bronze|to be defined|hybrid/i.test(currentText);
 
-    // Image: only apply if still wild-like
+    if (!isWildEligible) {
+      // Phenotype has already been changed by allele logic → do NOT override it anymore
+      return;
+    }
+
+    // Apply wild image
     const img = container.querySelector("img");
-    if (img && isStillWildLike) {
-      img.src = "https://portersturkeys.github.io/Pictures/" + (prefix === "dam" ? data.female : data.male);
+    if (img) {
+      const newSrc = "https://portersturkeys.github.io/Pictures/" + (prefix === "dam" ? data.female : data.male);
+      img.src = newSrc;
     }
 
-    // Name: only apply if still wild-like
-    if (strong && isStillWildLike) {
-      const spans = strong.querySelectorAll("span");
-      const phenoSpan = spans[0];
-      if (phenoSpan) {
-        phenoSpan.textContent = data.name;
+    // Apply wild name
+    if (strong && isWildEligible) {
+      const span = strong.querySelector("span");
+      if (span) {
+        span.textContent = data.name;
       }
     }
 
-    // "To Be Defined" cleanup: always safe to run
+    // Clean up any remaining "To Be Defined" text (safe even after phenotype change)
     const info = document.getElementById(prefix + "InfoContainer");
     if (info) {
-      info.querySelectorAll("span, div, strong").forEach(el => {
+      info.querySelectorAll("span, div, strong, p").forEach(el => {
         if (/to be defined/i.test(el.textContent)) {
           el.textContent = data.name;
         }
@@ -1042,7 +1055,9 @@ if (KEEP_QUALIFIERS_IN_SUMMARY && typeof cleanSummaryPhenotypesOnce === "functio
       document.getElementById("femaleOffspringResults"),
       document.getElementById("summaryChart")
     ].filter(Boolean);
+
     if (!targets.length) return;
+
     targets.forEach(target => {
       const obs = new MutationObserver(() => {
         if (patching) return;
@@ -1059,6 +1074,7 @@ if (KEEP_QUALIFIERS_IN_SUMMARY && typeof cleanSummaryPhenotypesOnce === "functio
   function wrapVarietyFn(fnName, prefix) {
     const original = window[fnName];
     if (typeof original !== "function") return;
+
     window[fnName] = function () {
       const res = original.apply(this, arguments);
       const key = detectWildFromVariety(prefix);
@@ -1074,19 +1090,22 @@ if (KEEP_QUALIFIERS_IN_SUMMARY && typeof cleanSummaryPhenotypesOnce === "functio
   }
 
   function installObservers() {
-    const parentFlags = { sire: false, dam: false };
+    const debounceFlags = { sire: false, dam: false };
+
     ["sire", "dam"].forEach(prefix => {
       const container = document.getElementById(prefix + "ImageContainer");
       if (!container) return;
+
       const obs = new MutationObserver(() => {
-        if (parentFlags[prefix]) return;
-        parentFlags[prefix] = true;
+        if (debounceFlags[prefix]) return;
+        debounceFlags[prefix] = true;
         setTimeout(() => {
           applyWildToParent(prefix);
-          parentFlags[prefix] = false;
-        }, 0);
+          debounceFlags[prefix] = false;
+        }, 30);
       });
-      obs.observe(container, { childList: true, subtree: true });
+
+      obs.observe(container, { childList: true, subtree: true, characterData: true });
     });
   }
 
@@ -1094,10 +1113,10 @@ if (KEEP_QUALIFIERS_IN_SUMMARY && typeof cleanSummaryPhenotypesOnce === "functio
     wrapVarietyFn("applyVarietyToSire", "sire");
     wrapVarietyFn("applyVarietyToDam", "dam");
 
-    // Reset: clear state and forcing flags
+    // Reset logic
     if (typeof window.resetCalculator === "function") {
       const originalReset = window.resetCalculator;
-      window.resetCalculator = function(initial) {
+      window.resetCalculator = function (initial) {
         const result = originalReset.apply(this, arguments);
         wildState.sire = null;
         wildState.dam = null;
@@ -1115,28 +1134,20 @@ if (KEEP_QUALIFIERS_IN_SUMMARY && typeof cleanSummaryPhenotypesOnce === "functio
     installObservers();
     installWildOffspringObserver();
 
-    // Transfer patch
+    // Transfer patch – only set wild state if transferring a wild-like bird
     if (typeof window.transferOffspringToParent === "function" && !window._wildTransferPatched) {
       window._wildTransferPatched = true;
       const originalTransfer = window.transferOffspringToParent;
-      window.transferOffspringToParent = function(genotype, parent) {
+      window.transferOffspringToParent = function (genotype, parent) {
         const res = originalTransfer.apply(this, arguments);
+
         if (parent === "sire" || parent === "dam") {
-          const sireKey = wildState.sire;
-          const damKey = wildState.dam;
-          if (sireKey && damKey) {
-            const sameStrain = sireKey === damKey;
-            const variantKey = sameStrain ? sireKey : "hybrid";
-            if (WILD_VARIANTS[variantKey]) {
-              wildState[parent] = variantKey;
-              const container = document.getElementById(parent + "ImageContainer");
-              if (container) container.dataset.wildKey = variantKey;
-              setTimeout(() => applyWildToParent(parent), 0);
-            }
-          } else {
-            wildState[parent] = null;
-            const container = document.getElementById(parent + "ImageContainer");
-            if (container && container.dataset.wildKey) delete container.dataset.wildKey;
+          // Only preserve wild state if the transferred bird was wild (we assume transfer keeps variety)
+          // But do NOT force-apply after transfer — let allele logic run
+          const container = document.getElementById(parent + "ImageContainer");
+          if (container?.dataset.wildKey) {
+            wildState[parent] = container.dataset.wildKey;
+            setTimeout(() => applyWildToParent(parent), 80);
           }
         }
         return res;
@@ -1147,14 +1158,13 @@ if (KEEP_QUALIFIERS_IN_SUMMARY && typeof cleanSummaryPhenotypesOnce === "functio
     if (typeof window.handleDropdownChange === "function" && !window._wildFavoritesPatched) {
       window._wildFavoritesPatched = true;
       const originalHandle = window.handleDropdownChange;
-      window.handleDropdownChange = function(type, dropdownId, alleleIds) {
+      window.handleDropdownChange = function (type, dropdownId, alleleIds) {
         const res = originalHandle.apply(this, arguments);
         if (type === "sire" || type === "dam") {
           const dropdown = document.getElementById(dropdownId);
-          const selectedName = dropdown?.value?.trim();
+          const selectedName = dropdown?.value?.trim()?.toLowerCase();
           if (selectedName) {
-            const lower = selectedName.toLowerCase();
-            const base = lower.replace(/\s*\(\d+\)\s*$/, "");
+            const base = selectedName.replace(/\s*\(\d+\)\s*$/, "");
             let key = null;
             for (const [k, v] of Object.entries(WILD_VARIANTS)) {
               if (v.name.toLowerCase() === base) {
@@ -1177,23 +1187,21 @@ if (KEEP_QUALIFIERS_IN_SUMMARY && typeof cleanSummaryPhenotypesOnce === "functio
       };
     }
 
-    // FINAL FIX: Re-apply wild parents after Calculate (prevents revert to Bronze)
+    // After calculate → do NOT re-apply wild to parents (let alleles win)
+    // Only patch offspring
     if (typeof window.calculateOffspringWrapper === "function" && !window._wildCalcPatched) {
       window._wildCalcPatched = true;
       const origCalc = window.calculateOffspringWrapper;
-      window.calculateOffspringWrapper = function() {
+      window.calculateOffspringWrapper = function () {
         const res = origCalc.apply(this, arguments);
         setTimeout(() => {
-          ["sire", "dam"].forEach(prefix => {
-            if (wildState[prefix]) applyWildToParent(prefix);
-          });
-        }, 100);
+          applyWildToOffspring();
+        }, 120);
         return res;
       };
     }
   });
 })();
-
 
 //////////////////////////
 
