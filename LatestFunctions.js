@@ -970,63 +970,54 @@ if (KEEP_QUALIFIERS_IN_SUMMARY && typeof cleanSummaryPhenotypesOnce === "functio
   }
   
 
-    // Overlay Wild variant on a parent (image + visible name)
-  function applyWildToParent(prefix) {
-    const container = document.getElementById(prefix + "ImageContainer");
-    if (!container) return;
+   function applyWildToParent(prefix) {
+  const container = document.getElementById(prefix + "ImageContainer");
+  if (!container) return;
+  const key = container.dataset.wildKey || wildState[prefix];
+  if (!key) return;
+  const data = WILD_VARIANTS[key];
+  if (!data) return;
 
-    const key  = container.dataset.wildKey || wildState[prefix];
-    if (!key) return;
+  // Force bb ONLY the first time wild is selected — never again
+  const bronzeSelectId = prefix === "sire" ? "sireAlleleb" : "damAlleleb";
+  const bronzeSelect = document.getElementById(bronzeSelectId);
+  if (bronzeSelect && bronzeSelect.value !== "bb" && !container._wildBbForced) {
+    bronzeSelect.value = "bb";
+    if (prefix === "sire" && typeof updateSireGenotype === "function") updateSireGenotype();
+    if (prefix === "dam" && typeof updateDamGenotype === "function") updateDamGenotype();
+    container._wildBbForced = true;
+  }
 
-    const data = WILD_VARIANTS[key];
-    if (!data) return;
-/////////////////////////
-        // Force bb ONLY the first time wild is selected — never again
-    const bronzeSelectId = prefix === "sire" ? "sireAlleleb" : "damAlleleb";
-    const bronzeSelect = document.getElementById(bronzeSelectId);
+  // Get current phenotype text to decide if we should still overlay
+  const strong = container.querySelector("strong");
+  const currentPheno = strong ? (strong.querySelector("span")?.textContent || strong.textContent || "").trim().toLowerCase() : "";
+  const isStillWildLike = /wild|bronze|to be defined|hybrid/i.test(currentPheno);
 
-    // Use a simple one-time flag on the container
-    if (bronzeSelect && bronzeSelect.value !== "bb" && !container._wildBbForced) {
-      bronzeSelect.value = "bb";
-      if (prefix === "sire" && typeof updateSireGenotype === "function") {
-        updateSireGenotype();
-      }
-      if (prefix === "dam" && typeof updateDamGenotype === "function") {
-        updateDamGenotype();
-      }
-      // Mark: we've already forced bb for this parent — stop forever
-      container._wildBbForced = true;
-    }
-///////////////////
-              // Swap image ONLY the first time wild is selected
-    const img = container.querySelector("img");
-    if (img && !container._wildImageForced) {
-      img.src = "https://portersturkeys.github.io/Pictures/" + (prefix === "dam" ? data.female : data.male);
-      container._wildImageForced = true;
-    }
+  // Re-apply wild image ONLY if still looks wild-like
+  const img = container.querySelector("img");
+  if (img && isStillWildLike) {
+    img.src = "https://portersturkeys.github.io/Pictures/" + (prefix === "dam" ? data.female : data.male);
+  }
 
-         // Set wild name ONLY the first time
-    const strong = container.querySelector("strong");
-    if (strong && !container._wildNameForced) {
-      const spans = strong.querySelectorAll("span");
-      const phenoSpan = spans[0];
-      if (phenoSpan) {
-        phenoSpan.textContent = data.name;
-      }
-      container._wildNameForced = true;
-    }
-
-    // 3) Clean up "To Be Defined" in parent info container, if present
-    const info = document.getElementById(prefix + "InfoContainer");
-    if (info) {
-      info.querySelectorAll("span, div, strong").forEach(el => {
-        if (/to be defined/i.test(el.textContent)) {
-          el.textContent = data.name;
-        }
-      });
+  // Re-apply wild name ONLY if still looks wild-like
+  if (strong && isStillWildLike) {
+    const spans = strong.querySelectorAll("span");
+    const phenoSpan = spans[0];
+    if (phenoSpan) {
+      phenoSpan.textContent = data.name;
     }
   }
 
+  // 3) Clean up "To Be Defined" — unconditional (safe)
+  const info = document.getElementById(prefix + "InfoContainer");
+  if (info) {
+    info.querySelectorAll("span, div, strong").forEach(el => {
+      if (/to be defined/i.test(el.textContent)) {
+        el.textContent = data.name;
+      }
+    });
+  }
+}
 
           // ===========================================
   // Wild offspring naming + images
