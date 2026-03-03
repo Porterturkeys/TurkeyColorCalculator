@@ -1224,7 +1224,7 @@ window.addEventListener("load", () => {
   wrapVarietyFn("applyVarietyToSire", "sire");
   wrapVarietyFn("applyVarietyToDam",  "dam");
 
-  // Make Reset clear Wild overlay state AND the one-time forcing flags
+   // Make Reset clear Wild overlay state AND the one-time forcing flags
   if (typeof window.resetCalculator === "function") {
     const originalReset = window.resetCalculator;
     window.resetCalculator = function(initial) {
@@ -1238,29 +1238,19 @@ window.addEventListener("load", () => {
       ["sire", "dam"].forEach(prefix => {
         const container = document.getElementById(prefix + "ImageContainer");
         if (container) {
-          // Existing: clear wildKey
+          // Clear wildKey
           if (container.dataset.wildKey) {
             delete container.dataset.wildKey;
           }
           
-          // NEW: Clear all our forcing flags so wild works fresh after Reset
+          // Clear forcing flags so wild works fresh after Reset
           delete container._wildBbForced;
           delete container._wildImageForced;
           delete container._wildNameForced;
-          
-          // Optional safety: clear any leftover src/text if core didn't
-          const img = container.querySelector("img");
-          if (img) img.src = "";  // let core reload default
-          
-          const strong = container.querySelector("strong");
-          if (strong) {
-            const spans = strong.querySelectorAll("span");
-            if (spans[0]) spans[0].textContent = "";
-          }
         }
       });
       
-      return result;      
+      return result;
     };
   }
 
