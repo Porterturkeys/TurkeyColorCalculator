@@ -998,20 +998,22 @@ if (KEEP_QUALIFIERS_IN_SUMMARY && typeof cleanSummaryPhenotypesOnce === "functio
       container._wildBbForced = true;
     }
 ///////////////////
-           // 1) Swap parent image to correct Wild file — re-apply every time
+              // Swap image ONLY the first time wild is selected
     const img = container.querySelector("img");
-    if (img) {
+    if (img && !container._wildImageForced) {
       img.src = "https://portersturkeys.github.io/Pictures/" + (prefix === "dam" ? data.female : data.male);
+      container._wildImageForced = true;
     }
 
-    // 2) Fix visible phenotype/variety label — re-apply every time
+         // Set wild name ONLY the first time
     const strong = container.querySelector("strong");
-    if (strong) {
+    if (strong && !container._wildNameForced) {
       const spans = strong.querySelectorAll("span");
       const phenoSpan = spans[0];
       if (phenoSpan) {
         phenoSpan.textContent = data.name;
       }
+      container._wildNameForced = true;
     }
 
     // 3) Clean up "To Be Defined" in parent info container, if present
@@ -1361,6 +1363,30 @@ window.addEventListener("load", () => {
       return result;
     };
   }
+
+
+
+  // Re-apply wild overlay to parents AFTER calculate (so they don't revert to Bronze)
+  if (typeof window.calculateOffspringWrapper === "function" && !window._wildCalcPatched) {
+    window._wildCalcPatched = true;
+    const origCalc = window.calculateOffspringWrapper;
+    window.calculateOffspringWrapper = function() {
+      const res = origCalc.apply(this, arguments);
+      
+      // Small delay so core finishes parent redraw, then re-apply wild if still selected
+      setTimeout(() => {
+        ["sire", "dam"].forEach(prefix => {
+          if (wildState[prefix]) {  // only if still wild variant
+            applyWildToParent(prefix);
+          }
+        });
+      }, 100);  // 100ms — adjust to 200 if needed
+      
+      return res;
+    };
+  }
+
+    
 
 });
 
