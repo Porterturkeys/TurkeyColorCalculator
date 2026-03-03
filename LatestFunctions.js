@@ -1004,7 +1004,7 @@ if (KEEP_QUALIFIERS_IN_SUMMARY && typeof cleanSummaryPhenotypesOnce === "functio
       if (prefix === "sire" && typeof updateSireGenotype === "function") updateSireGenotype();
       if (prefix === "dam" && typeof updateDamGenotype === "function") updateDamGenotype();
     }
-      
+  } 
 ///////////////////////////////////////
     // 1) Swap parent image to correct Wild file
     const img = container.querySelector("img");
