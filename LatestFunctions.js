@@ -1252,6 +1252,44 @@ window.addEventListener("load", () => {
   // DOM observers: keep Wild overlay alive through Calculate / redraws
   installObservers();
 
+////////////////////
+
+    // New: Dedicated observer to RELEASE wild overlay when core phenotype changes away
+function installWildReleaseObserver() {
+  ["sire", "dam"].forEach(prefix => {
+    const container = document.getElementById(prefix + "ImageContainer");
+    if (!container) return;
+
+    const strong = container.querySelector("strong");
+    if (!strong) return;
+
+    const obs = new MutationObserver(() => {
+      const spans = strong.querySelectorAll("span");
+      const pheno = (spans[0] ? spans[0].textContent : strong.textContent || "").trim().toLowerCase();
+
+      if (pheno && 
+          !pheno.includes("wild") && 
+          !pheno.includes("bronze") && 
+          !pheno.includes("to be defined") && 
+          !pheno.includes("hybrid")) {
+
+        if (wildState[prefix]) {
+          console.log(`Releasing wild overlay on ${prefix} → new pheno: "${pheno}"`);
+          wildState[prefix] = null;
+          delete container.dataset.wildKey;
+        }
+      }
+    });
+
+    obs.observe(strong, { childList: true, subtree: true, characterData: true });
+  });
+}
+
+// Call it after other observers
+installWildReleaseObserver();
+
+///////////////////    
+
   // Offspring/summary overlay (same-strain Wild -Wild only)
   installWildOffspringObserver();
 
