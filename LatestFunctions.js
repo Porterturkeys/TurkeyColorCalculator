@@ -998,22 +998,20 @@ if (KEEP_QUALIFIERS_IN_SUMMARY && typeof cleanSummaryPhenotypesOnce === "functio
       container._wildBbForced = true;
     }
 ///////////////////
-        // Swap image to wild ONLY the first time — never again
+           // 1) Swap parent image to correct Wild file — re-apply every time
     const img = container.querySelector("img");
-    if (img && !container._wildImageForced) {
+    if (img) {
       img.src = "https://portersturkeys.github.io/Pictures/" + (prefix === "dam" ? data.female : data.male);
-      container._wildImageForced = true;  // One-time flag
     }
 
-        // Set wild name ONLY the first time — never again
+    // 2) Fix visible phenotype/variety label — re-apply every time
     const strong = container.querySelector("strong");
-    if (strong && !container._wildNameForced) {
+    if (strong) {
       const spans = strong.querySelectorAll("span");
       const phenoSpan = spans[0];
       if (phenoSpan) {
         phenoSpan.textContent = data.name;
       }
-      container._wildNameForced = true;  // One-time flag
     }
 
     // 3) Clean up "To Be Defined" in parent info container, if present
