@@ -984,27 +984,22 @@ if (KEEP_QUALIFIERS_IN_SUMMARY && typeof cleanSummaryPhenotypesOnce === "functio
       
     ////////////////// 
 
-        // 0) Force bb ONLY while it still looks like a wild variety
-    //    Once user changes alleles and phenotype updates → STOP forcing
+           // Force bb ONLY if current phenotype still looks wild-like
+    const strong = container.querySelector("strong");
+    const phenoText = strong ? (strong.querySelector("span")?.textContent || strong.textContent || "").trim().toLowerCase() : "";
+    const isStillWildLike = /wild|bronze|to be defined|hybrid/i.test(phenoText);
+
     const bronzeSelectId = prefix === "sire" ? "sireAlleleb" : "damAlleleb";
     const bronzeSelect = document.getElementById(bronzeSelectId);
-    const strong = container.querySelector("strong");
-    const currentPheno = strong 
-      ? (strong.querySelector("span")?.textContent || strong.textContent || "").trim().toLowerCase() 
-      : "";
-
-    if (bronzeSelect && 
-        (currentPheno.includes("wild") || 
-         currentPheno.includes("bronze") || 
-         currentPheno.includes("to be defined") ||
-         currentPheno.includes("hybrid")) &&
-        bronzeSelect.value !== "bb") {
-      
+    if (isStillWildLike && bronzeSelect && bronzeSelect.value !== "bb") {
       bronzeSelect.value = "bb";
-      if (prefix === "sire" && typeof updateSireGenotype === "function") updateSireGenotype();
-      if (prefix === "dam" && typeof updateDamGenotype === "function") updateDamGenotype();
+      if (prefix === "sire" && typeof updateSireGenotype === "function") {
+        updateSireGenotype();
+      }
+      if (prefix === "dam" && typeof updateDamGenotype === "function") {
+        updateDamGenotype();
+      }
     }
-  } 
 ///////////////////////////////////////
     // 1) Swap parent image to correct Wild file
     const img = container.querySelector("img");
