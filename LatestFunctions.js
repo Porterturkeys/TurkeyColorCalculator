@@ -1224,25 +1224,28 @@ window.addEventListener("load", () => {
   wrapVarietyFn("applyVarietyToSire", "sire");
   wrapVarietyFn("applyVarietyToDam",  "dam");
 
-  // Make Reset clear Wild overlay state
+      // Make Reset clear Wild overlay state
   if (typeof window.resetCalculator === "function") {
     const originalReset = window.resetCalculator;
-
     window.resetCalculator = function(initial) {
       const result = originalReset.apply(this, arguments);
-
+      
       // Clear Wild state
       wildState.sire = null;
-      wildState.dam  = null;
-
+      wildState.dam = null;
+      
       // Remove Wild flags from parent image containers
       ["sire", "dam"].forEach(prefix => {
         const container = document.getElementById(prefix + "ImageContainer");
-        if (container && container.dataset.wildKey) {
-          delete container.dataset.wildKey;
+        if (container) {
+          if (container.dataset.wildKey) delete container.dataset.wildKey;
+          // NEW: Clear the one-time forcing flags so wild works again after Reset
+          delete container._wildBbForced;
+          delete container._wildImageForced;
+          delete container._wildNameForced;
         }
       });
-
+      
       return result;
     };
   }
