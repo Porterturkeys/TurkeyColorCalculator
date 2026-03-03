@@ -993,20 +993,35 @@ if (KEEP_QUALIFIERS_IN_SUMMARY && typeof cleanSummaryPhenotypesOnce === "functio
   const currentPheno = strong ? (strong.querySelector("span")?.textContent || strong.textContent || "").trim().toLowerCase() : "";
   const isStillWildLike = /wild|bronze|to be defined|hybrid/i.test(currentPheno);
 
-  // Re-apply wild image ONLY if still looks wild-like
-  const img = container.querySelector("img");
-  if (img && isStillWildLike) {
-    img.src = "https://portersturkeys.github.io/Pictures/" + (prefix === "dam" ? data.female : data.male);
-  }
+     // Replace this whole image part with:
+    const img = container.querySelector("img");
+    if (img) {
+      // Get current phenotype text BEFORE deciding to apply
+      const strongCheck = container.querySelector("strong");
+      const currentPheno = strongCheck 
+        ? (strongCheck.querySelector("span")?.textContent || strongCheck.textContent || "").trim().toLowerCase() 
+        : "";
 
-  // Re-apply wild name ONLY if still looks wild-like
-  if (strong && isStillWildLike) {
-    const spans = strong.querySelectorAll("span");
-    const phenoSpan = spans[0];
-    if (phenoSpan) {
-      phenoSpan.textContent = data.name;
+      // Only apply wild image if it still looks wild/bronze/placeholder
+      if (/wild|bronze|to be defined|hybrid/i.test(currentPheno)) {
+        img.src = "https://portersturkeys.github.io/Pictures/" + (prefix === "dam" ? data.female : data.male);
+      }
     }
-  }
+
+      // Replace this whole name part with:
+    const strong = container.querySelector("strong");
+    if (strong) {
+      const spans = strong.querySelectorAll("span");
+      const phenoSpan = spans[0];
+
+      // Get current phenotype text (same as above)
+      const currentPheno = (spans[0] ? spans[0].textContent : strong.textContent || "").trim().toLowerCase();
+
+      // Only apply wild name if it still looks wild-like
+      if (phenoSpan && /wild|bronze|to be defined|hybrid/i.test(currentPheno)) {
+        phenoSpan.textContent = data.name;
+      }
+    }
 
   // 3) Clean up "To Be Defined" — unconditional (safe)
   const info = document.getElementById(prefix + "InfoContainer");
