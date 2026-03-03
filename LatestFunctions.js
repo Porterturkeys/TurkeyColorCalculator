@@ -954,6 +954,7 @@ if (KEEP_QUALIFIERS_IN_SUMMARY && typeof cleanSummaryPhenotypesOnce === "functio
 
   // When user types / uses variety autocomplete, figure out if it's a Wild variant
   function detectWildFromVariety(prefix) {
+
     const input = document.getElementById(prefix + "VarietyInput");
     const val   = norm(input && input.value);
     const key   = WILD_VARIETY_MAP[val] || null;
@@ -980,6 +981,22 @@ if (KEEP_QUALIFIERS_IN_SUMMARY && typeof cleanSummaryPhenotypesOnce === "functio
 
     const data = WILD_VARIANTS[key];
     if (!data) return;
+/////////////////////////////////
+
+    // NEW: Release wild overlay if the core has already updated to a different phenotype
+    const strong = container.querySelector("strong");
+    let currentPheno = "";
+    if (strong) {
+      const spans = strong.querySelectorAll("span");
+      currentPheno = (spans[0] ? spans[0].textContent : strong.textContent || "").trim().toLowerCase();
+    }
+    if (currentPheno && !/wild|bronze|to be defined/i.test(currentPheno)) {
+      wildState[prefix] = null;
+      delete container.dataset.wildKey;
+      return;  // Stop here — let the real phenotype stay
+    }
+
+      //////////////////////
 
     // 0) Force Bronze locus dropdown to bb for Wild parents
     //    (so the genotype actually becomes bb at the bronze locus)
