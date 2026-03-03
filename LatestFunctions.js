@@ -983,7 +983,25 @@ if (KEEP_QUALIFIERS_IN_SUMMARY && typeof cleanSummaryPhenotypesOnce === "functio
     if (!data) return;
 /////////////////////////////////
 
-   
+   // Safe release: clear wild state only if phenotype clearly no longer matches wild/bronze
+const strong = container.querySelector("strong");
+const currentPheno = strong 
+  ? (strong.querySelector("span")?.textContent || strong.textContent || "").trim().toLowerCase() 
+  : "";
+
+if (currentPheno 
+    && !currentPheno.includes("wild") 
+    && !currentPheno.includes("bronze") 
+    && !currentPheno.includes("to be defined")
+    && !currentPheno.includes("hybrid")) {   // added "hybrid" since Hybrid Wild is a thing
+
+  wildState[prefix] = null;
+  if (container.dataset.wildKey) {
+    delete container.dataset.wildKey;
+  }
+  // IMPORTANT: NO return here — let the function continue
+  // If state is cleared, next time the observer runs it won't re-apply wild anymore
+}
 
       //////////////////////
 
