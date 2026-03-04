@@ -1569,7 +1569,7 @@ document.addEventListener('click', function (event) {
 })();
 
 // ===========================================
-// BROAD BREASTED BRONZE OVERLAY (parents + offspring fix - no double name)
+// BROAD BREASTED BRONZE OVERLAY (parents + offspring - FIXED double name)
 // ===========================================
 (function () {
   'use strict';
@@ -1617,7 +1617,7 @@ document.addEventListener('click', function (event) {
 
     const data = BB_BRONZE;
 
-    // Force bb
+    // Force bb every time
     const bronzeId = prefix === "sire" ? "sireAlleleb" : "damAlleleb";
     const bronzeSel = document.getElementById(bronzeId);
     if (bronzeSel && bronzeSel.value !== "bb") {
@@ -1680,23 +1680,20 @@ document.addEventListener('click', function (event) {
 
     const displayName = BB_BRONZE.name;
 
-    // Patch offspring lists - precise replacement
+    // Patch offspring lists
     document.querySelectorAll("#maleOffspringResults li, #femaleOffspringResults li").forEach(li => {
       let html = li.innerHTML;
 
-      // Skip if already correct
+      // Guard: skip if already has the full correct name
       if (html.includes(displayName)) return;
 
-      // Replace standalone "Bronze" (word boundary) or exact "Bronze"
+      // Replace ONLY standalone "Bronze" (word boundaries prevent matching inside "Broad Breasted Bronze")
       html = html.replace(/\bBronze\b/gi, displayName);
-
-      // Extra safety: replace any remaining "Bronze" that wasn't caught
-      html = html.replace(/Bronze/gi, displayName);
 
       // To Be Defined
       html = html.replace(/To Be Defined/gi, displayName);
 
-      li.innerHTML = html;
+      li.innerHTML = html.trim();
     });
 
     // Patch summary chart - same precise logic
@@ -1710,10 +1707,9 @@ document.addEventListener('click', function (event) {
         if (text.includes(displayName)) return;
 
         text = text.replace(/\bBronze\b/gi, displayName);
-        text = text.replace(/Bronze/gi, displayName);
-        text = text.replace(/to be defined/gi, displayName);
+        text = text.replace(/To Be Defined/gi, displayName);
 
-        cell.textContent = text;
+        cell.textContent = text.trim();
       });
     }
   }
