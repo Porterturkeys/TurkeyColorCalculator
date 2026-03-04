@@ -1569,24 +1569,18 @@ document.addEventListener('click', function (event) {
 })();
 
 // ===========================================
-// BROAD BREASTED BRONZE + WHITE OVERLAY - SAFE & MINIMAL
+// BROAD BREASTED BRONZE OVERLAY (parents only) - matches wild/white behavior
 // ===========================================
 (function () {
   'use strict';
 
-  const BRONZE = {
+  const BB_BRONZE = {
     name: "Broad Breasted Bronze",
     male: "MBroadBreastedBronze.jpg",
     female: "FBroadBreastedBronze.jpg"
   };
 
-  const WHITE = {
-    name: "Broad Breasted White",
-    male: "MBroadBreastedWhite.jpg",
-    female: "FBroadBreastedWhite.jpg"
-  };
-
-  const BRONZE_MAP = {
+  const BB_BRONZE_MAP = {
     "broad breasted bronze": true,
     "broad-breasted bronze": true,
     "mammoth bronze": true,
@@ -1596,65 +1590,51 @@ document.addEventListener('click', function (event) {
     "large bronze": true
   };
 
-  const WHITE_MAP = {
-    "broad breasted white": true,
-    "broad-breasted white": true,
-    "giant white": true,
-    "commercial white": true,
-    "large white": true,
-    "broad white": true,
-    "breasted white": true
-  };
-
-  const state = { sire: null, dam: null }; // "bronze" or "white"
+  const bbBronzeState = { sire: null, dam: null };
 
   function norm(str) {
     return (str || "").trim().toLowerCase();
   }
 
-  function detectType(prefix) {
+  function detectBBBronzeFromVariety(prefix) {
     const input = document.getElementById(prefix + "VarietyInput");
     const val = norm(input?.value);
-    let type = null;
-    if (BRONZE_MAP[val]) type = "bronze";
-    else if (WHITE_MAP[val]) type = "white";
-    state[prefix] = type;
-    const c = document.getElementById(prefix + "ImageContainer");
-    if (c) {
-      if (type) c.dataset.bbType = type;
-      else delete c.dataset.bbType;
+    const isBB = !!BB_BRONZE_MAP[val];
+    bbBronzeState[prefix] = isBB ? "broad" : null;
+    const container = document.getElementById(prefix + "ImageContainer");
+    if (container) {
+      if (isBB) container.dataset.bbBronzeKey = "broad";
+      else delete container.dataset.bbBronzeKey;
     }
-    return type;
+    return isBB;
   }
 
-  function forceApply(prefix) {
-    const c = document.getElementById(prefix + "ImageContainer");
-    if (!c) return;
+  function forceApplyBBBronze(prefix) {
+    const container = document.getElementById(prefix + "ImageContainer");
+    if (!container) return;
 
-    const type = state[prefix];
-    if (!type) return;
+    if (!bbBronzeState[prefix]) return;
 
-    const data = type === "bronze" ? BRONZE : WHITE;
+    const data = BB_BRONZE;
 
-    // Force alleles
-    const bId = prefix === "sire" ? "sireAlleleb" : "damAlleleb";
-    const cId = prefix === "sire" ? "sireAlleleC" : "damAlleleC";
-    const bSel = document.getElementById(bId);
-    const cSel = document.getElementById(cId);
+    // Force bb reliably every apply
+    const bronzeId = prefix === "sire" ? "sireAlleleb" : "damAlleleb";
+    const bronzeSel = document.getElementById(bronzeId);
+    if (bronzeSel && bronzeSel.value !== "bb") {
+      bronzeSel.value = "bb";
+      // Trigger genotype update
+      if (prefix === "sire" && typeof updateSireGenotype === "function") updateSireGenotype();
+      if (prefix === "dam" && typeof updateDamGenotype === "function") updateDamGenotype();
+    }
 
-    if (bSel && bSel.value !== "bb") bSel.value = "bb";
-    if (type === "white" && cSel && cSel.value !== "cc") cSel.value = "cc";
+    // Force image
+    const img = container.querySelector("img");
+    if (img) {
+      img.src = "https://portersturkeys.github.io/Pictures/" + (prefix === "dam" ? data.female : data.male);
+    }
 
-    // Trigger update
-    if (prefix === "sire" && typeof updateSireGenotype === "function") updateSireGenotype();
-    if (prefix === "dam" && typeof updateDamGenotype === "function") updateDamGenotype();
-
-    // Image
-    const img = c.querySelector("img");
-    if (img) img.src = "https://portersturkeys.github.io/Pictures/" + (prefix === "dam" ? data.female : data.male);
-
-    // Name
-    const strong = c.querySelector("strong");
+    // Force name
+    const strong = container.querySelector("strong");
     if (strong) {
       let span = strong.querySelector("span");
       if (!span) {
@@ -1665,82 +1645,139 @@ document.addEventListener('click', function (event) {
       span.textContent = data.name;
     }
 
-    // Cleanup
+    // Cleanup generic text
     const info = document.getElementById(prefix + "InfoContainer");
     if (info) {
       info.querySelectorAll("span, div, strong").forEach(el => {
-        const txt = el.textContent || "";
-        if (/bronze|white.*eyes|to be defined/i.test(txt.toLowerCase())) {
+        if (/bronze|to be defined/i.test(el.textContent || "")) {
           el.textContent = data.name;
         }
       });
     }
   }
 
-  function wrapVariety(fnName, prefix) {
+  function applyBBBronzeToParent(prefix) {
+    const container = document.getElementById(prefix + "ImageContainer");
+    if (!container) return;
+
+    if (!bbBronzeState[prefix]) return;
+
+    const strong = container.querySelector("strong");
+    let currentText = "";
+    if (strong) {
+      const span = strong.querySelector("span");
+      currentText = (span ? span.textContent : strong.textContent || "").trim().toLowerCase();
+    }
+
+    // Apply if still looks like generic bronze
+    if (/bronze|to be defined/i.test(currentText) || currentText === "") {
+      forceApplyBBBronze(prefix);
+    }
+  }
+
+  function wrapVarietyFn(fnName, prefix) {
     const orig = window[fnName];
-    if (typeof orig !== "function" || orig._bbPatched) return;
+    if (typeof orig !== "function") return;
+    // Prevent duplicate wraps
+    if (orig._bbBronzeWrapped) return;
+
     window[fnName] = function (...args) {
       const res = orig.apply(this, args);
-      if (detectType(prefix)) {
-        setTimeout(() => forceApply(prefix), 150);
+      const isBB = detectBBBronzeFromVariety(prefix);
+      if (isBB) {
+        setTimeout(() => forceApplyBBBronze(prefix), 100);
+        setTimeout(() => forceApplyBBBronze(prefix), 400);
       }
       return res;
     };
-    window[fnName]._bbPatched = true;
+    window[fnName]._bbBronzeWrapped = true;
   }
 
   window.addEventListener("load", () => {
-    wrapVariety("applyVarietyToSire", "sire");
-    wrapVariety("applyVarietyToDam", "dam");
+    wrapVarietyFn("applyVarietyToSire", "sire");
+    wrapVarietyFn("applyVarietyToDam", "dam");
 
     // Reset
     if (typeof window.resetCalculator === "function") {
       const orig = window.resetCalculator;
       window.resetCalculator = function (...args) {
         const res = orig.apply(this, args);
-        state.sire = state.dam = null;
+        bbBronzeState.sire = bbBronzeState.dam = null;
         ["sire", "dam"].forEach(p => {
           const c = document.getElementById(p + "ImageContainer");
-          if (c) delete c.dataset.bbType;
+          if (c) delete c.dataset.bbBronzeKey;
         });
         return res;
       };
     }
 
-    // Transfer
-    if (typeof window.transferOffspringToParent === "function" && !window._bbTransferPatched) {
-      window._bbTransferPatched = true;
+    // Transfer persistence
+    if (typeof window.transferOffspringToParent === "function" && !window._bbBronzeTransferPatched) {
+      window._bbBronzeTransferPatched = true;
       const orig = window.transferOffspringToParent;
       window.transferOffspringToParent = function (...args) {
         const res = orig.apply(this, args);
         const parent = args[1];
         if (parent === "sire" || parent === "dam") {
-          if (state[parent]) {
-            setTimeout(() => forceApply(parent), 200);
+          if (bbBronzeState[parent]) {
+            const c = document.getElementById(parent + "ImageContainer");
+            if (c) {
+              c.dataset.bbBronzeKey = "broad";
+              setTimeout(() => forceApplyBBBronze(parent), 150);
+              setTimeout(() => forceApplyBBBronze(parent), 400);
+            }
           }
         }
         return res;
       };
     }
 
-    // Calculate
-    if (typeof window.calculateOffspringWrapper === "function" && !window._bbCalcPatched) {
-      window._bbCalcPatched = true;
+    // Favorites support
+    if (typeof window.handleDropdownChange === "function" && !window._bbBronzeFavoritesPatched) {
+      window._bbBronzeFavoritesPatched = true;
+      const orig = window.handleDropdownChange;
+      window.handleDropdownChange = function (type, dropdownId, ...args) {
+        const res = orig.apply(this, [type, dropdownId, ...args]);
+        if (type !== "sire" && type !== "dam") return res;
+
+        const dd = document.getElementById(dropdownId);
+        const name = dd?.value?.trim()?.toLowerCase();
+        if (!name) return res;
+
+        const base = name.replace(/\s*\(\d+\)\s*$/, "");
+        const isBB = !!BB_BRONZE_MAP[base];
+
+        if (isBB) {
+          bbBronzeState[type] = "broad";
+          const c = document.getElementById(type + "ImageContainer");
+          if (c) c.dataset.bbBronzeKey = "broad";
+          setTimeout(() => forceApplyBBBronze(type), 100);
+          setTimeout(() => forceApplyBBBronze(type), 400);
+        } else {
+          bbBronzeState[type] = null;
+          const c = document.getElementById(type + "ImageContainer");
+          if (c) delete c.dataset.bbBronzeKey;
+        }
+        return res;
+      };
+    }
+
+    // Post-calculate persistence
+    if (typeof window.calculateOffspringWrapper === "function" && !window._bbBronzeCalcPatched) {
+      window._bbBronzeCalcPatched = true;
       const orig = window.calculateOffspringWrapper;
       window.calculateOffspringWrapper = function (...args) {
         const res = orig.apply(this, args);
         setTimeout(() => {
-          ["sire", "dam"].forEach(p => {
-            if (state[p]) forceApply(p);
+          ["sire", "dam"].forEach(prefix => {
+            if (bbBronzeState[prefix]) applyBBBronzeToParent(prefix);
           });
-        }, 200);
+        }, 150);
         return res;
       };
     }
   });
 })();
-
 
 // =====================================================
 // SUMMARY CHART / Dam (shows ONLY after calculate)
