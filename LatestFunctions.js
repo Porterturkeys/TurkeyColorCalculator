@@ -1570,7 +1570,7 @@ document.addEventListener('click', function (event) {
 
 
 // ===========================================
-// BROAD BREASTED BRONZE OVERLAY (parents only) - FIXED post-calculate
+// BROAD BREASTED BRONZE OVERLAY (parents + offspring fix)
 // ===========================================
 (function () {
   'use strict';
@@ -1618,7 +1618,7 @@ document.addEventListener('click', function (event) {
 
     const data = BB_BRONZE;
 
-    // Force bb every time (reliable)
+    // Force bb every time
     const bronzeId = prefix === "sire" ? "sireAlleleb" : "damAlleleb";
     const bronzeSel = document.getElementById(bronzeId);
     if (bronzeSel && bronzeSel.value !== "bb") {
@@ -1669,10 +1669,46 @@ document.addEventListener('click', function (event) {
       currentText = (span ? span.textContent : strong.textContent || "").trim().toLowerCase();
     }
 
-    // For initial variety selection: only apply if still generic
-    const isGeneric = /bronze|to be defined/i.test(currentText) || currentText === "";
-    if (isGeneric) {
+    if (/bronze|to be defined/i.test(currentText) || currentText === "") {
       forceApplyBBBronze(prefix);
+    }
+  }
+
+  function applyBBBronzeToOffspring() {
+    if (!bbBronzeState.sire || !bbBronzeState.dam || bbBronzeState.sire !== "broad" || bbBronzeState.dam !== "broad") {
+      return;
+    }
+
+    const displayName = BB_BRONZE.name;
+
+    // Patch offspring lists
+    document.querySelectorAll("#maleOffspringResults li, #femaleOffspringResults li").forEach(li => {
+      let html = li.innerHTML;
+      if (html.includes(displayName)) return;
+
+      // Aggressive replace for "Bronze"
+      html = html.replace(/\bBronze\b/gi, displayName)
+                 .replace(/Bronze/gi, displayName)  // extra pass for any missed case
+                 .replace(/To Be Defined/gi, displayName);
+
+      li.innerHTML = html;
+    });
+
+    // Patch summary chart
+    const summaryBody = document.querySelector("#summaryChart tbody");
+    if (summaryBody) {
+      summaryBody.querySelectorAll("tr").forEach(tr => {
+        const cell = tr.cells?.[1];
+        if (!cell) return;
+        let text = cell.textContent || "";
+        if (text.includes(displayName)) return;
+
+        text = text.replace(/\bBronze\b/gi, displayName)
+                   .replace(/Bronze/gi, displayName)
+                   .replace(/to be defined/gi, displayName);
+
+        cell.textContent = text;
+      });
     }
   }
 
@@ -1762,7 +1798,7 @@ document.addEventListener('click', function (event) {
       };
     }
 
-    // Post-calculate: ALWAYS re-apply if state is set (fixes offspring showing as generic bronze)
+    // Post-calculate: force apply to parents + aggressive offspring patch
     if (typeof window.calculateOffspringWrapper === "function" && !window._bbBronzeCalcPatched) {
       window._bbBronzeCalcPatched = true;
       const orig = window.calculateOffspringWrapper;
@@ -1771,16 +1807,16 @@ document.addEventListener('click', function (event) {
         setTimeout(() => {
           ["sire", "dam"].forEach(prefix => {
             if (bbBronzeState[prefix]) {
-              forceApplyBBBronze(prefix);  // Force, don't check condition
+              forceApplyBBBronze(prefix);  // Always force on parents
             }
           });
-        }, 150);
+          applyBBBronzeToOffspring();  // Aggressive offspring patch
+        }, 200);
         return res;
       };
     }
   });
 })();
-
 
 
 // =====================================================
