@@ -862,7 +862,7 @@ if (KEEP_QUALIFIERS_IN_SUMMARY && typeof cleanSummaryPhenotypesOnce === "functio
 
 //////////////////////////
 // ===========================================
-// Wild VARIANTS OVERLAY (parents + offspring) - persist after calculate if still wild-like
+// Wild VARIANTS OVERLAY (parents + offspring) - fix initial name revert to Bronze
 // ===========================================
 (function () {
   'use strict';
@@ -906,7 +906,7 @@ if (KEEP_QUALIFIERS_IN_SUMMARY && typeof cleanSummaryPhenotypesOnce === "functio
     return key;
   }
 
-  function applyWildToParent(prefix) {
+  function forceApplyWild(prefix) {
     const container = document.getElementById(prefix + "ImageContainer");
     if (!container) return;
 
@@ -916,19 +916,7 @@ if (KEEP_QUALIFIERS_IN_SUMMARY && typeof cleanSummaryPhenotypesOnce === "functio
     const data = WILD_VARIANTS[key];
     if (!data) return;
 
-    // Get current phenotype text
-    const strong = container.querySelector("strong");
-    let currentText = "";
-    if (strong) {
-      const span = strong.querySelector("span");
-      currentText = (span ? span.textContent : strong.textContent || "").trim().toLowerCase();
-    }
-
-    // Only apply if still looks wild/bronze/generic (prevents overriding colored phenotypes)
-    const isWildLike = /wild|bronze|to be defined|hybrid/i.test(currentText) || currentText === "";
-    if (!isWildLike) return;
-
-    // One-time force bb on initial selection (safe to re-check)
+    // Force bb if not set (one-time)
     const bronzeId = prefix === "sire" ? "sireAlleleb" : "damAlleleb";
     const bronzeSel = document.getElementById(bronzeId);
     if (bronzeSel && bronzeSel.value !== "bb" && !container._wildBbForced) {
@@ -938,26 +926,53 @@ if (KEEP_QUALIFIERS_IN_SUMMARY && typeof cleanSummaryPhenotypesOnce === "functio
       container._wildBbForced = true;
     }
 
-    // Apply image
+    // Force image
     const img = container.querySelector("img");
     if (img) {
       img.src = "https://portersturkeys.github.io/Pictures/" + (prefix === "dam" ? data.female : data.male);
     }
 
-    // Apply name
+    // Force name (create span if missing)
+    const strong = container.querySelector("strong");
     if (strong) {
-      const span = strong.querySelector("span") || strong;
-      span.textContent = data.name;
+      let phenoSpan = strong.querySelector("span");
+      if (!phenoSpan) {
+        phenoSpan = document.createElement("span");
+        strong.innerHTML = '';
+        strong.appendChild(phenoSpan);
+      }
+      phenoSpan.textContent = data.name;
     }
 
-    // Cleanup To Be Defined
+    // Aggressive cleanup
     const info = document.getElementById(prefix + "InfoContainer");
     if (info) {
-      info.querySelectorAll("span, div, strong").forEach(el => {
-        if (/to be defined/i.test(el.textContent)) {
+      info.querySelectorAll("span, div, strong, p").forEach(el => {
+        let txt = el.textContent || "";
+        if (/bronze|wild|to be defined|hybrid/i.test(txt.toLowerCase())) {
           el.textContent = data.name;
         }
       });
+    }
+  }
+
+  function applyWildToParent(prefix) {
+    const container = document.getElementById(prefix + "ImageContainer");
+    if (!container) return;
+
+    const key = container.dataset.wildKey || wildState[prefix];
+    if (!key) return;
+
+    const strong = container.querySelector("strong");
+    let currentText = "";
+    if (strong) {
+      const span = strong.querySelector("span");
+      currentText = (span ? span.textContent : strong.textContent || "").trim().toLowerCase();
+    }
+
+    // Apply if bronze/wild/generic
+    if (/bronze|wild|to be defined|hybrid/i.test(currentText) || currentText === "") {
+      forceApplyWild(prefix);
     }
   }
 
@@ -971,7 +986,6 @@ if (KEEP_QUALIFIERS_IN_SUMMARY && typeof cleanSummaryPhenotypesOnce === "functio
     if (!data) return;
     const displayName = data.name;
 
-    // Patch visible text
     document.querySelectorAll("#maleOffspringResults li, #femaleOffspringResults li").forEach(li => {
       let html = li.innerHTML;
       if (html.includes(displayName)) return;
@@ -981,7 +995,6 @@ if (KEEP_QUALIFIERS_IN_SUMMARY && typeof cleanSummaryPhenotypesOnce === "functio
       li.innerHTML = html;
     });
 
-    // Patch summary chart
     document.querySelector("#summaryChart tbody")?.querySelectorAll("tr").forEach(tr => {
       const cell = tr.cells?.[1];
       if (!cell) return;
@@ -993,7 +1006,6 @@ if (KEEP_QUALIFIERS_IN_SUMMARY && typeof cleanSummaryPhenotypesOnce === "functio
       cell.textContent = txt;
     });
 
-    // Patch internal arrays & images
     function patchArray(arr) {
       if (!Array.isArray(arr)) return;
       arr.forEach(o => {
@@ -1052,7 +1064,24 @@ if (KEEP_QUALIFIERS_IN_SUMMARY && typeof cleanSummaryPhenotypesOnce === "functio
       const res = orig.apply(this, args);
       const key = detectWildFromVariety(prefix);
       if (key) {
-        setTimeout(() => applyWildToParent(prefix), 100);
+        // Initial apply
+        setTimeout(() => forceApplyWild(prefix), 100);
+        // Delayed apply to override core "Bronze"
+        setTimeout(() => forceApplyWild(prefix), 400);
+
+        // Short-lived observer to catch late core changes (disconnects after 3s)
+        const container = document.getElementById(prefix + "ImageContainer");
+        if (container) {
+          const obs = new MutationObserver(() => {
+            const strong = container.querySelector("strong");
+            const txt = strong ? (strong.querySelector("span")?.textContent || strong.textContent || "").trim().toLowerCase() : "";
+            if (/bronze/i.test(txt)) {
+              forceApplyWild(prefix);
+            }
+          });
+          obs.observe(container, { childList: true, subtree: true, characterData: true });
+          setTimeout(() => obs.disconnect(), 3000);
+        }
       } else {
         wildState[prefix] = null;
         const c = document.getElementById(prefix + "ImageContainer");
@@ -1069,7 +1098,6 @@ if (KEEP_QUALIFIERS_IN_SUMMARY && typeof cleanSummaryPhenotypesOnce === "functio
     wrapVarietyFn("applyVarietyToSire", "sire");
     wrapVarietyFn("applyVarietyToDam", "dam");
 
-    // Reset
     if (typeof window.resetCalculator === "function") {
       const orig = window.resetCalculator;
       window.resetCalculator = function (...args) {
@@ -1088,21 +1116,15 @@ if (KEEP_QUALIFIERS_IN_SUMMARY && typeof cleanSummaryPhenotypesOnce === "functio
 
     installWildOffspringObserver();
 
-    // Transfer patch
     if (typeof window.transferOffspringToParent === "function" && !window._wildTransferPatched) {
       window._wildTransferPatched = true;
       const orig = window.transferOffspringToParent;
       window.transferOffspringToParent = function (...args) {
         const res = orig.apply(this, args);
-        const parent = args[1];
-        if (parent === "sire" || parent === "dam") {
-          // We keep state but do NOT force apply here - let calculate handle
-        }
         return res;
       };
     }
 
-    // Favorites
     if (typeof window.handleDropdownChange === "function" && !window._wildFavoritesPatched) {
       window._wildFavoritesPatched = true;
       const orig = window.handleDropdownChange;
@@ -1124,7 +1146,8 @@ if (KEEP_QUALIFIERS_IN_SUMMARY && typeof cleanSummaryPhenotypesOnce === "functio
           wildState[type] = key;
           const c = document.getElementById(type + "ImageContainer");
           if (c) c.dataset.wildKey = key;
-          setTimeout(() => applyWildToParent(type), 100);
+          setTimeout(() => forceApplyWild(type), 100);
+          setTimeout(() => forceApplyWild(type), 400);
         } else {
           wildState[type] = null;
           const c = document.getElementById(type + "ImageContainer");
@@ -1134,7 +1157,6 @@ if (KEEP_QUALIFIERS_IN_SUMMARY && typeof cleanSummaryPhenotypesOnce === "functio
       };
     }
 
-    // Calculate: re-apply wild to parents if still eligible + patch offspring
     if (typeof window.calculateOffspringWrapper === "function" && !window._wildCalcPatched) {
       window._wildCalcPatched = true;
       const orig = window.calculateOffspringWrapper;
