@@ -1803,30 +1803,69 @@ document.addEventListener('click', function (event) {
       };
     }
 
-    // TRANSFER - use offspring genotype, force to target parent
-    if (typeof window.transferOffspringToParent === "function" && !window._bbTransferPatched) {
-      window._bbTransferPatched = true;
-      const orig = window.transferOffspringToParent;
-      window.transferOffspringToParent = function (genotype, parent) {
-        const res = orig.apply(this, arguments);
+   // TRANSFER - force replacement even when parent is already white
+if (typeof window.transferOffspringToParent === "function" && !window._bbTransferPatched) {
+  window._bbTransferPatched = true;
+  const origTransfer = window.transferOffspringToParent;
 
-        if (parent === "sire" || parent === "dam") {
-          const isWhite = String(genotype || "").includes("cc");
-          state[parent] = isWhite ? "white" : "bronze";
+  window.transferOffspringToParent = function (genotype, parent) {
+    // Always run original (preserves any side effects like storing the poult ID etc.)
+    const res = origTransfer.apply(this, arguments);
 
-          const c = document.getElementById(parent + "ImageContainer");
-          if (c) {
-            c.dataset.bbType = state[parent];
-            // Immediate force
-            setTimeout(() => forceApply(parent), 50);
-            // Backup delayed
-            setTimeout(() => forceApply(parent), 300);
-          }
-        }
-        return res;
-      };
+    if (parent !== "sire" && parent !== "dam") return res;
+
+    // ────────────────────────────────────────────────
+    // FORCE based ONLY on the transferred genotype — ignore site's opinion
+    // ────────────────────────────────────────────────
+    const isWhite = /\bcc\b/i.test(String(genotype || ""));
+    const targetType  = isWhite ? "white" : "bronze";
+    state[parent] = targetType;
+
+    // 1. Force the actual allele selectors (this is usually what the site checks)
+    const bId = parent === "sire" ? "sireAlleleb" : "damAlleleb";
+    const cId = parent === "sire" ? "sireAlleleC" : "damAlleleC";
+    const bSel = document.getElementById(bId);
+    const cSel = document.getElementById(cId);
+
+    if (bSel) bSel.value = "bb";  // always force bb (all bronze/white are bb)
+
+    if (cSel) {
+      cSel.value = isWhite ? "cc" : "CC";  // ← key line: even if already cc, set it again
     }
 
+    // 2. Trigger site's own update functions (they may listen to selector change)
+    if (parent === "sire" && typeof window.updateSireGenotype === "function") {
+      window.updateSireGenotype();
+    }
+    if (parent === "dam" && typeof window.updateDamGenotype === "function") {
+      window.updateDamGenotype();
+    }
+
+    // 3. Force our visual patch
+    const force = () => forceApply(parent);
+    force();
+    setTimeout(force, 80);
+    setTimeout(force, 250);
+    setTimeout(force, 600);
+
+    // 4. Force variety input (some code paths read from here instead of genotype)
+    const varietyInput = document.getElementById(parent + "VarietyInput");
+    if (varietyInput) {
+      varietyInput.value = isWhite ? WHITE.name : BRONZE.name;
+      // Sometimes dispatching input/change helps
+      varietyInput.dispatchEvent(new Event('input', { bubbles: true }));
+      varietyInput.dispatchEvent(new Event('change', { bubbles: true }));
+    }
+
+    // 5. Force dataset (in case some CSS/observer relies on it)
+    const container = document.getElementById(parent + "ImageContainer");
+    if (container) {
+      container.dataset.bbType = targetType;
+    }
+
+    return res;
+  };
+}
     if (typeof window.calculateOffspringWrapper === "function" && !window._bbCalcPatched) {
       window._bbCalcPatched = true;
       const orig = window.calculateOffspringWrapper;
