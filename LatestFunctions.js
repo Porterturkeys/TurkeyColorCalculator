@@ -1149,58 +1149,25 @@ document.addEventListener('click', function (event) {
 
 
 ////////////////////////////////////////
-
 // ===========================================
-// WHITE VARIANTS OVERLAY (parents + offspring) - persist after calculate if still white-like
+// WHITE VARIANTS OVERLAY (parents + offspring) - immediate name on selection
 // ===========================================
 (function () {
   'use strict';
 
   const WHITE_VARIANTS = {
-    beltsville: {
-      name: "Beltsville Small White",
-      male: "MBeltsvilleSmallWhite.jpg",
-      female: "FBeltsvilleSmallWhite.jpg",
-      poult: "PBeltsvilleSmallWhite.jpg"
-    },
-    midget: {
-      name: "Midget White",
-      male: "MMidgetWhite.jpg",
-      female: "FMidgetWhite.jpg",
-      poult: "PMidgetWhite.jpg"
-    },
-    holland: {
-      name: "White Holland",
-      male: "MWhiteHolland.jpg",
-      female: "FWhiteHolland.jpg",
-      poult: "PWhiteHolland.jpg"
-    },
-    broad: {
-      name: "Broad Breasted White",
-      male: "MBroadBreastedWhite.jpg",
-      female: "FBroadBreastedWhite.jpg",
-      poult: "PBroadBreastedWhite.jpg"
-    }
+    beltsville: { name: "Beltsville Small White", male: "MBeltsvilleSmallWhite.jpg", female: "FBeltsvilleSmallWhite.jpg", poult: "PBeltsvilleSmallWhite.jpg" },
+    midget:     { name: "Midget White",           male: "MMidgetWhite.jpg",           female: "FMidgetWhite.jpg",           poult: "PMidgetWhite.jpg" },
+    holland:    { name: "White Holland",          male: "MWhiteHolland.jpg",          female: "FWhiteHolland.jpg",          poult: "PWhiteHolland.jpg" },
+    broad:      { name: "Broad Breasted White",   male: "MBroadBreastedWhite.jpg",    female: "FBroadBreastedWhite.jpg",    poult: "PBroadBreastedWhite.jpg" }
   };
 
   const WHITE_VARIETY_MAP = {
-    "beltsville small white": "beltsville",
-    "beltsville white": "beltsville",
-    "white beltsville": "beltsville",
-    "beltsville": "beltsville",
-    "midget white": "midget",
-    "midget": "midget",
-    "white midget": "midget",
-    "white holland": "holland",
-    "holland white": "holland",
-    "holland": "holland",
-    "broad breasted white": "broad",
-    "broad-breasted white": "broad",
-    "large white": "broad",
-    "commercial white": "broad",
-    "giant white": "broad",
-    "broad white": "broad",
-    "breasted white": "broad"
+    "beltsville small white": "beltsville", "beltsville white": "beltsville", "white beltsville": "beltsville", "beltsville": "beltsville",
+    "midget white": "midget", "midget": "midget", "white midget": "midget",
+    "white holland": "holland", "holland white": "holland", "holland": "holland",
+    "broad breasted white": "broad", "broad-breasted white": "broad", "large white": "broad",
+    "commercial white": "broad", "giant white": "broad", "broad white": "broad", "breasted white": "broad"
   };
 
   const whiteState = { sire: null, dam: null };
@@ -1214,7 +1181,6 @@ document.addEventListener('click', function (event) {
     const val = norm(input?.value);
     const key = WHITE_VARIETY_MAP[val] || null;
     whiteState[prefix] = key;
-
     const container = document.getElementById(prefix + "ImageContainer");
     if (container) {
       if (key) container.dataset.whiteKey = key;
@@ -1223,7 +1189,7 @@ document.addEventListener('click', function (event) {
     return key;
   }
 
-  function applyWhiteToParent(prefix) {
+  function applyWhiteToParent(prefix, isInitial = false) {
     const container = document.getElementById(prefix + "ImageContainer");
     if (!container) return;
 
@@ -1233,7 +1199,6 @@ document.addEventListener('click', function (event) {
     const data = WHITE_VARIANTS[key];
     if (!data) return;
 
-    // Check current phenotype text — only apply if still looks like generic white / undefined
     const strong = container.querySelector("strong");
     let currentText = "";
     if (strong) {
@@ -1241,47 +1206,39 @@ document.addEventListener('click', function (event) {
       currentText = (span ? span.textContent : strong.textContent || "").trim().toLowerCase();
     }
 
-    const isWhiteLike = /white|to be defined|bronze/i.test(currentText);
-    if (!isWhiteLike) {
-      // Alleles changed it to something else (e.g. colored) → do not override
-      return;
-    }
+    // For initial variety selection: force apply regardless of current text
+    // For post-calculate or observers: only if still generic white-like
+    const shouldApply = isInitial || /white|to be defined|bronze/i.test(currentText);
+    if (!shouldApply) return;
 
-    // One-time force bb/cc (safe to re-check, but only changes if needed)
+    // Force bb/cc (only if not already set)
     const bronzeId = prefix === "sire" ? "sireAlleleb" : "damAlleleb";
-    const cId      = prefix === "sire" ? "sireAlleleC"  : "damAlleleC";
+    const cId = prefix === "sire" ? "sireAlleleC" : "damAlleleC";
     const bronzeSel = document.getElementById(bronzeId);
-    const cSel      = document.getElementById(cId);
+    const cSel = document.getElementById(cId);
     let changed = false;
 
-    if (bronzeSel && bronzeSel.value !== "bb") {
-      bronzeSel.value = "bb";
-      changed = true;
-    }
-    if (cSel && cSel.value !== "cc") {
-      cSel.value = "cc";
-      changed = true;
-    }
+    if (bronzeSel && bronzeSel.value !== "bb") { bronzeSel.value = "bb"; changed = true; }
+    if (cSel && cSel.value !== "cc") { cSel.value = "cc"; changed = true; }
 
     if (changed) {
       if (prefix === "sire" && typeof updateSireGenotype === "function") updateSireGenotype();
       if (prefix === "dam" && typeof updateDamGenotype === "function") updateDamGenotype();
     }
 
-    // Apply specific image
+    // Apply image
     const img = container.querySelector("img");
     if (img) {
-      const target = prefix === "dam" ? data.female : data.male;
-      img.src = "https://portersturkeys.github.io/Pictures/" + target;
+      img.src = "https://portersturkeys.github.io/Pictures/" + (prefix === "dam" ? data.female : data.male);
     }
 
-    // Apply specific name
+    // Apply name
     if (strong) {
       const span = strong.querySelector("span") || strong;
       span.textContent = data.name;
     }
 
-    // Clean "To Be Defined"
+    // Cleanup To Be Defined
     const info = document.getElementById(prefix + "InfoContainer");
     if (info) {
       info.querySelectorAll("span, div, strong").forEach(el => {
@@ -1292,6 +1249,7 @@ document.addEventListener('click', function (event) {
     }
   }
 
+  // Offspring patching remains the same (only when same strain)
   function applyWhiteToOffspring() {
     const sireKey = whiteState.sire;
     const damKey = whiteState.dam;
@@ -1301,7 +1259,6 @@ document.addEventListener('click', function (event) {
     if (!data) return;
     const displayName = data.name;
 
-    // Patch visible text (offspring lists)
     document.querySelectorAll("#maleOffspringResults li, #femaleOffspringResults li").forEach(li => {
       let html = li.innerHTML;
       if (html.includes(displayName)) return;
@@ -1311,19 +1268,20 @@ document.addEventListener('click', function (event) {
       li.innerHTML = html;
     });
 
-    // Patch summary chart
-    document.querySelector("#summaryChart tbody")?.querySelectorAll("tr").forEach(tr => {
-      const cell = tr.cells?.[1];
-      if (!cell) return;
-      let txt = cell.textContent || "";
-      if (txt.includes(displayName)) return;
-      txt = txt.replace(/\bWhite\b(?=\s*\()/gi, displayName)
-               .replace(/\bBronze\b/gi, displayName)
-               .replace(/to be defined/gi, displayName);
-      cell.textContent = txt;
-    });
+    const summaryBody = document.querySelector("#summaryChart tbody");
+    if (summaryBody) {
+      summaryBody.querySelectorAll("tr").forEach(tr => {
+        const cell = tr.cells?.[1];
+        if (!cell) return;
+        let text = cell.textContent || "";
+        if (text.includes(displayName)) return;
+        text = text.replace(/\bWhite\b(?=\s*\()/gi, displayName)
+                   .replace(/\bBronze\b/gi, displayName)
+                   .replace(/to be defined/gi, displayName);
+        cell.textContent = text;
+      });
+    }
 
-    // Patch internal arrays & visible images (unchanged)
     function patchArray(arr) {
       if (!Array.isArray(arr)) return;
       arr.forEach(o => {
@@ -1377,7 +1335,8 @@ document.addEventListener('click', function (event) {
       const res = orig.apply(this, args);
       const key = detectWhiteFromVariety(prefix);
       if (key) {
-        setTimeout(() => applyWhiteToParent(prefix), 50);
+        // Force immediate application for variety change (longer delay to let core set text first)
+        setTimeout(() => applyWhiteToParent(prefix, true), 100);
       } else {
         whiteState[prefix] = null;
         const c = document.getElementById(prefix + "ImageContainer");
@@ -1391,7 +1350,6 @@ document.addEventListener('click', function (event) {
     wrapVarietyFn("applyVarietyToSire", "sire");
     wrapVarietyFn("applyVarietyToDam", "dam");
 
-    // Reset
     if (typeof window.resetCalculator === "function") {
       const orig = window.resetCalculator;
       window.resetCalculator = function (...args) {
@@ -1407,7 +1365,6 @@ document.addEventListener('click', function (event) {
 
     installWhiteOffspringObserver();
 
-    // Transfer: clear white state so offspring phenotype shows correctly
     if (typeof window.transferOffspringToParent === "function" && !window._whiteTransferPatched) {
       window._whiteTransferPatched = true;
       const orig = window.transferOffspringToParent;
@@ -1422,7 +1379,6 @@ document.addEventListener('click', function (event) {
       };
     }
 
-    // Favorites
     if (typeof window.handleDropdownChange === "function" && !window._whiteFavoritesPatched) {
       window._whiteFavoritesPatched = true;
       const orig = window.handleDropdownChange;
@@ -1444,7 +1400,7 @@ document.addEventListener('click', function (event) {
           whiteState[type] = key;
           const c = document.getElementById(type + "ImageContainer");
           if (c) c.dataset.whiteKey = key;
-          setTimeout(() => applyWhiteToParent(type), 50);
+          setTimeout(() => applyWhiteToParent(type, true), 100);
         } else {
           whiteState[type] = null;
           const c = document.getElementById(type + "ImageContainer");
@@ -1454,7 +1410,6 @@ document.addEventListener('click', function (event) {
       };
     }
 
-    // After Calculate: re-apply to parents ONLY if still white-like + patch offspring
     if (typeof window.calculateOffspringWrapper === "function" && !window._whiteCalcPatched) {
       window._whiteCalcPatched = true;
       const orig = window.calculateOffspringWrapper;
@@ -1462,10 +1417,10 @@ document.addEventListener('click', function (event) {
         const res = orig.apply(this, args);
         setTimeout(() => {
           ["sire", "dam"].forEach(prefix => {
-            if (whiteState[prefix]) applyWhiteToParent(prefix);
+            if (whiteState[prefix]) applyWhiteToParent(prefix, false);  // conditional for post-calc
           });
           applyWhiteToOffspring();
-        }, 120);  // small delay to let core rendering finish
+        }, 120);
         return res;
       };
     }
