@@ -1568,8 +1568,9 @@ document.addEventListener('click', function (event) {
   });
 })();
 
+
 // ===========================================
-// BROAD BREASTED BRONZE OVERLAY (parents only) - matches wild/white behavior
+// BROAD BREASTED BRONZE OVERLAY (parents only) - FIXED post-calculate
 // ===========================================
 (function () {
   'use strict';
@@ -1617,12 +1618,11 @@ document.addEventListener('click', function (event) {
 
     const data = BB_BRONZE;
 
-    // Force bb reliably every apply
+    // Force bb every time (reliable)
     const bronzeId = prefix === "sire" ? "sireAlleleb" : "damAlleleb";
     const bronzeSel = document.getElementById(bronzeId);
     if (bronzeSel && bronzeSel.value !== "bb") {
       bronzeSel.value = "bb";
-      // Trigger genotype update
       if (prefix === "sire" && typeof updateSireGenotype === "function") updateSireGenotype();
       if (prefix === "dam" && typeof updateDamGenotype === "function") updateDamGenotype();
     }
@@ -1645,7 +1645,7 @@ document.addEventListener('click', function (event) {
       span.textContent = data.name;
     }
 
-    // Cleanup generic text
+    // Cleanup
     const info = document.getElementById(prefix + "InfoContainer");
     if (info) {
       info.querySelectorAll("span, div, strong").forEach(el => {
@@ -1669,8 +1669,9 @@ document.addEventListener('click', function (event) {
       currentText = (span ? span.textContent : strong.textContent || "").trim().toLowerCase();
     }
 
-    // Apply if still looks like generic bronze
-    if (/bronze|to be defined/i.test(currentText) || currentText === "") {
+    // For initial variety selection: only apply if still generic
+    const isGeneric = /bronze|to be defined/i.test(currentText) || currentText === "";
+    if (isGeneric) {
       forceApplyBBBronze(prefix);
     }
   }
@@ -1678,7 +1679,6 @@ document.addEventListener('click', function (event) {
   function wrapVarietyFn(fnName, prefix) {
     const orig = window[fnName];
     if (typeof orig !== "function") return;
-    // Prevent duplicate wraps
     if (orig._bbBronzeWrapped) return;
 
     window[fnName] = function (...args) {
@@ -1732,7 +1732,7 @@ document.addEventListener('click', function (event) {
       };
     }
 
-    // Favorites support
+    // Favorites
     if (typeof window.handleDropdownChange === "function" && !window._bbBronzeFavoritesPatched) {
       window._bbBronzeFavoritesPatched = true;
       const orig = window.handleDropdownChange;
@@ -1762,7 +1762,7 @@ document.addEventListener('click', function (event) {
       };
     }
 
-    // Post-calculate persistence
+    // Post-calculate: ALWAYS re-apply if state is set (fixes offspring showing as generic bronze)
     if (typeof window.calculateOffspringWrapper === "function" && !window._bbBronzeCalcPatched) {
       window._bbBronzeCalcPatched = true;
       const orig = window.calculateOffspringWrapper;
@@ -1770,7 +1770,9 @@ document.addEventListener('click', function (event) {
         const res = orig.apply(this, args);
         setTimeout(() => {
           ["sire", "dam"].forEach(prefix => {
-            if (bbBronzeState[prefix]) applyBBBronzeToParent(prefix);
+            if (bbBronzeState[prefix]) {
+              forceApplyBBBronze(prefix);  // Force, don't check condition
+            }
           });
         }, 150);
         return res;
@@ -1778,6 +1780,8 @@ document.addEventListener('click', function (event) {
     }
   });
 })();
+
+
 
 // =====================================================
 // SUMMARY CHART / Dam (shows ONLY after calculate)
