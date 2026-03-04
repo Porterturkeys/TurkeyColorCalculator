@@ -2316,7 +2316,7 @@ window.addEventListener("load", () => {
   };
 ///////////////////////////////
 // ===========================================
-// BROAD BREASTED BRONZE OVERLAY (parents + offspring)
+// BROAD BREASTED BRONZE OVERLAY - SAFE VERSION (no wrapper conflicts)
 // ===========================================
 (function () {
   'use strict';
@@ -2343,209 +2343,108 @@ window.addEventListener("load", () => {
     return (str || "").trim().toLowerCase();
   }
 
-  function detectBBBronzeFromVariety(prefix) {
+  function detectBBBronze(prefix) {
     const input = document.getElementById(prefix + "VarietyInput");
     const val = norm(input?.value);
-    const isBBBronze = !!BB_BRONZE_MAP[val];
-    bbBronzeState[prefix] = isBBBronze ? "bronze" : null;
+    const isBB = !!BB_BRONZE_MAP[val];
+    bbBronzeState[prefix] = isBB ? "bronze" : null;
     const container = document.getElementById(prefix + "ImageContainer");
     if (container) {
-      if (isBBBronze) container.dataset.bbBronzeKey = "bronze";
+      if (isBB) container.dataset.bbBronzeKey = "bronze";
       else delete container.dataset.bbBronzeKey;
     }
-    return isBBBronze;
+    return isBB;
   }
 
   function forceApplyBBBronze(prefix) {
     const container = document.getElementById(prefix + "ImageContainer");
     if (!container) return;
 
-    const key = container.dataset.bbBronzeKey || bbBronzeState[prefix];
-    if (!key) return;
+    if (!bbBronzeState[prefix]) return;
 
     const data = BB_BRONZE;
 
-    // Force bb EVERY TIME we apply (safe and reliable)
+    // Force bb reliably
     const bronzeId = prefix === "sire" ? "sireAlleleb" : "damAlleleb";
     const bronzeSel = document.getElementById(bronzeId);
-    let genotypeChanged = false;
     if (bronzeSel && bronzeSel.value !== "bb") {
       bronzeSel.value = "bb";
-      genotypeChanged = true;
+      // Force trigger genotype update
+      if (prefix === "sire" && typeof updateSireGenotype === "function") updateSireGenotype();
+      if (prefix === "dam" && typeof updateDamGenotype === "function") updateDamGenotype();
     }
 
-    // Trigger genotype update if we changed anything
-    if (genotypeChanged) {
-      if (prefix === "sire" && typeof updateSireGenotype === "function") {
-        updateSireGenotype();
-      }
-      if (prefix === "dam" && typeof updateDamGenotype === "function") {
-        updateDamGenotype();
-      }
-    }
-
-    // Force image
+    // Image
     const img = container.querySelector("img");
-    if (img) {
-      img.src = "https://portersturkeys.github.io/Pictures/" + (prefix === "dam" ? data.female : data.male);
-    }
+    if (img) img.src = "https://portersturkeys.github.io/Pictures/" + (prefix === "dam" ? data.female : data.male);
 
-    // Force name
+    // Name force
     const strong = container.querySelector("strong");
     if (strong) {
-      let phenoSpan = strong.querySelector("span");
-      if (!phenoSpan) {
-        phenoSpan = document.createElement("span");
+      let span = strong.querySelector("span");
+      if (!span) {
+        span = document.createElement("span");
         strong.innerHTML = '';
-        strong.appendChild(phenoSpan);
+        strong.appendChild(span);
       }
-      phenoSpan.textContent = data.name;
+      span.textContent = data.name;
     }
 
-    // Cleanup lingering generic text
+    // Cleanup
     const info = document.getElementById(prefix + "InfoContainer");
     if (info) {
       info.querySelectorAll("span, div, strong").forEach(el => {
-        if (/bronze|to be defined/i.test(el.textContent)) {
+        if (/bronze|to be defined/i.test(el.textContent || "")) {
           el.textContent = data.name;
         }
       });
     }
   }
 
-  function applyBBBronzeToParent(prefix) {
-    const container = document.getElementById(prefix + "ImageContainer");
-    if (!container) return;
-
-    const key = container.dataset.bbBronzeKey || bbBronzeState[prefix];
-    if (!key) return;
-
-    const strong = container.querySelector("strong");
-    let currentText = "";
-    if (strong) {
-      const span = strong.querySelector("span");
-      currentText = (span ? span.textContent : strong.textContent || "").trim().toLowerCase();
-    }
-
-    if (/bronze|to be defined/i.test(currentText) || currentText === "") {
-      forceApplyBBBronze(prefix);
-    }
-  }
-
-  function wrapVarietyFn(fnName, prefix) {
-    const orig = window[fnName];
-    if (typeof orig !== "function") return;
-
-    window[fnName] = function (...args) {
-      const res = orig.apply(this, args);
-      const isBB = detectBBBronzeFromVariety(prefix);
-      if (isBB) {
-        setTimeout(() => forceApplyBBBronze(prefix), 100);
-        setTimeout(() => forceApplyBBBronze(prefix), 400);
-
-        // Catch late core overwrite
-        const container = document.getElementById(prefix + "ImageContainer");
-        if (container) {
-          const obs = new MutationObserver(() => {
-            const strong = container.querySelector("strong");
-            const txt = strong ? (strong.querySelector("span")?.textContent || strong.textContent || "").trim().toLowerCase() : "";
-            if (/bronze/i.test(txt)) {
-              forceApplyBBBronze(prefix);
-            }
-          });
-          obs.observe(container, { childList: true, subtree: true, characterData: true });
-          setTimeout(() => obs.disconnect(), 3000);
-        }
-      } else {
-        bbBronzeState[prefix] = null;
-        const c = document.getElementById(prefix + "ImageContainer");
-        if (c) delete c.dataset.bbBronzeKey;
+  // Apply on variety change (no heavy wrapper chaining)
+  function tryApplyBBBronze() {
+    ["sire", "dam"].forEach(prefix => {
+      if (detectBBBronze(prefix)) {
+        setTimeout(() => forceApplyBBBronze(prefix), 200);
+        setTimeout(() => forceApplyBBBronze(prefix), 500);
       }
-      return res;
-    };
+    });
   }
 
   window.addEventListener("load", () => {
-    wrapVarietyFn("applyVarietyToSire", "sire");
-    wrapVarietyFn("applyVarietyToDam", "dam");
+    // Listen to variety inputs directly (safer than wrapping core functions)
+    ["sireVarietyInput", "damVarietyInput"].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) {
+        el.addEventListener("change", tryApplyBBBronze);
+        el.addEventListener("input", tryApplyBBBronze);
+      }
+    });
 
-    if (typeof window.resetCalculator === "function") {
-      const orig = window.resetCalculator;
-      window.resetCalculator = function (...args) {
+    // Initial check
+    setTimeout(tryApplyBBBronze, 300);
+
+    // Post-calculate
+    if (typeof window.calculateOffspringWrapper === "function" && !window._bbBronzeCalcPatched) {
+      window._bbBronzeCalcPatched = true;
+      const orig = window.calculateOffspringWrapper;
+      window.calculateOffspringWrapper = function (...args) {
         const res = orig.apply(this, args);
-        bbBronzeState.sire = bbBronzeState.dam = null;
-        ["sire", "dam"].forEach(p => {
-          const c = document.getElementById(p + "ImageContainer");
-          if (c) {
-            delete c.dataset.bbBronzeKey;
-          }
-        });
+        setTimeout(tryApplyBBBronze, 200);
         return res;
       };
     }
 
-    // Transfer persistence
+    // Transfer
     if (typeof window.transferOffspringToParent === "function" && !window._bbBronzeTransferPatched) {
       window._bbBronzeTransferPatched = true;
       const orig = window.transferOffspringToParent;
       window.transferOffspringToParent = function (...args) {
         const res = orig.apply(this, args);
         const parent = args[1];
-        if (parent === "sire" || parent === "dam") {
-          if (bbBronzeState[parent]) {
-            const c = document.getElementById(parent + "ImageContainer");
-            if (c) {
-              c.dataset.bbBronzeKey = "bronze";
-              setTimeout(() => forceApplyBBBronze(parent), 150);
-              setTimeout(() => forceApplyBBBronze(parent), 400);
-            }
-          }
+        if ((parent === "sire" || parent === "dam") && bbBronzeState[parent]) {
+          setTimeout(() => forceApplyBBBronze(parent), 200);
         }
-        return res;
-      };
-    }
-
-    // Favorites
-    if (typeof window.handleDropdownChange === "function" && !window._bbBronzeFavoritesPatched) {
-      window._bbBronzeFavoritesPatched = true;
-      const orig = window.handleDropdownChange;
-      window.handleDropdownChange = function (type, dropdownId, ...args) {
-        const res = orig.apply(this, [type, dropdownId, ...args]);
-        if (type !== "sire" && type !== "dam") return res;
-
-        const dd = document.getElementById(dropdownId);
-        const name = dd?.value?.trim()?.toLowerCase();
-        if (!name) return res;
-
-        const base = name.replace(/\s*\(\d+\)\s*$/, "");
-        const isBBBronze = !!BB_BRONZE_MAP[base];
-
-        if (isBBBronze) {
-          bbBronzeState[type] = "bronze";
-          const c = document.getElementById(type + "ImageContainer");
-          if (c) c.dataset.bbBronzeKey = "bronze";
-          setTimeout(() => forceApplyBBBronze(type), 100);
-          setTimeout(() => forceApplyBBBronze(type), 400);
-        } else {
-          bbBronzeState[type] = null;
-          const c = document.getElementById(type + "ImageContainer");
-          if (c) delete c.dataset.bbBronzeKey;
-        }
-        return res;
-      };
-    }
-
-    // Post-calculate persistence
-    if (typeof window.calculateOffspringWrapper === "function" && !window._bbBronzeCalcPatched) {
-      window._bbBronzeCalcPatched = true;
-      const orig = window.calculateOffspringWrapper;
-      window.calculateOffspringWrapper = function (...args) {
-        const res = orig.apply(this, args);
-        setTimeout(() => {
-          ["sire", "dam"].forEach(prefix => {
-            if (bbBronzeState[prefix]) applyBBBronzeToParent(prefix);
-          });
-        }, 150);
         return res;
       };
     }
