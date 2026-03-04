@@ -1568,9 +1568,8 @@ document.addEventListener('click', function (event) {
   });
 })();
 
-
 // ===========================================
-// BROAD BREASTED BRONZE OVERLAY (parents + offspring fix)
+// BROAD BREASTED BRONZE OVERLAY (parents + offspring fix - no double name)
 // ===========================================
 (function () {
   'use strict';
@@ -1618,7 +1617,7 @@ document.addEventListener('click', function (event) {
 
     const data = BB_BRONZE;
 
-    // Force bb every time
+    // Force bb
     const bronzeId = prefix === "sire" ? "sireAlleleb" : "damAlleleb";
     const bronzeSel = document.getElementById(bronzeId);
     if (bronzeSel && bronzeSel.value !== "bb") {
@@ -1681,31 +1680,38 @@ document.addEventListener('click', function (event) {
 
     const displayName = BB_BRONZE.name;
 
-    // Patch offspring lists
+    // Patch offspring lists - precise replacement
     document.querySelectorAll("#maleOffspringResults li, #femaleOffspringResults li").forEach(li => {
       let html = li.innerHTML;
+
+      // Skip if already correct
       if (html.includes(displayName)) return;
 
-      // Aggressive replace for "Bronze"
-      html = html.replace(/\bBronze\b/gi, displayName)
-                 .replace(/Bronze/gi, displayName)  // extra pass for any missed case
-                 .replace(/To Be Defined/gi, displayName);
+      // Replace standalone "Bronze" (word boundary) or exact "Bronze"
+      html = html.replace(/\bBronze\b/gi, displayName);
+
+      // Extra safety: replace any remaining "Bronze" that wasn't caught
+      html = html.replace(/Bronze/gi, displayName);
+
+      // To Be Defined
+      html = html.replace(/To Be Defined/gi, displayName);
 
       li.innerHTML = html;
     });
 
-    // Patch summary chart
+    // Patch summary chart - same precise logic
     const summaryBody = document.querySelector("#summaryChart tbody");
     if (summaryBody) {
       summaryBody.querySelectorAll("tr").forEach(tr => {
         const cell = tr.cells?.[1];
         if (!cell) return;
         let text = cell.textContent || "";
+
         if (text.includes(displayName)) return;
 
-        text = text.replace(/\bBronze\b/gi, displayName)
-                   .replace(/Bronze/gi, displayName)
-                   .replace(/to be defined/gi, displayName);
+        text = text.replace(/\bBronze\b/gi, displayName);
+        text = text.replace(/Bronze/gi, displayName);
+        text = text.replace(/to be defined/gi, displayName);
 
         cell.textContent = text;
       });
@@ -1798,7 +1804,7 @@ document.addEventListener('click', function (event) {
       };
     }
 
-    // Post-calculate: force apply to parents + aggressive offspring patch
+    // Post-calculate: force parents + offspring patch
     if (typeof window.calculateOffspringWrapper === "function" && !window._bbBronzeCalcPatched) {
       window._bbBronzeCalcPatched = true;
       const orig = window.calculateOffspringWrapper;
@@ -1807,10 +1813,10 @@ document.addEventListener('click', function (event) {
         setTimeout(() => {
           ["sire", "dam"].forEach(prefix => {
             if (bbBronzeState[prefix]) {
-              forceApplyBBBronze(prefix);  // Always force on parents
+              forceApplyBBBronze(prefix);
             }
           });
-          applyBBBronzeToOffspring();  // Aggressive offspring patch
+          applyBBBronzeToOffspring();
         }, 200);
         return res;
       };
