@@ -1569,20 +1569,22 @@ document.addEventListener('click', function (event) {
 })();
 
 
+
 // ===========================================
-// BROAD BREASTED BRONZE OVERLAY (parents + offspring - text & image fix)
+// BROAD BREASTED BRONZE + WHITE OVERLAY (full cross support)
 // ===========================================
 (function () {
   'use strict';
 
-  const BB_BRONZE = {
+  // Bronze
+  const BRONZE = {
     name: "Broad Breasted Bronze",
     male: "MBroadBreastedBronze.jpg",
     female: "FBroadBreastedBronze.jpg",
     poult: "PBroadBreastedBronze.jpg"
   };
 
-  const BB_BRONZE_MAP = {
+  const BRONZE_MAP = {
     "broad breasted bronze": true,
     "broad-breasted bronze": true,
     "mammoth bronze": true,
@@ -1592,49 +1594,74 @@ document.addEventListener('click', function (event) {
     "large bronze": true
   };
 
-  const bbBronzeState = { sire: null, dam: null };
+  // White
+  const WHITE = {
+    name: "Broad Breasted White",
+    male: "MBroadBreastedWhite.jpg",
+    female: "FBroadBreastedWhite.jpg",
+    poult: "PBroadBreastedWhite.jpg"
+  };
+
+  const WHITE_MAP = {
+    "broad breasted white": true,
+    "broad-breasted white": true,
+    "giant white": true,
+    "commercial white": true,
+    "large white": true,
+    "broad white": true,
+    "breasted white": true
+  };
+
+  const state = { sire: null, dam: null }; // "bronze" or "white"
 
   function norm(str) {
     return (str || "").trim().toLowerCase();
   }
 
-  function detectBBBronzeFromVariety(prefix) {
+  function detectType(prefix) {
     const input = document.getElementById(prefix + "VarietyInput");
     const val = norm(input?.value);
-    const isBB = !!BB_BRONZE_MAP[val];
-    bbBronzeState[prefix] = isBB ? "broad" : null;
+    let type = null;
+    if (BRONZE_MAP[val]) type = "bronze";
+    else if (WHITE_MAP[val]) type = "white";
+
+    state[prefix] = type;
     const container = document.getElementById(prefix + "ImageContainer");
     if (container) {
-      if (isBB) container.dataset.bbBronzeKey = "broad";
-      else delete container.dataset.bbBronzeKey;
+      if (type) container.dataset.bbType = type;
+      else delete container.dataset.bbType;
     }
-    return isBB;
+    return type;
   }
 
-  function forceApplyBBBronze(prefix) {
+  function forceApply(prefix) {
     const container = document.getElementById(prefix + "ImageContainer");
     if (!container) return;
 
-    if (!bbBronzeState[prefix]) return;
+    const type = state[prefix];
+    if (!type) return;
 
-    const data = BB_BRONZE;
+    const data = type === "bronze" ? BRONZE : WHITE;
 
-    // Force bb
-    const bronzeId = prefix === "sire" ? "sireAlleleb" : "damAlleleb";
-    const bronzeSel = document.getElementById(bronzeId);
-    if (bronzeSel && bronzeSel.value !== "bb") {
-      bronzeSel.value = "bb";
-      if (prefix === "sire" && typeof updateSireGenotype === "function") updateSireGenotype();
-      if (prefix === "dam" && typeof updateDamGenotype === "function") updateDamGenotype();
-    }
+    // Force alleles
+    const bId = prefix === "sire" ? "sireAlleleb" : "damAlleleb";
+    const cId = prefix === "sire" ? "sireAlleleC" : "damAlleleC";
+    const bSel = document.getElementById(bId);
+    const cSel = document.getElementById(cId);
 
-    // Force image
+    if (bSel && bSel.value !== "bb") bSel.value = "bb";
+    if (type === "white" && cSel && cSel.value !== "cc") cSel.value = "cc";
+
+    if (prefix === "sire" && typeof updateSireGenotype === "function") updateSireGenotype();
+    if (prefix === "dam" && typeof updateDamGenotype === "function") updateDamGenotype();
+
+    // Image
     const img = container.querySelector("img");
     if (img) {
       img.src = "https://portersturkeys.github.io/Pictures/" + (prefix === "dam" ? data.female : data.male);
     }
 
-    // Force name
+    // Name
     const strong = container.querySelector("strong");
     if (strong) {
       let span = strong.querySelector("span");
@@ -1650,92 +1677,89 @@ document.addEventListener('click', function (event) {
     const info = document.getElementById(prefix + "InfoContainer");
     if (info) {
       info.querySelectorAll("span, div, strong").forEach(el => {
-        if (/bronze|to be defined/i.test(el.textContent || "")) {
+        if (/bronze|white.*eyes|to be defined/i.test(el.textContent || "")) {
           el.textContent = data.name;
         }
       });
     }
   }
 
-  function applyBBBronzeToParent(prefix) {
+  function applyToParent(prefix) {
     const container = document.getElementById(prefix + "ImageContainer");
     if (!container) return;
-
-    if (!bbBronzeState[prefix]) return;
+    if (!state[prefix]) return;
 
     const strong = container.querySelector("strong");
-    let currentText = "";
+    let txt = "";
     if (strong) {
       const span = strong.querySelector("span");
-      currentText = (span ? span.textContent : strong.textContent || "").trim().toLowerCase();
+      txt = (span ? span.textContent : strong.textContent || "").trim().toLowerCase();
     }
 
-    if (/bronze|to be defined/i.test(currentText) || currentText === "") {
-      forceApplyBBBronze(prefix);
+    if (/bronze|white|eyes|to be defined/i.test(txt) || txt === "") {
+      forceApply(prefix);
     }
   }
 
-  function applyBBBronzeToOffspring() {
-    if (!bbBronzeState.sire || !bbBronzeState.dam || bbBronzeState.sire !== "broad" || bbBronzeState.dam !== "broad") {
-      return;
-    }
+  function applyToOffspring() {
+    const sireType = state.sire;
+    const damType = state.dam;
+    if (!sireType || !damType) return;
 
-    const displayName = BB_BRONZE.name;
+    const isBothBroad = true; // both parents are Broad Breasted (bronze or white)
 
-    // Patch text in offspring lists
+    if (!isBothBroad) return;
+
+    // Determine which name to use for offspring
+    let displayName = (sireType === "white" || damType === "white") ? WHITE.name : BRONZE.name;
+
+    // Patch text
     document.querySelectorAll("#maleOffspringResults li, #femaleOffspringResults li").forEach(li => {
       let html = li.innerHTML;
-
-      // Skip if already correct
       if (html.includes(displayName)) return;
-
-      // Replace standalone "Bronze"
-      html = html.replace(/\bBronze\b/gi, displayName);
-      // To Be Defined
-      html = html.replace(/To Be Defined/gi, displayName);
-
+      html = html.replace(/\bBronze\b/gi, displayName)
+                 .replace(/\bWhite\b/gi, displayName)
+                 .replace(/To Be Defined/gi, displayName);
       li.innerHTML = html.trim();
     });
 
-    // Patch summary chart text
     const summaryBody = document.querySelector("#summaryChart tbody");
     if (summaryBody) {
       summaryBody.querySelectorAll("tr").forEach(tr => {
         const cell = tr.cells?.[1];
         if (!cell) return;
         let text = cell.textContent || "";
-
         if (text.includes(displayName)) return;
-
-        text = text.replace(/\bBronze\b/gi, displayName);
-        text = text.replace(/to be defined/gi, displayName);
-
+        text = text.replace(/\bBronze\b/gi, displayName)
+                   .replace(/\bWhite\b/gi, displayName)
+                   .replace(/to be defined/gi, displayName);
         cell.textContent = text.trim();
       });
     }
 
-    // Patch images in DOM
+    // Patch images (DOM + internal arrays)
+    const data = (sireType === "white" || damType === "white") ? WHITE : BRONZE;
+
     document.querySelectorAll("#maleOffspringResults img, #femaleOffspringResults img").forEach(img => {
       const file = img.src.split("/").pop()?.toLowerCase() || "";
-      if (file === "mbronze.jpg") img.src = "https://portersturkeys.github.io/Pictures/" + BB_BRONZE.male;
-      if (file === "fbronze.jpg") img.src = "https://portersturkeys.github.io/Pictures/" + BB_BRONZE.female;
-      if (file === "pbronze.jpg") img.src = "https://portersturkeys.github.io/Pictures/" + BB_BRONZE.poult;
+      if (file === "mbronze.jpg") img.src = "https://portersturkeys.github.io/Pictures/" + data.male;
+      if (file === "fbronze.jpg") img.src = "https://portersturkeys.github.io/Pictures/" + data.female;
+      if (file === "pbronze.jpg") img.src = "https://portersturkeys.github.io/Pictures/" + data.poult;
     });
 
-    // Patch internal arrays (picturePath & poultImagePath)
     function patchArray(arr) {
       if (!Array.isArray(arr)) return;
       arr.forEach(o => {
         if (!o) return;
         if (o.picturePath) {
-          const file = o.picturePath.split("/").pop()?.toLowerCase() || "";
-          if (file === "mbronze.jpg") o.picturePath = "https://portersturkeys.github.io/Pictures/" + BB_BRONZE.male;
-          if (file === "fbronze.jpg") o.picturePath = "https://portersturkeys.github.io/Pictures/" + BB_BRONZE.female;
-          if (file === "pbronze.jpg") o.picturePath = "https://portersturkeys.github.io/Pictures/" + BB_BRONZE.poult;
+          const f = o.picturePath.split("/").pop()?.toLowerCase() || "";
+          if (f === "mbronze.jpg") o.picturePath = "https://portersturkeys.github.io/Pictures/" + data.male;
+          if (f === "fbronze.jpg") o.picturePath = "https://portersturkeys.github.io/Pictures/" + data.female;
+          if (f === "pbronze.jpg") o.picturePath = "https://portersturkeys.github.io/Pictures/" + data.poult;
         }
         if (o.poultImagePath) {
-          const file2 = o.poultImagePath.split("/").pop()?.toLowerCase() || "";
-          if (file2 === "pbronze.jpg") o.poultImagePath = "https://portersturkeys.github.io/Pictures/" + BB_BRONZE.poult;
+          const f2 = o.poultImagePath.split("/").pop()?.toLowerCase() || "";
+          if (f2 === "pbronze.jpg") o.poultImagePath = "https://portersturkeys.github.io/Pictures/" + data.poult;
         }
       });
     }
@@ -1746,53 +1770,49 @@ document.addEventListener('click', function (event) {
 
   function wrapVarietyFn(fnName, prefix) {
     const orig = window[fnName];
-    if (typeof orig !== "function") return;
-    if (orig._bbBronzeWrapped) return;
+    if (typeof orig !== "function" || orig._bbWrapped) return;
 
     window[fnName] = function (...args) {
       const res = orig.apply(this, args);
-      const isBB = detectBBBronzeFromVariety(prefix);
-      if (isBB) {
-        setTimeout(() => forceApplyBBBronze(prefix), 100);
-        setTimeout(() => forceApplyBBBronze(prefix), 400);
+      if (detectType(prefix)) {
+        setTimeout(() => forceApply(prefix), 100);
+        setTimeout(() => forceApply(prefix), 400);
       }
       return res;
     };
-    window[fnName]._bbBronzeWrapped = true;
+    window[fnName]._bbWrapped = true;
   }
 
   window.addEventListener("load", () => {
     wrapVarietyFn("applyVarietyToSire", "sire");
     wrapVarietyFn("applyVarietyToDam", "dam");
 
-    // Reset
     if (typeof window.resetCalculator === "function") {
       const orig = window.resetCalculator;
       window.resetCalculator = function (...args) {
         const res = orig.apply(this, args);
-        bbBronzeState.sire = bbBronzeState.dam = null;
+        state.sire = state.dam = null;
         ["sire", "dam"].forEach(p => {
           const c = document.getElementById(p + "ImageContainer");
-          if (c) delete c.dataset.bbBronzeKey;
+          if (c) delete c.dataset.bbType;
         });
         return res;
       };
     }
 
-    // Transfer persistence
-    if (typeof window.transferOffspringToParent === "function" && !window._bbBronzeTransferPatched) {
-      window._bbBronzeTransferPatched = true;
+    if (typeof window.transferOffspringToParent === "function" && !window._bbTransferPatched) {
+      window._bbTransferPatched = true;
       const orig = window.transferOffspringToParent;
       window.transferOffspringToParent = function (...args) {
         const res = orig.apply(this, args);
         const parent = args[1];
         if (parent === "sire" || parent === "dam") {
-          if (bbBronzeState[parent]) {
+          if (state[parent]) {
             const c = document.getElementById(parent + "ImageContainer");
             if (c) {
-              c.dataset.bbBronzeKey = "broad";
-              setTimeout(() => forceApplyBBBronze(parent), 150);
-              setTimeout(() => forceApplyBBBronze(parent), 400);
+              c.dataset.bbType = state[parent];
+              setTimeout(() => forceApply(parent), 150);
+              setTimeout(() => forceApply(parent), 400);
             }
           }
         }
@@ -1800,55 +1820,24 @@ document.addEventListener('click', function (event) {
       };
     }
 
-    // Favorites
-    if (typeof window.handleDropdownChange === "function" && !window._bbBronzeFavoritesPatched) {
-      window._bbBronzeFavoritesPatched = true;
-      const orig = window.handleDropdownChange;
-      window.handleDropdownChange = function (type, dropdownId, ...args) {
-        const res = orig.apply(this, [type, dropdownId, ...args]);
-        if (type !== "sire" && type !== "dam") return res;
-
-        const dd = document.getElementById(dropdownId);
-        const name = dd?.value?.trim()?.toLowerCase();
-        if (!name) return res;
-
-        const base = name.replace(/\s*\(\d+\)\s*$/, "");
-        const isBB = !!BB_BRONZE_MAP[base];
-
-        if (isBB) {
-          bbBronzeState[type] = "broad";
-          const c = document.getElementById(type + "ImageContainer");
-          if (c) c.dataset.bbBronzeKey = "broad";
-          setTimeout(() => forceApplyBBBronze(type), 100);
-          setTimeout(() => forceApplyBBBronze(type), 400);
-        } else {
-          bbBronzeState[type] = null;
-          const c = document.getElementById(type + "ImageContainer");
-          if (c) delete c.dataset.bbBronzeKey;
-        }
-        return res;
-      };
-    }
-
-    // Post-calculate: force parents + offspring patch
-    if (typeof window.calculateOffspringWrapper === "function" && !window._bbBronzeCalcPatched) {
-      window._bbBronzeCalcPatched = true;
+    if (typeof window.calculateOffspringWrapper === "function" && !window._bbCalcPatched) {
+      window._bbCalcPatched = true;
       const orig = window.calculateOffspringWrapper;
       window.calculateOffspringWrapper = function (...args) {
         const res = orig.apply(this, args);
         setTimeout(() => {
           ["sire", "dam"].forEach(prefix => {
-            if (bbBronzeState[prefix]) {
-              forceApplyBBBronze(prefix);
-            }
+            if (state[prefix]) forceApply(prefix);
           });
-          applyBBBronzeToOffspring();
+          applyToOffspring();
         }, 200);
         return res;
       };
     }
   });
 })();
+
+
 
 // =====================================================
 // SUMMARY CHART / Dam (shows ONLY after calculate)
