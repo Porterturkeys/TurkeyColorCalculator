@@ -2315,7 +2315,7 @@ window.addEventListener("load", () => {
     "giant white":"broad","broad white":"broad","breasted white":"broad"
   };
 ///////////////////////////////
- // ===========================================
+// ===========================================
 // BROAD BREASTED BRONZE OVERLAY (parents + offspring)
 // ===========================================
 (function () {
@@ -2324,8 +2324,7 @@ window.addEventListener("load", () => {
   const BB_BRONZE = {
     name: "Broad Breasted Bronze",
     male: "MBroadBreastedBronze.jpg",
-    female: "FBroadBreastedBronze.jpg",
-    // poult not used here since no offspring patching needed
+    female: "FBroadBreastedBronze.jpg"
   };
 
   const BB_BRONZE_MAP = {
@@ -2347,7 +2346,7 @@ window.addEventListener("load", () => {
   function detectBBBronzeFromVariety(prefix) {
     const input = document.getElementById(prefix + "VarietyInput");
     const val = norm(input?.value);
-    const isBBBronze = BB_BRONZE_MAP[val] || false;
+    const isBBBronze = !!BB_BRONZE_MAP[val];
     bbBronzeState[prefix] = isBBBronze ? "bronze" : null;
     const container = document.getElementById(prefix + "ImageContainer");
     if (container) {
@@ -2366,14 +2365,23 @@ window.addEventListener("load", () => {
 
     const data = BB_BRONZE;
 
-    // One-time force bb
+    // Force bb EVERY TIME we apply (safe and reliable)
     const bronzeId = prefix === "sire" ? "sireAlleleb" : "damAlleleb";
     const bronzeSel = document.getElementById(bronzeId);
-    if (bronzeSel && bronzeSel.value !== "bb" && !container._bbBronzeForced) {
+    let genotypeChanged = false;
+    if (bronzeSel && bronzeSel.value !== "bb") {
       bronzeSel.value = "bb";
-      if (prefix === "sire" && typeof updateSireGenotype === "function") updateSireGenotype();
-      if (prefix === "dam" && typeof updateDamGenotype === "function") updateDamGenotype();
-      container._bbBronzeForced = true;
+      genotypeChanged = true;
+    }
+
+    // Trigger genotype update if we changed anything
+    if (genotypeChanged) {
+      if (prefix === "sire" && typeof updateSireGenotype === "function") {
+        updateSireGenotype();
+      }
+      if (prefix === "dam" && typeof updateDamGenotype === "function") {
+        updateDamGenotype();
+      }
     }
 
     // Force image
@@ -2394,7 +2402,7 @@ window.addEventListener("load", () => {
       phenoSpan.textContent = data.name;
     }
 
-    // Cleanup any "Bronze" or "To Be Defined"
+    // Cleanup lingering generic text
     const info = document.getElementById(prefix + "InfoContainer");
     if (info) {
       info.querySelectorAll("span, div, strong").forEach(el => {
@@ -2419,7 +2427,6 @@ window.addEventListener("load", () => {
       currentText = (span ? span.textContent : strong.textContent || "").trim().toLowerCase();
     }
 
-    // Apply if still bronze/generic
     if (/bronze|to be defined/i.test(currentText) || currentText === "") {
       forceApplyBBBronze(prefix);
     }
@@ -2436,7 +2443,7 @@ window.addEventListener("load", () => {
         setTimeout(() => forceApplyBBBronze(prefix), 100);
         setTimeout(() => forceApplyBBBronze(prefix), 400);
 
-        // Short-lived observer for late core "Bronze" overwrite
+        // Catch late core overwrite
         const container = document.getElementById(prefix + "ImageContainer");
         if (container) {
           const obs = new MutationObserver(() => {
@@ -2452,10 +2459,7 @@ window.addEventListener("load", () => {
       } else {
         bbBronzeState[prefix] = null;
         const c = document.getElementById(prefix + "ImageContainer");
-        if (c) {
-          delete c.dataset.bbBronzeKey;
-          delete c._bbBronzeForced;
-        }
+        if (c) delete c.dataset.bbBronzeKey;
       }
       return res;
     };
@@ -2465,7 +2469,6 @@ window.addEventListener("load", () => {
     wrapVarietyFn("applyVarietyToSire", "sire");
     wrapVarietyFn("applyVarietyToDam", "dam");
 
-    // Reset
     if (typeof window.resetCalculator === "function") {
       const orig = window.resetCalculator;
       window.resetCalculator = function (...args) {
@@ -2475,14 +2478,13 @@ window.addEventListener("load", () => {
           const c = document.getElementById(p + "ImageContainer");
           if (c) {
             delete c.dataset.bbBronzeKey;
-            delete c._bbBronzeForced;
           }
         });
         return res;
       };
     }
 
-    // Transfer fix - keep state and force apply
+    // Transfer persistence
     if (typeof window.transferOffspringToParent === "function" && !window._bbBronzeTransferPatched) {
       window._bbBronzeTransferPatched = true;
       const orig = window.transferOffspringToParent;
@@ -2503,7 +2505,7 @@ window.addEventListener("load", () => {
       };
     }
 
-    // Favorites (if favorite name matches)
+    // Favorites
     if (typeof window.handleDropdownChange === "function" && !window._bbBronzeFavoritesPatched) {
       window._bbBronzeFavoritesPatched = true;
       const orig = window.handleDropdownChange;
@@ -2516,7 +2518,7 @@ window.addEventListener("load", () => {
         if (!name) return res;
 
         const base = name.replace(/\s*\(\d+\)\s*$/, "");
-        const isBBBronze = BB_BRONZE_MAP[base] || false;
+        const isBBBronze = !!BB_BRONZE_MAP[base];
 
         if (isBBBronze) {
           bbBronzeState[type] = "bronze";
@@ -2533,7 +2535,7 @@ window.addEventListener("load", () => {
       };
     }
 
-    // After calculate: re-apply if still bronze-like
+    // Post-calculate persistence
     if (typeof window.calculateOffspringWrapper === "function" && !window._bbBronzeCalcPatched) {
       window._bbBronzeCalcPatched = true;
       const orig = window.calculateOffspringWrapper;
@@ -2548,7 +2550,7 @@ window.addEventListener("load", () => {
       };
     }
   });
-})(); 
+})();
 
 /////////////////////////////////
 
