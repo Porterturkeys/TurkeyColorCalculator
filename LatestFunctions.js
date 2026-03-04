@@ -1568,8 +1568,9 @@ document.addEventListener('click', function (event) {
   });
 })();
 
+
 // ===========================================
-// BROAD BREASTED BRONZE OVERLAY (parents + offspring - FIXED double name)
+// BROAD BREASTED BRONZE OVERLAY (parents + offspring - text & image fix)
 // ===========================================
 (function () {
   'use strict';
@@ -1577,7 +1578,8 @@ document.addEventListener('click', function (event) {
   const BB_BRONZE = {
     name: "Broad Breasted Bronze",
     male: "MBroadBreastedBronze.jpg",
-    female: "FBroadBreastedBronze.jpg"
+    female: "FBroadBreastedBronze.jpg",
+    poult: "PBroadBreastedBronze.jpg"
   };
 
   const BB_BRONZE_MAP = {
@@ -1617,7 +1619,7 @@ document.addEventListener('click', function (event) {
 
     const data = BB_BRONZE;
 
-    // Force bb every time
+    // Force bb
     const bronzeId = prefix === "sire" ? "sireAlleleb" : "damAlleleb";
     const bronzeSel = document.getElementById(bronzeId);
     if (bronzeSel && bronzeSel.value !== "bb") {
@@ -1680,23 +1682,22 @@ document.addEventListener('click', function (event) {
 
     const displayName = BB_BRONZE.name;
 
-    // Patch offspring lists
+    // Patch text in offspring lists
     document.querySelectorAll("#maleOffspringResults li, #femaleOffspringResults li").forEach(li => {
       let html = li.innerHTML;
 
-      // Guard: skip if already has the full correct name
+      // Skip if already correct
       if (html.includes(displayName)) return;
 
-      // Replace ONLY standalone "Bronze" (word boundaries prevent matching inside "Broad Breasted Bronze")
+      // Replace standalone "Bronze"
       html = html.replace(/\bBronze\b/gi, displayName);
-
       // To Be Defined
       html = html.replace(/To Be Defined/gi, displayName);
 
       li.innerHTML = html.trim();
     });
 
-    // Patch summary chart - same precise logic
+    // Patch summary chart text
     const summaryBody = document.querySelector("#summaryChart tbody");
     if (summaryBody) {
       summaryBody.querySelectorAll("tr").forEach(tr => {
@@ -1707,11 +1708,40 @@ document.addEventListener('click', function (event) {
         if (text.includes(displayName)) return;
 
         text = text.replace(/\bBronze\b/gi, displayName);
-        text = text.replace(/To Be Defined/gi, displayName);
+        text = text.replace(/to be defined/gi, displayName);
 
         cell.textContent = text.trim();
       });
     }
+
+    // Patch images in DOM
+    document.querySelectorAll("#maleOffspringResults img, #femaleOffspringResults img").forEach(img => {
+      const file = img.src.split("/").pop()?.toLowerCase() || "";
+      if (file === "mbronze.jpg") img.src = "https://portersturkeys.github.io/Pictures/" + BB_BRONZE.male;
+      if (file === "fbronze.jpg") img.src = "https://portersturkeys.github.io/Pictures/" + BB_BRONZE.female;
+      if (file === "pbronze.jpg") img.src = "https://portersturkeys.github.io/Pictures/" + BB_BRONZE.poult;
+    });
+
+    // Patch internal arrays (picturePath & poultImagePath)
+    function patchArray(arr) {
+      if (!Array.isArray(arr)) return;
+      arr.forEach(o => {
+        if (!o) return;
+        if (o.picturePath) {
+          const file = o.picturePath.split("/").pop()?.toLowerCase() || "";
+          if (file === "mbronze.jpg") o.picturePath = "https://portersturkeys.github.io/Pictures/" + BB_BRONZE.male;
+          if (file === "fbronze.jpg") o.picturePath = "https://portersturkeys.github.io/Pictures/" + BB_BRONZE.female;
+          if (file === "pbronze.jpg") o.picturePath = "https://portersturkeys.github.io/Pictures/" + BB_BRONZE.poult;
+        }
+        if (o.poultImagePath) {
+          const file2 = o.poultImagePath.split("/").pop()?.toLowerCase() || "";
+          if (file2 === "pbronze.jpg") o.poultImagePath = "https://portersturkeys.github.io/Pictures/" + BB_BRONZE.poult;
+        }
+      });
+    }
+
+    if (window.maleOffspring) patchArray(window.maleOffspring);
+    if (window.femaleOffspring) patchArray(window.femaleOffspring);
   }
 
   function wrapVarietyFn(fnName, prefix) {
@@ -1819,7 +1849,6 @@ document.addEventListener('click', function (event) {
     }
   });
 })();
-
 
 // =====================================================
 // SUMMARY CHART / Dam (shows ONLY after calculate)
