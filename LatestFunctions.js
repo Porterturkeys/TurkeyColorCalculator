@@ -1569,8 +1569,10 @@ document.addEventListener('click', function (event) {
 })();
 
 
+
+
 // ===========================================
-// BROAD BREASTED BRONZE + WHITE OVERLAY (transfer fixed for both parent slots)
+// BROAD BREASTED BRONZE + WHITE OVERLAY (transfer fixed for all offspring)
 // ===========================================
 (function () {
   'use strict';
@@ -1677,23 +1679,10 @@ document.addEventListener('click', function (event) {
         }
       });
     }
-  }
 
-  function applyToParent(prefix) {
-    const container = document.getElementById(prefix + "ImageContainer");
-    if (!container) return;
-    if (!state[prefix]) return;
-
-    const strong = container.querySelector("strong");
-    let txt = "";
-    if (strong) {
-      const span = strong.querySelector("span");
-      txt = (span ? span.textContent : strong.textContent || "").trim().toLowerCase();
-    }
-
-    if (/bronze|white|eyes|to be defined/i.test(txt) || txt === "") {
-      forceApply(prefix);
-    }
+    // Force variety input text
+    const varietyInput = document.getElementById(prefix + "VarietyInput");
+    if (varietyInput) varietyInput.value = data.name;
   }
 
   function applyToOffspring() {
@@ -1709,20 +1698,17 @@ document.addEventListener('click', function (event) {
 
         // bb cc = White, otherwise Bronze
         let name = BRONZE.name;
-        if (o.genotype && o.genotype.includes("cc")) {
+        if (o.genotype && /\bcc\b/.test(o.genotype)) {
           name = WHITE.name;
         }
 
-        // Update phenotype
         if (o.phenotype) {
-          let p = o.phenotype;
-          p = p.replace(/\bBronze\b/gi, name)
-               .replace(/\bWhite\b/gi, name)
-               .replace(/To Be Defined/gi, name);
-          o.phenotype = p;
+          o.phenotype = o.phenotype
+            .replace(/\bBronze\b/gi, name)
+            .replace(/\bWhite\b/gi, name)
+            .replace(/To Be Defined/gi, name);
         }
 
-        // Update images
         const data = (name === WHITE.name) ? WHITE : BRONZE;
         if (o.picturePath) {
           const f = o.picturePath.split("/").pop()?.toLowerCase() || "";
@@ -1782,8 +1768,6 @@ document.addEventListener('click', function (event) {
       if (file === "mbronze.jpg") img.src = "https://portersturkeys.github.io/Pictures/" + BRONZE.male;
       if (file === "fbronze.jpg") img.src = "https://portersturkeys.github.io/Pictures/" + BRONZE.female;
       if (file === "pbronze.jpg") img.src = "https://portersturkeys.github.io/Pictures/" + BRONZE.poult;
-      // White override
-      if (file.includes("white")) img.src = "https://portersturkeys.github.io/Pictures/" + WHITE.male; // fallback
     });
   }
 
@@ -1819,7 +1803,7 @@ document.addEventListener('click', function (event) {
       };
     }
 
-    // TRANSFER - use offspring genotype to set correct type for target parent
+    // TRANSFER - use offspring genotype, force to target parent
     if (typeof window.transferOffspringToParent === "function" && !window._bbTransferPatched) {
       window._bbTransferPatched = true;
       const orig = window.transferOffspringToParent;
@@ -1833,7 +1817,9 @@ document.addEventListener('click', function (event) {
           const c = document.getElementById(parent + "ImageContainer");
           if (c) {
             c.dataset.bbType = state[parent];
+            // Immediate force
             setTimeout(() => forceApply(parent), 50);
+            // Backup delayed
             setTimeout(() => forceApply(parent), 300);
           }
         }
@@ -1857,6 +1843,9 @@ document.addEventListener('click', function (event) {
     }
   });
 })();
+
+
+
 
 // =====================================================
 // SUMMARY CHART / Dam (shows ONLY after calculate)
