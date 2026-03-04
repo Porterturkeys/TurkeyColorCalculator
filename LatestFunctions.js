@@ -2314,9 +2314,125 @@ window.addEventListener("load", () => {
     "broad breasted white":"broad","broad-breasted white":"broad","large white":"broad","commercial white":"broad",
     "giant white":"broad","broad white":"broad","breasted white":"broad"
   };
-///////////////////////////////
 
-/////////////////////////////////
+
+    const BB_BRONZE = { name:"Broad Breasted Bronze", male:"MBroadBreastedBronze.jpg", female:"FBroadBreastedBronze.jpg" };
+
+  const BB_BRONZE_MAP = {
+    "broad breasted bronze":true,
+    "broad-breasted bronze":true,
+    "mammoth bronze":true,
+    "orlopp bronze":true,
+    "breasted bronze":true,
+    "bronze breasted":true,
+    "large bronze":true
+  };
+
+  // --------- helpers ----------
+  function norm(s){ return String(s || "").trim().toLowerCase(); }
+
+  function setParentImageAndName(prefix, displayName, maleFile, femaleFile){
+    const container = document.getElementById(prefix + "ImageContainer");
+    if (!container) return;
+
+    const img = container.querySelector("img");
+    const wantSrc = "https://portersturkeys.github.io/Pictures/" + (prefix === "dam" ? femaleFile : maleFile);
+
+    if (img) {
+      // Only set if missing or wrong (prevents loops)
+      const cur = img.getAttribute("src") || "";
+      if (!cur || cur.indexOf(wantSrc) === -1) {
+        img.src = wantSrc;
+      }
+    }
+
+    const strong = container.querySelector("strong");
+    if (strong) {
+      const spans = strong.querySelectorAll("span");
+      if (spans && spans[0]) {
+        if ((spans[0].textContent || "").trim() !== displayName) spans[0].textContent = displayName;
+      } else {
+        if ((strong.textContent || "").trim() !== displayName) strong.textContent = displayName;
+      }
+    }
+  }
+
+  function enforceOnce(prefix){
+    const input = document.getElementById(prefix + "VarietyInput");
+    const val = norm(input && input.value);
+
+    // 1) Wild
+    const wildKey = WILD_VARIETY_MAP[val] || null;
+    if (wildKey && WILD_VARIANTS[wildKey]) {
+      const d = WILD_VARIANTS[wildKey];
+      setParentImageAndName(prefix, d.name, d.male, d.female);
+      return;
+    }
+
+    // 2) Named White (incl BB White)
+    const whiteKey = WHITE_VARIETY_MAP[val] || null;
+    if (whiteKey && WHITE_VARIANTS[whiteKey]) {
+      const d = WHITE_VARIANTS[whiteKey];
+      setParentImageAndName(prefix, d.name, d.male, d.female);
+      return;
+    }
+
+    // 3) Broad Breasted Bronze
+    if (BB_BRONZE_MAP[val]) {
+      setParentImageAndName(prefix, BB_BRONZE.name, BB_BRONZE.male, BB_BRONZE.female);
+      return;
+    }
+  }
+
+  function enforceBoth(){
+    enforceOnce("sire");
+    enforceOnce("dam");
+  }
+
+  // Firefox timing: do multiple passes after variety application
+  function scheduleEnforce(){
+    // immediate
+    enforceBoth();
+    // beat late DOM/image updates in Firefox
+    setTimeout(enforceBoth, 0);
+    setTimeout(enforceBoth, 50);
+    setTimeout(enforceBoth, 150);
+    setTimeout(enforceBoth, 300);
+  }
+
+  // Hook variety apply if present (safe wrap; Firefox-only)
+  function wrap(fnName){
+    const orig = window[fnName];
+    if (typeof orig !== "function") return;
+    if (orig && orig._ffOverlayEnforced) return;
+
+    function wrapped(){
+      const res = orig.apply(this, arguments);
+      scheduleEnforce();
+      return res;
+    }
+    wrapped._ffOverlayEnforced = true;
+    window[fnName] = wrapped;
+  }
+
+  window.addEventListener("load", () => {
+    wrap("applyVarietyToSire");
+    wrap("applyVarietyToDam");
+
+    // Also run when the inputs change (covers programmatic value sets)
+    ["sireVarietyInput","damVarietyInput"].forEach(id => {
+      const el = document.getElementById(id);
+      if (!el) return;
+      el.addEventListener("change", scheduleEnforce, true);
+      el.addEventListener("blur", scheduleEnforce, true);
+    });
+
+    // First pass after load
+    scheduleEnforce();
+  });
+
+
+})();
 
 /* ==========================================================
    MOBILE FIREFOX/iOS PORTRAIT:
