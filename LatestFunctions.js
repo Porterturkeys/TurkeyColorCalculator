@@ -1150,82 +1150,69 @@ document.addEventListener('click', function (event) {
 
 ////////////////////////////////////////
 
-
-
 // ===========================================
-// WHITE VARIANTS OVERLAY (parents + offspring)
+// WHITE VARIANTS OVERLAY (parents + offspring) - aligned with wild logic
 // ===========================================
 (function () {
   'use strict';
 
-  // Adjust filenames to match actual picture names
   const WHITE_VARIANTS = {
     beltsville: {
-      name:  "Beltsville Small White",
-      male:  "MBeltsvilleSmallWhite.jpg",
-      female:"FBeltsvilleSmallWhite.jpg",
+      name: "Beltsville Small White",
+      male: "MBeltsvilleSmallWhite.jpg",
+      female: "FBeltsvilleSmallWhite.jpg",
       poult: "PBeltsvilleSmallWhite.jpg"
     },
     midget: {
-      name:  "Midget White",
-      male:  "MMidgetWhite.jpg",
-      female:"FMidgetWhite.jpg",
+      name: "Midget White",
+      male: "MMidgetWhite.jpg",
+      female: "FMidgetWhite.jpg",
       poult: "PMidgetWhite.jpg"
     },
     holland: {
-      name:  "White Holland",
-      male:  "MWhiteHolland.jpg",
-      female:"FWhiteHolland.jpg",
+      name: "White Holland",
+      male: "MWhiteHolland.jpg",
+      female: "FWhiteHolland.jpg",
       poult: "PWhiteHolland.jpg"
     },
     broad: {
-      name:  "Broad Breasted White",
-      male:  "MBroadBreastedWhite.jpg",
-      female:"FBroadBreastedWhite.jpg",
+      name: "Broad Breasted White",
+      male: "MBroadBreastedWhite.jpg",
+      female: "FBroadBreastedWhite.jpg",
       poult: "PBroadBreastedWhite.jpg"
     }
   };
 
-  // What the user actually types in the variety box
   const WHITE_VARIETY_MAP = {
-    "beltsville small white":        "beltsville",
-    "beltsville white":              "beltsville",
-    "white beltsville":              "beltsville",
-
-    "midget white":            "midget",
-    "midget":                  "midget",
-    "white midget":            "midget",
-
-    "white holland":           "holland",
-    "holland white":           "holland",
-    "holland":                 "holland",
-
-    "broad breasted white":   "broad",
-    "broad-breasted white":   "broad",
-    "large white":            "broad",
-    "commercial white":       "broad",
-    "giant white":            "broad",
-    "broad white":            "broad",
-    "breasted white":         "broad"
-
+    "beltsville small white": "beltsville",
+    "beltsville white": "beltsville",
+    "white beltsville": "beltsville",
+    "beltsville": "beltsville",
+    "midget white": "midget",
+    "midget": "midget",
+    "white midget": "midget",
+    "white holland": "holland",
+    "holland white": "holland",
+    "holland": "holland",
+    "broad breasted white": "broad",
+    "broad-breasted white": "broad",
+    "large white": "broad",
+    "commercial white": "broad",
+    "giant white": "broad",
+    "broad white": "broad",
+    "breasted white": "broad"
   };
 
-  // Track current white variant per parent
-  const whiteState = {
-    sire: null,   // "beltsville" | "midget" | "holland" | "broad" | null
-    dam:  null
-  };
+  const whiteState = { sire: null, dam: null };
 
   function norm(str) {
     return (str || "").trim().toLowerCase();
   }
 
-  // When user types / uses variety autocomplete, figure out if it's a White variant
   function detectWhiteFromVariety(prefix) {
     const input = document.getElementById(prefix + "VarietyInput");
-    const val   = norm(input && input.value);
-    const key   = WHITE_VARIETY_MAP[val] || null;
-
+    const val = norm(input?.value);
+    const key = WHITE_VARIETY_MAP[val] || null;
     whiteState[prefix] = key;
 
     const container = document.getElementById(prefix + "ImageContainer");
@@ -1233,66 +1220,54 @@ document.addEventListener('click', function (event) {
       if (key) container.dataset.whiteKey = key;
       else delete container.dataset.whiteKey;
     }
-
     return key;
   }
 
-    // Overlay White variant on a parent (image + visible name)
-  function applyWhiteToParent(prefix) {
+  function applyWhiteToParentOnce(prefix) {
     const container = document.getElementById(prefix + "ImageContainer");
     if (!container) return;
 
-    const key  = container.dataset.whiteKey || whiteState[prefix];
+    const key = whiteState[prefix];
     if (!key) return;
 
     const data = WHITE_VARIANTS[key];
     if (!data) return;
 
-    // 0) Force bronze locus to bb and color locus to cc for White parents
-    const bronzeSelectId = prefix === "sire" ? "sireAlleleb"  : "damAlleleb";
-    const cSelectId      = prefix === "sire" ? "sireAlleleC" : "damAlleleC";
-
-    const bronzeSelect = document.getElementById(bronzeSelectId);
-    const cSelect      = document.getElementById(cSelectId);
-
+    // One-time force: bb and cc when white variety is first selected
+    const bronzeId = prefix === "sire" ? "sireAlleleb" : "damAlleleb";
+    const cId      = prefix === "sire" ? "sireAlleleC"  : "damAlleleC";
+    const bronzeSel = document.getElementById(bronzeId);
+    const cSel      = document.getElementById(cId);
     let changed = false;
 
-    if (bronzeSelect && bronzeSelect.value !== "bb") {
-      bronzeSelect.value = "bb";
+    if (bronzeSel && bronzeSel.value !== "bb") {
+      bronzeSel.value = "bb";
       changed = true;
     }
-    if (cSelect && cSelect.value !== "cc") {
-      cSelect.value = "cc";
+    if (cSel && cSel.value !== "cc") {
+      cSel.value = "cc";
       changed = true;
     }
 
-    // If  changed B or C, refresh that parent's genotype
     if (changed) {
-      if (prefix === "sire" && typeof updateSireGenotype === "function") {
-        updateSireGenotype();
-      }
-      if (prefix === "dam" && typeof updateDamGenotype === "function") {
-        updateDamGenotype();
-      }
+      if (prefix === "sire" && typeof updateSireGenotype === "function") updateSireGenotype();
+      if (prefix === "dam" && typeof updateDamGenotype === "function") updateDamGenotype();
     }
 
-    // 1) Swap parent image to correct White file
+    // Apply white-specific image + name (no ongoing condition — only on variety change)
     const img = container.querySelector("img");
     if (img) {
-      img.src = "https://portersturkeys.github.io/Pictures/" + (prefix === "dam" ? data.female : data.male);
+      const target = prefix === "dam" ? data.female : data.male;
+      img.src = "https://portersturkeys.github.io/Pictures/" + target;
     }
 
-    // 2) Fix visible phenotype/variety label, assuming first <span> under a <strong>
     const strong = container.querySelector("strong");
     if (strong) {
-      const spans = strong.querySelectorAll("span");
-      const phenoSpan = spans[0];
-      if (phenoSpan) {
-        phenoSpan.textContent = data.name;
-      }
+      const span = strong.querySelector("span") || strong;
+      span.textContent = data.name;
     }
 
-    // 3) Clean up "To Be Defined" in parent info container, if present
+    // One-time cleanup of "To Be Defined"
     const info = document.getElementById(prefix + "InfoContainer");
     if (info) {
       info.querySelectorAll("span, div, strong").forEach(el => {
@@ -1303,317 +1278,187 @@ document.addEventListener('click', function (event) {
     }
   }
 
-      // ===========================================
-  // White offspring naming + images (same-strain only)
-  // ===========================================
   function applyWhiteToOffspring() {
     const sireKey = whiteState.sire;
-    const damKey  = whiteState.dam;
-
-    // Need BOTH parents to be White variants and the SAME strain
+    const damKey = whiteState.dam;
     if (!sireKey || !damKey || sireKey !== damKey) return;
 
     const data = WHITE_VARIANTS[sireKey];
     if (!data) return;
+    const displayName = data.name;
 
-    const displayName = data.name; // e.g. "Midget White"
+    // Patch visible offspring text
+    document.querySelectorAll("#maleOffspringResults li, #femaleOffspringResults li").forEach(li => {
+      let html = li.innerHTML;
+      if (html.includes(displayName)) return;
+      html = html.replace(/\bWhite\b(?=\s*\()/gi, displayName)
+                 .replace(/\bBronze\b/gi, displayName)
+                 .replace(/To Be Defined/gi, displayName);
+      li.innerHTML = html;
+    });
 
-    // 1) Patch visible offspring text lines (male + female lists)
-//    (ONLY touch text, leave <img> and its click handlers alone)
-document
-  .querySelectorAll("#maleOffspringResults li, #femaleOffspringResults li")
-  .forEach(li => {
-    const namePattern = new RegExp(displayName + "\\s*\\([^)]*\\)", "g");
-
-    function walk(node) {
-      if (node.nodeType === Node.TEXT_NODE) {
-        let text = node.nodeValue;
-
-        // Replace generic White/Bronze/To Be Defined with the named white
-        text = text.replace(/\bWhite\b(?=\s*\()/gi, displayName);
-        text = text.replace(/\bBronze\b/gi, displayName);
-        text = text.replace(/To Be Defined/gi, displayName);
-
-        // Strip "(... Eyes)" from named whites in the text
-        text = text.replace(namePattern, displayName);
-
-        node.nodeValue = text;
-      } else if (node.childNodes && node.childNodes.length) {
-        // Recurse into children
-        for (let i = 0; i < node.childNodes.length; i++) {
-          walk(node.childNodes[i]);
-        }
-      }
+    // Patch summary chart
+    const summaryBody = document.querySelector("#summaryChart tbody");
+    if (summaryBody) {
+      summaryBody.querySelectorAll("tr").forEach(tr => {
+        const cell = tr.cells?.[1];
+        if (!cell) return;
+        let text = cell.textContent || "";
+        if (text.includes(displayName)) return;
+        text = text.replace(/\bWhite\b(?=\s*\()/gi, displayName)
+                   .replace(/\bBronze\b/gi, displayName)
+                   .replace(/to be defined/gi, displayName);
+        cell.textContent = text;
+      });
     }
 
-    walk(li);
-  });
-
-
-    // 2) Patch summary chart DOM if present
-    const summaryBody = document.querySelector("#summaryChart tbody");
-if (summaryBody) {
-  summaryBody.querySelectorAll("tr").forEach(tr => {
-    const phenoCell = tr.cells && tr.cells[1];
-    if (!phenoCell) return;
-
-    let text = phenoCell.textContent || "";
-
-    text = text.replace(/\bWhite\b(?=\s*\()/gi, displayName);
-    text = text.replace(/\bBronze\b/gi, displayName);
-    text = text.replace(/to be defined/gi, displayName);
-
-    // Strip "(... Eyes)" from named whites in summary too
-    text = text.replace(
-      new RegExp(displayName + "\\s*\\([^)]*\\)", "g"),
-      displayName
-    );
-
-    phenoCell.textContent = text;
-  });
-}
-
-
-    // 3) Patch internal offspring arrays' image paths 
-    function patchWhiteOffspringArray(arr) {
+    // Patch internal arrays
+    function patchArray(arr) {
       if (!Array.isArray(arr)) return;
-
       arr.forEach(o => {
         if (!o) return;
-
-        // picturePath: swap generic White images - named White images
         if (o.picturePath) {
-          const file = (o.picturePath.split("/").pop() || "").toLowerCase();
-
-          if (/^mwhite/.test(file)) {
-            // Male White - named male White
-            o.picturePath = "https://portersturkeys.github.io/Pictures/" + data.male;
-          } else if (/^fwhite/.test(file)) {
-            // Female White - named female White
-            o.picturePath = "https://portersturkeys.github.io/Pictures/" + data.female;
-          } else if (/^pwhite/.test(file)) {
-            // Poult White - named poult White
-            o.picturePath = "https://portersturkeys.github.io/Pictures/" + data.poult;
-          }
+          const file = o.picturePath.split("/").pop()?.toLowerCase() || "";
+          if (/^mwhite/.test(file)) o.picturePath = "https://portersturkeys.github.io/Pictures/" + data.male;
+          if (/^fwhite/.test(file)) o.picturePath = "https://portersturkeys.github.io/Pictures/" + data.female;
+          if (/^pwhite/.test(file)) o.picturePath = "https://portersturkeys.github.io/Pictures/" + data.poult;
         }
-
-        // poultImagePath: same deal
         if (o.poultImagePath) {
-          const file2 = (o.poultImagePath.split("/").pop() || "").toLowerCase();
-
-          if (/^pwhite/.test(file2)) {
-            o.poultImagePath = "https://portersturkeys.github.io/Pictures/" + data.poult;
-          }
+          const file2 = o.poultImagePath.split("/").pop()?.toLowerCase() || "";
+          if (/^pwhite/.test(file2)) o.poultImagePath = "https://portersturkeys.github.io/Pictures/" + data.poult;
         }
       });
     }
 
-    if (window.maleOffspring)  patchWhiteOffspringArray(window.maleOffspring);
-    if (window.femaleOffspring) patchWhiteOffspringArray(window.femaleOffspring);
+    if (window.maleOffspring) patchArray(window.maleOffspring);
+    if (window.femaleOffspring) patchArray(window.femaleOffspring);
 
-    // 4) Patch visible offspring <img> elements in the DOM
-    document
-      .querySelectorAll("#maleOffspringResults img, #femaleOffspringResults img")
-      .forEach(img => {
-        const src  = img.getAttribute("src") || "";
-        const file = src.split("/").pop().toLowerCase();
-
-        if (/^mwhite/.test(file)) {
-          img.src = "https://portersturkeys.github.io/Pictures/" + data.male;
-        } else if (/^fwhite/.test(file)) {
-          img.src = "https://portersturkeys.github.io/Pictures/" + data.female;
-        } else if (/^pwhite/.test(file)) {
-          img.src = "https://portersturkeys.github.io/Pictures/" + data.poult;
-        }
-      });
+    // Patch visible images
+    document.querySelectorAll("#maleOffspringResults img, #femaleOffspringResults img").forEach(img => {
+      const file = img.src.split("/").pop()?.toLowerCase() || "";
+      if (/^mwhite/.test(file)) img.src = "https://portersturkeys.github.io/Pictures/" + data.male;
+      if (/^fwhite/.test(file)) img.src = "https://portersturkeys.github.io/Pictures/" + data.female;
+      if (/^pwhite/.test(file)) img.src = "https://portersturkeys.github.io/Pictures/" + data.poult;
+    });
   }
 
-
-// Offspring/summary observer
   function installWhiteOffspringObserver() {
-    let patching = false;
-
+    let busy = false;
     const targets = [
       document.getElementById("maleOffspringResults"),
       document.getElementById("femaleOffspringResults"),
       document.getElementById("summaryChart")
     ].filter(Boolean);
 
-    if (!targets.length) return;
-
-    targets.forEach(target => {
-      const obs = new MutationObserver(() => {
-        if (patching) return;
-        patching = true;
-        setTimeout(() => {
-          applyWhiteToOffspring();
-          patching = false;
-        }, 0);
-      });
-
-      obs.observe(target, { childList: true, subtree: true });
+    targets.forEach(t => {
+      new MutationObserver(() => {
+        if (busy) return;
+        busy = true;
+        setTimeout(() => { applyWhiteToOffspring(); busy = false; }, 0);
+      }).observe(t, { childList: true, subtree: true });
     });
   }
 
-  // Wrap variety functions so they record White state + apply overlay
   function wrapVarietyFn(fnName, prefix) {
-    const original = window[fnName];
-    if (typeof original !== "function") return;
+    const orig = window[fnName];
+    if (typeof orig !== "function") return;
 
-    window[fnName] = function () {
-      const res = original.apply(this, arguments);
-
+    window[fnName] = function (...args) {
+      const res = orig.apply(this, args);
       const key = detectWhiteFromVariety(prefix);
       if (key) {
-        // Let core finish DOM changes, then overlay White variant
-        setTimeout(() => applyWhiteToParent(prefix), 0);
+        setTimeout(() => applyWhiteToParentOnce(prefix), 50);
       } else {
-        const container = document.getElementById(prefix + "ImageContainer");
-        if (container) delete container.dataset.whiteKey;
         whiteState[prefix] = null;
+        const c = document.getElementById(prefix + "ImageContainer");
+        if (c) {
+          delete c.dataset.whiteKey;
+        }
       }
-
       return res;
     };
   }
 
-  // Watch parents for DOM changes and re-apply White overlay
-  function installObservers() {
-    const parentFlags = { sire: false, dam: false };
+  window.addEventListener("load", () => {
+    wrapVarietyFn("applyVarietyToSire", "sire");
+    wrapVarietyFn("applyVarietyToDam", "dam");
 
-    ["sire", "dam"].forEach(prefix => {
-      const container = document.getElementById(prefix + "ImageContainer");
-      if (!container) return;
+    // Reset patch
+    if (typeof window.resetCalculator === "function") {
+      const origReset = window.resetCalculator;
+      window.resetCalculator = function (...args) {
+        const res = origReset.apply(this, args);
+        whiteState.sire = whiteState.dam = null;
+        ["sire", "dam"].forEach(p => {
+          const c = document.getElementById(p + "ImageContainer");
+          if (c) delete c.dataset.whiteKey;
+        });
+        return res;
+      };
+    }
 
-      const obs = new MutationObserver(() => {
-        if (parentFlags[prefix]) return;
-        parentFlags[prefix] = true;
-        setTimeout(() => {
-          applyWhiteToParent(prefix);
-          parentFlags[prefix] = false;
-        }, 0);
-      });
+    installWhiteOffspringObserver();
 
-      obs.observe(container, { childList: true, subtree: true });
-    });
-  }
-
-  // Hooks everything after core is loaded
-window.addEventListener("load", () => {
-  // Variety handlers 
-  wrapVarietyFn("applyVarietyToSire", "sire");
-  wrapVarietyFn("applyVarietyToDam",  "dam");
-
-  // Make Reset clear White overlay state
-  if (typeof window.resetCalculator === "function") {
-    const originalReset = window.resetCalculator;
-
-    window.resetCalculator = function(initial) {
-      const result = originalReset.apply(this, arguments);
-
-      // Clear White state
-      whiteState.sire = null;
-      whiteState.dam  = null;
-
-      // Remove White flags from parent image containers
-      ["sire", "dam"].forEach(prefix => {
-        const container = document.getElementById(prefix + "ImageContainer");
-        if (container && container.dataset.whiteKey) {
-          delete container.dataset.whiteKey;
+    // Transfer: drop white state so transferred offspring shows correctly
+    if (typeof window.transferOffspringToParent === "function" && !window._whiteTransferPatched) {
+      window._whiteTransferPatched = true;
+      const orig = window.transferOffspringToParent;
+      window.transferOffspringToParent = function (...args) {
+        const parent = args[1];
+        if (parent === "sire" || parent === "dam") {
+          whiteState[parent] = null;
+          const c = document.getElementById(parent + "ImageContainer");
+          if (c) delete c.dataset.whiteKey;
         }
-      });
+        return orig.apply(this, args);
+      };
+    }
 
-      return result;
-    };
-  }
+    // Favorites: apply white overlay only once on load
+    if (typeof window.handleDropdownChange === "function" && !window._whiteFavoritesPatched) {
+      window._whiteFavoritesPatched = true;
+      const orig = window.handleDropdownChange;
+      window.handleDropdownChange = function (type, dropdownId, ...args) {
+        const res = orig.apply(this, [type, dropdownId, ...args]);
+        if (type !== "sire" && type !== "dam") return res;
 
-  // DOM observers: keep White overlay alive through Calculate / redraws
-  installObservers();
+        const dd = document.getElementById(dropdownId);
+        const name = dd?.value?.trim()?.toLowerCase();
+        if (!name) return res;
 
-  // Offspring/summary overlay (same-strain White-White only)
-  installWhiteOffspringObserver();
-
-  // IMPORTANT: When an offspring is used as sire/dam,
-  // drop the White overlay for that parent so the new
-  // offspring's image + name show correctly.
-  if (typeof window.transferOffspringToParent === "function" && !window._whiteTransferPatched) {
-    window._whiteTransferPatched = true;
-
-    const originalTransfer = window.transferOffspringToParent;
-
-    window.transferOffspringToParent = function(genotype, parent) {
-      // Before core logic runs, drop any White overlay for this parent
-      if (parent === "sire" || parent === "dam") {
-        whiteState[parent] = null;
-        const container = document.getElementById(parent + "ImageContainer");
-        if (container && container.dataset.whiteKey) {
-          delete container.dataset.whiteKey;
+        const base = name.replace(/\s*\(\d+\)\s*$/, "");
+        let key = null;
+        for (const [k, v] of Object.entries(WHITE_VARIANTS)) {
+          if (v.name.toLowerCase() === base) { key = k; break; }
         }
-      }
 
-      // Let the core function update genotype, image, name, etc.
-      return originalTransfer.apply(this, arguments);
-    };
-  }
-
-  // ===========================================
-  // FAVORITES - PARENT: keep named White overlay
-  // when loading a saved favorite
-  // ===========================================
-  if (typeof window.handleDropdownChange === "function" && !window._whiteFavoritesPatched) {
-    window._whiteFavoritesPatched = true;
-
-    const originalHandleDropdownChange = window.handleDropdownChange;
-
-    window.handleDropdownChange = function (type, dropdownId, alleleIds) {
-      // 1) Let favorites logic run normally (sets alleles + genotype + base image/name)
-      const result = originalHandleDropdownChange.apply(this, arguments);
-
-      // 2) Then try to re-apply a named White overlay based on the favorite's name
-      if (type === "sire" || type === "dam") {
-        const dropdown = document.getElementById(dropdownId);
-        const selectedName = dropdown && dropdown.value;
-        if (selectedName) {
-          // Strip duplicate suffix like "Midget White (1)"
-          const lowerName = selectedName.trim().toLowerCase();
-          const baseName  = lowerName.replace(/\s*\(\d+\)\s*$/, "");
-
-          let variantKey = null;
-
-          // Find which WHITE_VARIANTS entry matches this favorite name
-          for (const [key, data] of Object.entries(WHITE_VARIANTS)) {
-            if (data.name.toLowerCase() === baseName) {
-              variantKey = key;
-              break;
-            }
-          }
-
-          const container = document.getElementById(type + "ImageContainer");
-
-          if (variantKey) {
-            // Mark this parent as that White variant and re-apply overlay
-            whiteState[type] = variantKey;
-            if (container) {
-              container.dataset.whiteKey = variantKey;
-            }
-            setTimeout(() => applyWhiteToParent(type), 0);
-          } else {
-            // Not a named White favorite- clear any previous White overlay
-            whiteState[type] = null;
-            if (container && container.dataset.whiteKey) {
-              delete container.dataset.whiteKey;
-            }
-          }
+        if (key) {
+          whiteState[type] = key;
+          const c = document.getElementById(type + "ImageContainer");
+          if (c) c.dataset.whiteKey = key;
+          setTimeout(() => applyWhiteToParentOnce(type), 50);
+        } else {
+          whiteState[type] = null;
+          const c = document.getElementById(type + "ImageContainer");
+          if (c) delete c.dataset.whiteKey;
         }
-      }
+        return res;
+      };
+    }
 
-      return result;
-    };
-  }
+    // Calculate: only patch offspring — never force parents
+    if (typeof window.calculateOffspringWrapper === "function" && !window._whiteCalcPatched) {
+      window._whiteCalcPatched = true;
+      const orig = window.calculateOffspringWrapper;
+      window.calculateOffspringWrapper = function (...args) {
+        const res = orig.apply(this, args);
+        setTimeout(applyWhiteToOffspring, 100);
+        return res;
+      };
+    }
+  });
+})();
 
-}); 
-
-})(); 
 
 
 // ===========================================
