@@ -1150,7 +1150,7 @@ document.addEventListener('click', function (event) {
 
 ////////////////////////////////////////
 // ===========================================
-// WHITE VARIANTS OVERLAY (parents + offspring) - force name on selection, catch "Dark Brown Eyes"
+// WHITE VARIANTS OVERLAY (parents + offspring) - aggressive initial apply + mini observer
 // ===========================================
 (function () {
   'use strict';
@@ -1189,7 +1189,7 @@ document.addEventListener('click', function (event) {
     return key;
   }
 
-  function applyWhiteToParent(prefix) {
+  function forceApplyWhiteNameAndImage(prefix) {
     const container = document.getElementById(prefix + "ImageContainer");
     if (!container) return;
 
@@ -1199,30 +1199,14 @@ document.addEventListener('click', function (event) {
     const data = WHITE_VARIANTS[key];
     if (!data) return;
 
-    const strong = container.querySelector("strong");
-    let currentText = "";
-    if (strong) {
-      const span = strong.querySelector("span");
-      currentText = (span ? span.textContent : strong.textContent || "").trim().toLowerCase();
-    }
-
-    // Apply if text looks like generic white (including "dark brown eyes" variants)
-    const isWhiteLike = /white|to be defined|bronze|eyes|dark brown|light brown|blue/i.test(currentText);
-    if (!isWhiteLike && currentText !== "") {
-      // If already something specific/non-white, skip
-      return;
-    }
-
     // Force bb/cc
     const bronzeId = prefix === "sire" ? "sireAlleleb" : "damAlleleb";
     const cId = prefix === "sire" ? "sireAlleleC" : "damAlleleC";
     const bronzeSel = document.getElementById(bronzeId);
     const cSel = document.getElementById(cId);
     let changed = false;
-
     if (bronzeSel && bronzeSel.value !== "bb") { bronzeSel.value = "bb"; changed = true; }
     if (cSel && cSel.value !== "cc") { cSel.value = "cc"; changed = true; }
-
     if (changed) {
       if (prefix === "sire" && typeof updateSireGenotype === "function") updateSireGenotype();
       if (prefix === "dam" && typeof updateDamGenotype === "function") updateDamGenotype();
@@ -1234,31 +1218,51 @@ document.addEventListener('click', function (event) {
       img.src = "https://portersturkeys.github.io/Pictures/" + (prefix === "dam" ? data.female : data.male);
     }
 
-    // Force name override
+    // Force name - target strong > span or strong directly
+    const strong = container.querySelector("strong");
     if (strong) {
       let phenoSpan = strong.querySelector("span");
       if (!phenoSpan) {
-        // If no span, create one or use strong directly
         phenoSpan = document.createElement("span");
-        strong.innerHTML = ''; // clear old text
+        strong.innerHTML = '';
         strong.appendChild(phenoSpan);
       }
       phenoSpan.textContent = data.name;
     }
 
-    // Cleanup any To Be Defined or lingering generic
+    // Aggressive cleanup in info container
     const info = document.getElementById(prefix + "InfoContainer");
     if (info) {
       info.querySelectorAll("span, div, strong, p").forEach(el => {
-        let txt = el.textContent;
-        if (/to be defined|white(?!.*breast)|bronze|eyes/i.test(txt.toLowerCase())) {
-          el.textContent = txt.replace(/White( Dark Brown Eyes)?|To Be Defined/gi, data.name);
+        let txt = el.textContent || "";
+        if (/white.*eyes|to be defined|bronze/i.test(txt.toLowerCase())) {
+          el.textContent = data.name;
         }
       });
     }
   }
 
-  // applyWhiteToOffspring and installWhiteOffspringObserver remain unchanged from previous version
+  function applyWhiteToParent(prefix) {
+    const container = document.getElementById(prefix + "ImageContainer");
+    if (!container) return;
+
+    const key = container.dataset.whiteKey || whiteState[prefix];
+    if (!key) return;
+
+    const data = WHITE_VARIANTS[key];
+    if (!data) return;
+
+    const strong = container.querySelector("strong");
+    let currentText = strong ? (strong.querySelector("span")?.textContent || strong.textContent || "").trim().toLowerCase() : "";
+
+    const isGenericWhite = /white|dark brown eyes|light brown eyes|blue eyes|to be defined|bronze/i.test(currentText);
+
+    if (isGenericWhite || currentText === "") {
+      forceApplyWhiteNameAndImage(prefix);
+    }
+  }
+
+  // Offspring patching (unchanged)
   function applyWhiteToOffspring() {
     const sireKey = whiteState.sire;
     const damKey = whiteState.dam;
@@ -1344,7 +1348,24 @@ document.addEventListener('click', function (event) {
       const res = orig.apply(this, args);
       const key = detectWhiteFromVariety(prefix);
       if (key) {
-        setTimeout(() => applyWhiteToParent(prefix), 150);  // increased delay for core to set initial text
+        // Long delay for initial apply
+        setTimeout(() => {
+          forceApplyWhiteNameAndImage(prefix);
+          // Mini observer to catch late core update
+          const container = document.getElementById(prefix + "ImageContainer");
+          if (container) {
+            const obs = new MutationObserver(() => {
+              const strong = container.querySelector("strong");
+              const txt = strong ? (strong.querySelector("span")?.textContent || strong.textContent || "").trim().toLowerCase() : "";
+              if (/white.*eyes|to be defined/i.test(txt)) {
+                forceApplyWhiteNameAndImage(prefix);
+              }
+            });
+            obs.observe(container, { childList: true, subtree: true, characterData: true });
+            // Disconnect after short time to avoid loop
+            setTimeout(() => obs.disconnect(), 2000);
+          }
+        }, 300);
       } else {
         whiteState[prefix] = null;
         const c = document.getElementById(prefix + "ImageContainer");
@@ -1408,7 +1429,7 @@ document.addEventListener('click', function (event) {
           whiteState[type] = key;
           const c = document.getElementById(type + "ImageContainer");
           if (c) c.dataset.whiteKey = key;
-          setTimeout(() => applyWhiteToParent(type), 150);
+          setTimeout(() => forceApplyWhiteNameAndImage(type), 300);
         } else {
           whiteState[type] = null;
           const c = document.getElementById(type + "ImageContainer");
