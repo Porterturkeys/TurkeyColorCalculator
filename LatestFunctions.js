@@ -1570,7 +1570,7 @@ document.addEventListener('click', function (event) {
 
 
 // ===========================================
-// BROAD BREASTED BRONZE + WHITE OVERLAY (correct cross + transfer)
+// BROAD BREASTED BRONZE + WHITE OVERLAY (transfer fixed for both parent slots)
 // ===========================================
 (function () {
   'use strict';
@@ -1743,11 +1743,14 @@ document.addEventListener('click', function (event) {
     // Patch visible text
     document.querySelectorAll("#maleOffspringResults li, #femaleOffspringResults li").forEach(li => {
       let html = li.innerHTML;
-      if (html.includes(BRONZE.name) || html.includes(WHITE.name)) return;
+      const fullBronze = BRONZE.name;
+      const fullWhite = WHITE.name;
 
-      html = html.replace(/\bBronze\b/gi, BRONZE.name)
-                 .replace(/\bWhite\b/gi, WHITE.name)
-                 .replace(/To Be Defined/gi, BRONZE.name);
+      if (html.includes(fullBronze) || html.includes(fullWhite)) return;
+
+      html = html.replace(/\bBronze\b/gi, fullBronze)
+                 .replace(/\bWhite\b/gi, fullWhite)
+                 .replace(/To Be Defined/gi, fullBronze);
 
       li.innerHTML = html.trim();
     });
@@ -1760,11 +1763,14 @@ document.addEventListener('click', function (event) {
         if (!cell) return;
         let text = cell.textContent || "";
 
-        if (text.includes(BRONZE.name) || text.includes(WHITE.name)) return;
+        const fullBronze = BRONZE.name;
+        const fullWhite = WHITE.name;
 
-        text = text.replace(/\bBronze\b/gi, BRONZE.name)
-                   .replace(/\bWhite\b/gi, WHITE.name)
-                   .replace(/to be defined/gi, BRONZE.name);
+        if (text.includes(fullBronze) || text.includes(fullWhite)) return;
+
+        text = text.replace(/\bBronze\b/gi, fullBronze)
+                   .replace(/\bWhite\b/gi, fullWhite)
+                   .replace(/to be defined/gi, fullBronze);
 
         cell.textContent = text.trim();
       });
@@ -1813,7 +1819,7 @@ document.addEventListener('click', function (event) {
       };
     }
 
-    // TRANSFER - read offspring genotype to decide type
+    // TRANSFER - use offspring genotype to set correct type for target parent
     if (typeof window.transferOffspringToParent === "function" && !window._bbTransferPatched) {
       window._bbTransferPatched = true;
       const orig = window.transferOffspringToParent;
@@ -1851,7 +1857,6 @@ document.addEventListener('click', function (event) {
     }
   });
 })();
-
 
 // =====================================================
 // SUMMARY CHART / Dam (shows ONLY after calculate)
