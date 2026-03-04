@@ -1193,7 +1193,7 @@ document.addEventListener('click', function (event) {
 
 ////////////////////////////////////////
 // ===========================================
-// WHITE VARIANTS OVERLAY (parents + offspring) - TRANSFER FIX
+// WHITE VARIANTS OVERLAY (parents + offspring) - DROP "(Dark Brown Eyes)" from offspring
 // ===========================================
 (function () {
   'use strict';
@@ -1353,29 +1353,64 @@ document.addEventListener('click', function (event) {
     if (!data) return;
     const displayName = data.name;
 
+    // Patch visible offspring text
     document.querySelectorAll("#maleOffspringResults li, #femaleOffspringResults li").forEach(li => {
       let html = li.innerHTML;
+
+      // First replace generic placeholders
       if (html.includes(displayName)) return;
       html = html.replace(/\bWhite\b(?=\s*\()/gi, displayName)
                  .replace(/\bBronze\b/gi, displayName)
                  .replace(/To Be Defined/gi, displayName);
-      li.innerHTML = html;
+
+      // NEW: Remove any eye-color suffix after the variety name
+      // Examples: "Midget White (Dark Brown Eyes)", "Midget White Dark Brown Eyes", etc.
+      const eyeSuffixes = [
+        /\s*\(Dark Brown Eyes\)/gi,
+        /\s*\(Light Brown Eyes\)/gi,
+        /\s*\(Blue Eyes\)/gi,
+        /\s*Dark Brown Eyes/gi,
+        /\s*Light Brown Eyes/gi,
+        /\s*Blue Eyes/gi
+      ];
+      eyeSuffixes.forEach(regex => {
+        html = html.replace(regex, '');
+      });
+
+      li.innerHTML = html.trim();
     });
 
+    // Patch summary chart
     const summaryBody = document.querySelector("#summaryChart tbody");
     if (summaryBody) {
       summaryBody.querySelectorAll("tr").forEach(tr => {
         const phenoCell = tr.cells?.[1];
         if (!phenoCell) return;
         let text = phenoCell.textContent || "";
+
+        // Same replacements as above
         if (text.includes(displayName)) return;
         text = text.replace(/\bWhite\b(?=\s*\()/gi, displayName)
                    .replace(/\bBronze\b/gi, displayName)
                    .replace(/to be defined/gi, displayName);
-        phenoCell.textContent = text;
+
+        const eyeSuffixes = [
+          /\s*\(Dark Brown Eyes\)/gi,
+          /\s*\(Light Brown Eyes\)/gi,
+          /\s*\(Blue Eyes\)/gi,
+          /\s*Dark Brown Eyes/gi,
+          /\s*Light Brown Eyes/gi,
+          /\s*Blue Eyes/gi
+        ];
+        eyeSuffixes.forEach(regex => {
+          text = text.replace(regex, '');
+        });
+
+        phenoCell.textContent = text.trim();
       });
     }
 
+    // Patch internal arrays & images (unchanged)
     function patchWhiteOffspringArray(arr) {
       if (!Array.isArray(arr)) return;
       arr.forEach(o => {
@@ -1464,7 +1499,6 @@ document.addEventListener('click', function (event) {
 
     installWhiteOffspringObserver();
 
-    // TRANSFER FIX - keep state and force apply immediately after transfer
     if (typeof window.transferOffspringToParent === "function" && !window._whiteTransferPatched) {
       window._whiteTransferPatched = true;
       const originalTransfer = window.transferOffspringToParent;
