@@ -1150,7 +1150,7 @@ document.addEventListener('click', function (event) {
 
 ////////////////////////////////////////
 // ===========================================
-// WHITE VARIANTS OVERLAY (parents + offspring) - immediate name on selection
+// WHITE VARIANTS OVERLAY (parents + offspring) - force name on selection, catch "Dark Brown Eyes"
 // ===========================================
 (function () {
   'use strict';
@@ -1189,7 +1189,7 @@ document.addEventListener('click', function (event) {
     return key;
   }
 
-  function applyWhiteToParent(prefix, isInitial = false) {
+  function applyWhiteToParent(prefix) {
     const container = document.getElementById(prefix + "ImageContainer");
     if (!container) return;
 
@@ -1206,12 +1206,14 @@ document.addEventListener('click', function (event) {
       currentText = (span ? span.textContent : strong.textContent || "").trim().toLowerCase();
     }
 
-    // For initial variety selection: force apply regardless of current text
-    // For post-calculate or observers: only if still generic white-like
-    const shouldApply = isInitial || /white|to be defined|bronze/i.test(currentText);
-    if (!shouldApply) return;
+    // Apply if text looks like generic white (including "dark brown eyes" variants)
+    const isWhiteLike = /white|to be defined|bronze|eyes|dark brown|light brown|blue/i.test(currentText);
+    if (!isWhiteLike && currentText !== "") {
+      // If already something specific/non-white, skip
+      return;
+    }
 
-    // Force bb/cc (only if not already set)
+    // Force bb/cc
     const bronzeId = prefix === "sire" ? "sireAlleleb" : "damAlleleb";
     const cId = prefix === "sire" ? "sireAlleleC" : "damAlleleC";
     const bronzeSel = document.getElementById(bronzeId);
@@ -1226,30 +1228,37 @@ document.addEventListener('click', function (event) {
       if (prefix === "dam" && typeof updateDamGenotype === "function") updateDamGenotype();
     }
 
-    // Apply image
+    // Force image
     const img = container.querySelector("img");
     if (img) {
       img.src = "https://portersturkeys.github.io/Pictures/" + (prefix === "dam" ? data.female : data.male);
     }
 
-    // Apply name
+    // Force name override
     if (strong) {
-      const span = strong.querySelector("span") || strong;
-      span.textContent = data.name;
+      let phenoSpan = strong.querySelector("span");
+      if (!phenoSpan) {
+        // If no span, create one or use strong directly
+        phenoSpan = document.createElement("span");
+        strong.innerHTML = ''; // clear old text
+        strong.appendChild(phenoSpan);
+      }
+      phenoSpan.textContent = data.name;
     }
 
-    // Cleanup To Be Defined
+    // Cleanup any To Be Defined or lingering generic
     const info = document.getElementById(prefix + "InfoContainer");
     if (info) {
-      info.querySelectorAll("span, div, strong").forEach(el => {
-        if (/to be defined/i.test(el.textContent)) {
-          el.textContent = data.name;
+      info.querySelectorAll("span, div, strong, p").forEach(el => {
+        let txt = el.textContent;
+        if (/to be defined|white(?!.*breast)|bronze|eyes/i.test(txt.toLowerCase())) {
+          el.textContent = txt.replace(/White( Dark Brown Eyes)?|To Be Defined/gi, data.name);
         }
       });
     }
   }
 
-  // Offspring patching remains the same (only when same strain)
+  // applyWhiteToOffspring and installWhiteOffspringObserver remain unchanged from previous version
   function applyWhiteToOffspring() {
     const sireKey = whiteState.sire;
     const damKey = whiteState.dam;
@@ -1323,7 +1332,7 @@ document.addEventListener('click', function (event) {
         if (busy) return;
         busy = true;
         setTimeout(() => { applyWhiteToOffspring(); busy = false; }, 0);
-      }).observe(t, { childList: true, subtree: true });
+      }).observe(t, { childList: true, subtree: true, characterData: true });
     });
   }
 
@@ -1335,8 +1344,7 @@ document.addEventListener('click', function (event) {
       const res = orig.apply(this, args);
       const key = detectWhiteFromVariety(prefix);
       if (key) {
-        // Force immediate application for variety change (longer delay to let core set text first)
-        setTimeout(() => applyWhiteToParent(prefix, true), 100);
+        setTimeout(() => applyWhiteToParent(prefix), 150);  // increased delay for core to set initial text
       } else {
         whiteState[prefix] = null;
         const c = document.getElementById(prefix + "ImageContainer");
@@ -1400,7 +1408,7 @@ document.addEventListener('click', function (event) {
           whiteState[type] = key;
           const c = document.getElementById(type + "ImageContainer");
           if (c) c.dataset.whiteKey = key;
-          setTimeout(() => applyWhiteToParent(type, true), 100);
+          setTimeout(() => applyWhiteToParent(type), 150);
         } else {
           whiteState[type] = null;
           const c = document.getElementById(type + "ImageContainer");
@@ -1417,7 +1425,7 @@ document.addEventListener('click', function (event) {
         const res = orig.apply(this, args);
         setTimeout(() => {
           ["sire", "dam"].forEach(prefix => {
-            if (whiteState[prefix]) applyWhiteToParent(prefix, false);  // conditional for post-calc
+            if (whiteState[prefix]) applyWhiteToParent(prefix);
           });
           applyWhiteToOffspring();
         }, 120);
