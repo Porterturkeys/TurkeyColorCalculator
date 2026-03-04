@@ -1570,7 +1570,7 @@ document.addEventListener('click', function (event) {
 
 
 // ===========================================
-// BROAD BREASTED BRONZE + WHITE OVERLAY (correct cross phenotype)
+// BROAD BREASTED BRONZE + WHITE OVERLAY (transfer fix + correct cross)
 // ===========================================
 (function () {
   'use strict';
@@ -1654,11 +1654,11 @@ document.addEventListener('click', function (event) {
     if (prefix === "sire" && typeof updateSireGenotype === "function") updateSireGenotype();
     if (prefix === "dam" && typeof updateDamGenotype === "function") updateDamGenotype();
 
-    // Image
+    // Force image
     const img = container.querySelector("img");
     if (img) img.src = "https://portersturkeys.github.io/Pictures/" + (prefix === "dam" ? data.female : data.male);
 
-    // Name
+    // Force name
     const strong = container.querySelector("strong");
     if (strong) {
       let span = strong.querySelector("span");
@@ -1678,6 +1678,12 @@ document.addEventListener('click', function (event) {
           el.textContent = data.name;
         }
       });
+    }
+
+    // Re-set variety input text to keep core happy
+    const varietyInput = document.getElementById(prefix + "VarietyInput");
+    if (varietyInput) {
+      varietyInput.value = data.name;
     }
   }
 
@@ -1703,28 +1709,56 @@ document.addEventListener('click', function (event) {
     const damType = state.dam;
     if (!sireType || !damType) return;
 
-    // Patch offspring arrays FIRST (to set correct phenotype before text/images)
+    // For cross: white cc dominates, otherwise bronze
+    let offspringType = "bronze";
+    if (sireType === "white" || damType === "white") {
+      offspringType = "white"; // assume cc in cross for white phenotype
+    }
+
+    const data = offspringType === "bronze" ? BRONZE : WHITE;
+    const displayName = data.name;
+
+    // Patch text
+    document.querySelectorAll("#maleOffspringResults li, #femaleOffspringResults li").forEach(li => {
+      let html = li.innerHTML;
+      if (html.includes(displayName)) return;
+
+      html = html.replace(/\bBronze\b/gi, displayName)
+                 .replace(/\bWhite\b/gi, displayName)
+                 .replace(/To Be Defined/gi, displayName);
+
+      li.innerHTML = html.trim();
+    });
+
+    const summaryBody = document.querySelector("#summaryChart tbody");
+    if (summaryBody) {
+      summaryBody.querySelectorAll("tr").forEach(tr => {
+        const cell = tr.cells?.[1];
+        if (!cell) return;
+        let text = cell.textContent || "";
+        if (text.includes(displayName)) return;
+
+        text = text.replace(/\bBronze\b/gi, displayName)
+                   .replace(/\bWhite\b/gi, displayName)
+                   .replace(/to be defined/gi, displayName);
+
+        cell.textContent = text.trim();
+      });
+    }
+
+    // Patch images DOM
+    document.querySelectorAll("#maleOffspringResults img, #femaleOffspringResults img").forEach(img => {
+      const file = img.src.split("/").pop()?.toLowerCase() || "";
+      if (file === "mbronze.jpg") img.src = "https://portersturkeys.github.io/Pictures/" + data.male;
+      if (file === "fbronze.jpg") img.src = "https://portersturkeys.github.io/Pictures/" + data.female;
+      if (file === "pbronze.jpg") img.src = "https://portersturkeys.github.io/Pictures/" + data.poult;
+    });
+
+    // Patch internal arrays
     function patchArray(arr) {
       if (!Array.isArray(arr)) return;
       arr.forEach(o => {
         if (!o) return;
-
-        // Determine correct name based on genotype (look for C locus)
-        let name = BRONZE.name;
-        if (o.genotype && o.genotype.includes("cc")) {
-          name = WHITE.name;
-        }
-
-        // Update phenotype text
-        if (o.phenotype) {
-          o.phenotype = o.phenotype
-            .replace(/\bBronze\b/gi, name)
-            .replace(/\bWhite\b/gi, name)
-            .replace(/To Be Defined/gi, name);
-        }
-
-        // Update images based on name
-        const data = (name === WHITE.name) ? WHITE : BRONZE;
         if (o.picturePath) {
           const f = o.picturePath.split("/").pop()?.toLowerCase() || "";
           if (f === "mbronze.jpg") o.picturePath = "https://portersturkeys.github.io/Pictures/" + data.male;
@@ -1740,49 +1774,6 @@ document.addEventListener('click', function (event) {
 
     if (window.maleOffspring) patchArray(window.maleOffspring);
     if (window.femaleOffspring) patchArray(window.femaleOffspring);
-
-    // Now patch visible text (using updated phenotype)
-    document.querySelectorAll("#maleOffspringResults li, #femaleOffspringResults li").forEach(li => {
-      let html = li.innerHTML;
-      // Skip if already correct
-      if (html.includes(BRONZE.name) || html.includes(WHITE.name)) return;
-
-      html = html.replace(/\bBronze\b/gi, BRONZE.name)
-                 .replace(/\bWhite\b/gi, WHITE.name)
-                 .replace(/To Be Defined/gi, BRONZE.name);  // fallback
-
-      li.innerHTML = html.trim();
-    });
-
-    // Patch summary chart
-    const summaryBody = document.querySelector("#summaryChart tbody");
-    if (summaryBody) {
-      summaryBody.querySelectorAll("tr").forEach(tr => {
-        const cell = tr.cells?.[1];
-        if (!cell) return;
-        let text = cell.textContent || "";
-
-        if (text.includes(BRONZE.name) || text.includes(WHITE.name)) return;
-
-        text = text.replace(/\bBronze\b/gi, BRONZE.name)
-                   .replace(/\bWhite\b/gi, WHITE.name)
-                   .replace(/to be defined/gi, BRONZE.name);
-
-        cell.textContent = text.trim();
-      });
-    }
-
-    // Patch visible images (DOM)
-    document.querySelectorAll("#maleOffspringResults img, #femaleOffspringResults img").forEach(img => {
-      const file = img.src.split("/").pop()?.toLowerCase() || "";
-      if (file === "mbronze.jpg") img.src = "https://portersturkeys.github.io/Pictures/" + BRONZE.male;
-      if (file === "fbronze.jpg") img.src = "https://portersturkeys.github.io/Pictures/" + BRONZE.female;
-      if (file === "pbronze.jpg") img.src = "https://portersturkeys.github.io/Pictures/" + BRONZE.poult;
-      // If white cross, swap to white images
-      if (file === "mwhite.jpg" || file.includes("white")) img.src = "https://portersturkeys.github.io/Pictures/" + WHITE.male;
-      if (file === "fwhite.jpg" || file.includes("white")) img.src = "https://portersturkeys.github.io/Pictures/" + WHITE.female;
-      if (file === "pwhite.jpg" || file.includes("white")) img.src = "https://portersturkeys.github.io/Pictures/" + WHITE.poult;
-    });
   }
 
   function wrapVarietyFn(fnName, prefix) {
@@ -1817,19 +1808,27 @@ document.addEventListener('click', function (event) {
       };
     }
 
+    // FIXED TRANSFER: preserve state and force-apply immediately
     if (typeof window.transferOffspringToParent === "function" && !window._bbTransferPatched) {
       window._bbTransferPatched = true;
       const orig = window.transferOffspringToParent;
-      window.transferOffspringToParent = function (...args) {
-        const res = orig.apply(this, args);
-        const parent = args[1];
+      window.transferOffspringToParent = function (genotype, parent) {
+        // Preserve state before core transfer
+        const prevType = state[parent];
+
+        const res = orig.apply(this, arguments);
+
+        // Restore and force-apply right after
         if (parent === "sire" || parent === "dam") {
+          state[parent] = prevType;
           if (state[parent]) {
             const c = document.getElementById(parent + "ImageContainer");
             if (c) {
               c.dataset.bbType = state[parent];
-              setTimeout(() => forceApply(parent), 150);
-              setTimeout(() => forceApply(parent), 400);
+              // Immediate apply
+              setTimeout(() => forceApply(parent), 50);
+              // Backup delayed
+              setTimeout(() => forceApply(parent), 300);
             }
           }
         }
