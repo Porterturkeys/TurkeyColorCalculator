@@ -3314,4 +3314,85 @@ window.addEventListener("load", () => {
     console.log("[Auto-Reset] Sire & Dam variety inputs now auto-clear genotypes on empty/change");
 })();
 
+/////////////////
+
+// ────────────────────────────────────────────────────────────────
+// FIX for white variety cc carry-over
+// Forces reset of C allele when switching away from white varieties
+// Add this BELOW the previous auto-reset block at the bottom
+// ────────────────────────────────────────────────────────────────
+
+(function fixWhiteCcCarryOver() {
+    const sireInput  = document.getElementById('sireVarietyInput');
+    const damInput   = document.getElementById('damVarietyInput');
+
+    if (!sireInput && !damInput) return;
+
+    // Known white variety keywords (expand if needed)
+    const whiteKeywords = [
+        'white', 'beltsville', 'midget', 'holland', 'broad breasted white',
+        'broad-breasted white', 'large white', 'commercial white', 'giant white'
+    ];
+
+    function isLikelyWhite(val) {
+        if (!val) return false;
+        const lower = val.toLowerCase().trim();
+        return whiteKeywords.some(kw => lower.includes(kw));
+    }
+
+    function forceResetCAllele(prefix) {
+        const cId = prefix + 'AlleleC';
+        const select = document.getElementById(cId);
+        if (select) {
+            // Reset to default / unselected (usually the first option like "C-" or "--")
+            select.selectedIndex = 0;
+
+            // If your default is specifically "C-" or "c-" etc., set it explicitly:
+            // select.value = 'C-';   // ← uncomment & adjust if needed
+        }
+
+        // Refresh display/image
+        if (prefix === 'sire' && typeof updateSireGenotype === 'function') {
+            updateSireGenotype();
+        }
+        if (prefix === 'dam' && typeof updateDamGenotype === 'function') {
+            updateDamGenotype();
+        }
+    }
+
+    function handleChange(prefix, inputEl) {
+        const val = inputEl.value.trim();
+
+        // If no longer white (empty or switched to non-white), force cc reset
+        if (!isLikelyWhite(val)) {
+            forceResetCAllele(prefix);
+        }
+        // If it's still white → your existing overlay will handle forcing cc
+    }
+
+    // Attach to both inputs
+    [{el: sireInput, prefix: 'sire'}, {el: damInput, prefix: 'dam'}]
+        .filter(item => item.el)
+        .forEach(({el, prefix}) => {
+            // On every change
+            el.addEventListener('input', () => handleChange(prefix, el));
+            // Safety nets
+            el.addEventListener('blur', () => handleChange(prefix, el));
+            el.addEventListener('paste', () => setTimeout(() => handleChange(prefix, el), 80));
+            // Also clear when field emptied via backspace to nothing
+            el.addEventListener('keydown', (e) => {
+                if (e.key === 'Backspace' || e.key === 'Delete') {
+                    setTimeout(() => {
+                        if (!el.value.trim()) handleChange(prefix, el);
+                    }, 50);
+                }
+            });
+        });
+
+    console.log("[White CC Fix] Added protection against cc carry-over when switching varieties");
+})();
+
+
+
+
 
