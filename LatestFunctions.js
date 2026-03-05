@@ -3317,89 +3317,76 @@ window.addEventListener("load", () => {
 /////////////////
 
 // ────────────────────────────────────────────────────────────────
-// ROBUST FIX for white cc carry-over (handles all aliases & timing)
-// Resets cc ONLY when CHANGING from white-like input to non-white
-// Leaves all other alleles intact
-// Replace any previous white fix block with this one
+// AGGRESSIVE WHITE CC RESET – clears cc on ANY change away from white names
+// Targets exact white variety names from your WHITE_VARIETY_MAP
+// Add/replace previous white blocks with this one
 // ────────────────────────────────────────────────────────────────
 
-(function robustFixWhiteCcCarryOver() {
+(function aggressiveWhiteCcClear() {
     const sireInput  = document.getElementById('sireVarietyInput');
     const damInput   = document.getElementById('damVarietyInput');
 
     if (!sireInput && !damInput) return;
 
-    const state = {
-        sire: { prevVal: '' },
-        dam: { prevVal: '' }
-    };
-
-    // Expanded white aliases (from your WHITE_VARIETY_MAP)
-    const whiteAliases = [
+    // Exact white variety names / keys from your WHITE_VARIETY_MAP
+    const whiteNames = [
         'beltsville small white', 'beltsville white', 'white beltsville',
         'midget white', 'midget', 'white midget',
         'white holland', 'holland white', 'holland',
         'broad breasted white', 'broad-breasted white', 'large white',
-        'commercial white', 'giant white', 'broad white', 'breasted white',
-        'white'  // catch plain "white" as well
+        'commercial white', 'giant white', 'broad white', 'breasted white'
     ];
 
-    function isWhiteLike(val) {
+    function isWhiteName(val) {
         if (!val) return false;
         const lower = val.toLowerCase().trim();
-        return whiteAliases.some(alias => lower.includes(alias));
+        return whiteNames.some(name => lower === name || lower.includes(name));
     }
 
-    function resetOnlyCc(prefix) {
+    function forceClearCc(prefix) {
         const cId = prefix + 'AlleleC';
         const select = document.getElementById(cId);
         if (select && select.value === 'cc') {
-            select.value = 'CC';  // assume 'CC' is non-white default; change to 'C-' or whatever if needed
-        }
+            // Reset to non-recessive white default – adjust 'CC' to your actual default value (e.g. 'C-', 'C')
+            select.value = 'CC';
 
-        // Re-update to apply the reset
-        if (prefix === 'sire' && typeof updateSireGenotype === 'function') updateSireGenotype();
-        if (prefix === 'dam' && typeof updateDamGenotype === 'function') updateDamGenotype();
+            // Refresh phenotype/image/genotype display
+            if (prefix === 'sire' && typeof updateSireGenotype === 'function') updateSireGenotype();
+            if (prefix === 'dam' && typeof updateDamGenotype === 'function') updateDamGenotype();
+        }
     }
 
-    function checkForCcReset(prefix, inputEl) {
-        const currentVal = inputEl.value.trim();
-        const st = state[prefix];
+    function checkAndClearCc(prefix, inputEl) {
+        const val = inputEl.value.trim();
 
-        if (currentVal === st.prevVal) return;  // no change → skip
+        // If NOT a white name → clear cc immediately
+        if (!isWhiteName(val)) {
+            forceClearCc(prefix);
 
-        const wasWhite = isWhiteLike(st.prevVal);
-        const isNowWhite = isWhiteLike(currentVal);
-
-        if (wasWhite && !isNowWhite) {
-            resetOnlyCc(prefix);
+            // Extra override after short delay (catches overlay re-forcing)
+            setTimeout(() => forceClearCc(prefix), 100);
+            setTimeout(() => forceClearCc(prefix), 300);
         }
-
-        st.prevVal = currentVal;
     }
 
-    // Attach to inputs
-    [{el: sireInput, prefix: 'sire'}, {el: damInput, prefix: 'dam'}]
-        .filter(item => item.el)
-        .forEach(({el, prefix}) => {
-            // Input: check after each change (debounced for smoothness)
+    // Attach to inputs – trigger on every meaningful change
+    [{ input: sireInput, prefix: 'sire' }, { input: damInput, prefix: 'dam' }]
+        .filter(item => item.input)
+        .forEach(({ input, prefix }) => {
+            // On input (typing/deleting) – delayed to let applyVarietyToSire/Dam run
             let timer;
-            el.addEventListener('input', () => {
+            input.addEventListener('input', () => {
                 clearTimeout(timer);
-                timer = setTimeout(() => checkForCcReset(prefix, el), 150);
+                timer = setTimeout(() => checkAndClearCc(prefix, input), 180);
             });
 
-            // Blur: final check when leaving field
-            el.addEventListener('blur', () => checkForCcReset(prefix, el));
+            // On blur/change (when clicking to mate field)
+            input.addEventListener('blur', () => checkAndClearCc(prefix, input));
+            input.addEventListener('change', () => checkAndClearCc(prefix, input));
 
-            // Paste: delayed check
-            el.addEventListener('paste', () => setTimeout(() => checkForCcReset(prefix, el), 200));
-
-            // Initial: set prev on focus
-            el.addEventListener('focus', () => { state[prefix].prevVal = el.value.trim(); });
+            // On paste
+            input.addEventListener('paste', () => setTimeout(() => checkAndClearCc(prefix, input), 250));
         });
 
-    console.log("[Robust White Fix] cc now resets reliably when switching from white varieties");
+    console.log("[Aggressive CC Clear] Now forcing cc reset when input is no longer a white variety name");
 })();
-
-
