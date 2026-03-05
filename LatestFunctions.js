@@ -1175,6 +1175,43 @@ document.addEventListener('click', function(e) {
     });
   }
 
+    ///////////////////////////
+// Prevent re-apply when input no longer matches wild
+function stopWildOverlayIfInvalid(prefix) {
+    const input = document.getElementById(prefix + "VarietyInput");
+    if (!input) return;
+    const val = (input.value || "").trim().toLowerCase();
+    const isStillWild = Object.values(WILD_VARIETY_MAP).some(key => {
+        const name = WILD_VARIANTS[key]?.name?.toLowerCase() || "";
+        return val.includes(name) || val === name;
+    });
+    if (!isStillWild) {
+        wildState[prefix] = null;
+        const container = document.getElementById(prefix + "ImageContainer");
+        if (container) {
+            delete container.dataset.wildKey;
+            // Clear forced bb
+            const bSelect = document.getElementById(prefix + "Alleleb");
+            if (bSelect && bSelect.value === "bb") {
+                bSelect.selectedIndex = 0; // reset to default
+            }
+        }
+        // Refresh
+        if (prefix === "sire") updateSireGenotype?.();
+        if (prefix === "dam") updateDamGenotype?.();
+    }
+}
+
+const originalApplyWild = applyWildToParent;
+applyWildToParent = function(prefix) {
+    stopWildOverlayIfInvalid(prefix);
+    if (wildState[prefix] || document.getElementById(prefix + "ImageContainer")?.dataset.wildKey) {
+        originalApplyWild(prefix);
+    }
+};
+
+    /////////////////////////
+
   // Hook everything after core is loaded
 window.addEventListener("load", () => {
   // Variety handlers 
@@ -1683,6 +1720,43 @@ if (summaryBody) {
       obs.observe(container, { childList: true, subtree: true });
     });
   }
+    ////////////////////////////////
+// Prevent re-apply when input no longer matches white
+function stopWhiteOverlayIfInvalid(prefix) {
+    const input = document.getElementById(prefix + "VarietyInput");
+    if (!input) return;
+    const val = (input.value || "").trim().toLowerCase();
+    const isStillWhite = Object.values(WHITE_VARIETY_MAP).some(key => {
+        const name = WHITE_VARIANTS[key]?.name?.toLowerCase() || "";
+        return val.includes(name) || val === name;
+    });
+    if (!isStillWhite) {
+        whiteState[prefix] = null;
+        const container = document.getElementById(prefix + "ImageContainer");
+        if (container) {
+            delete container.dataset.whiteKey;
+            // Clear forced cc
+            const cSelect = document.getElementById(prefix + "AlleleC");
+            if (cSelect && cSelect.value === "cc") {
+                cSelect.value = "CC"; // or "C-" — match your default
+            }
+        }
+        // Refresh
+        if (prefix === "sire") updateSireGenotype?.();
+        if (prefix === "dam") updateDamGenotype?.();
+    }
+}
+
+// Call this before any applyWhiteToParent
+const originalApplyWhite = applyWhiteToParent;
+applyWhiteToParent = function(prefix) {
+    stopWhiteOverlayIfInvalid(prefix);
+    if (whiteState[prefix] || document.getElementById(prefix + "ImageContainer")?.dataset.whiteKey) {
+        originalApplyWhite(prefix);
+    }
+};
+
+   ///////////////////////////////// 
 
   // Hooks everything after core is loaded
 window.addEventListener("load", () => {
@@ -2342,6 +2416,55 @@ if (container.dataset.bronzeKey === "broad") bronzeState[prefix] = "broad";
             return result;
         };
     }
+
+    ////////////////////////////
+// Prevent re-apply when input no longer matches broad bronze/white
+function stopBronzeOverlayIfInvalid(prefix) {
+    const input = document.getElementById(prefix + "VarietyInput");
+    if (!input) return;
+    const val = (input.value || "").trim().toLowerCase();
+    const isStillBronze = Object.keys(BRONZE_VARIETY_MAP).some(k => val.includes(k)) ||
+                          Object.keys(WHITE_VARIETY_MAP).some(k => val.includes(k));
+    if (!isStillBronze) {
+        bronzeState[prefix] = null;
+        const container = document.getElementById(prefix + "ImageContainer");
+        if (container) {
+            delete container.dataset.bronzeKey;
+            delete container.dataset.whiteKey;
+            // Clear forced bb
+            const bSelect = document.getElementById(prefix + "Alleleb");
+            if (bSelect && bSelect.value === "bb") {
+                bSelect.selectedIndex = 0;
+            }
+            // Clear forced cc for broad white
+            const cSelect = document.getElementById(prefix + "AlleleC");
+            if (cSelect && cSelect.value === "cc") {
+                cSelect.value = "CC";
+            }
+        }
+        // Refresh
+        if (prefix === "sire") updateSireGenotype?.();
+        if (prefix === "dam") updateDamGenotype?.();
+    }
+}
+
+const originalApplyBronze = applyBronzeToParent;
+applyBronzeToParent = function(prefix) {
+    stopBronzeOverlayIfInvalid(prefix);
+    if (bronzeState[prefix] || document.getElementById(prefix + "ImageContainer")?.dataset.bronzeKey) {
+        originalApplyBronze(prefix);
+    }
+};
+
+const originalApplyBroadWhite = applyBroadWhiteToParent;
+applyBroadWhiteToParent = function(prefix) {
+    stopBronzeOverlayIfInvalid(prefix);
+    if (window.whiteState?.[prefix] === "broad") {
+        originalApplyBroadWhite(prefix);
+    }
+};
+
+    ///////////////////////////
 
     // Hook variety + reset
     window.addEventListener("load", () => {
