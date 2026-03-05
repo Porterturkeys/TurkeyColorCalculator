@@ -3317,81 +3317,80 @@ window.addEventListener("load", () => {
 /////////////////
 
 // ────────────────────────────────────────────────────────────────
-// FIX for white variety cc carry-over
-// Forces reset of C allele when switching away from white varieties
-// Add this BELOW the previous auto-reset block at the bottom
+// REVISED FIX for white variety cc carry-over
+// (avoids weird auto-changes when clicking to mate field)
+// Now tracks previous value to reset ONLY when switching AWAY from white
+// Add/replace this BELOW the original auto-reset block
 // ────────────────────────────────────────────────────────────────
 
-(function fixWhiteCcCarryOver() {
+(function revisedFixWhiteCcCarryOver() {
     const sireInput  = document.getElementById('sireVarietyInput');
     const damInput   = document.getElementById('damVarietyInput');
 
     if (!sireInput && !damInput) return;
 
-    // Known white variety keywords (expand if needed)
+    // Track previous values for each
+    const state = {
+        sire: { prevVal: '' },
+        dam: { prevVal: '' }
+    };
+
+    // White keywords (same as before)
     const whiteKeywords = [
         'white', 'beltsville', 'midget', 'holland', 'broad breasted white',
         'broad-breasted white', 'large white', 'commercial white', 'giant white'
     ];
 
-    function isLikelyWhite(val) {
+    function isWhiteLike(val) {
         if (!val) return false;
         const lower = val.toLowerCase().trim();
         return whiteKeywords.some(kw => lower.includes(kw));
     }
 
-    function forceResetCAllele(prefix) {
+    function forceResetC(prefix) {
         const cId = prefix + 'AlleleC';
         const select = document.getElementById(cId);
-        if (select) {
-            // Reset to default / unselected (usually the first option like "C-" or "--")
-            select.selectedIndex = 0;
-
-            // If your default is specifically "C-" or "c-" etc., set it explicitly:
-            // select.value = 'C-';   // ← uncomment & adjust if needed
+        if (select && select.value === 'cc') {
+            select.selectedIndex = 0;  // or select.value = 'C-'; if known default
         }
 
-        // Refresh display/image
-        if (prefix === 'sire' && typeof updateSireGenotype === 'function') {
-            updateSireGenotype();
-        }
-        if (prefix === 'dam' && typeof updateDamGenotype === 'function') {
-            updateDamGenotype();
-        }
+        // Refresh
+        if (prefix === 'sire' && typeof updateSireGenotype === 'function') updateSireGenotype();
+        if (prefix === 'dam' && typeof updateDamGenotype === 'function') updateDamGenotype();
     }
 
-    function handleChange(prefix, inputEl) {
-        const val = inputEl.value.trim();
+    function handleVarietyChange(prefix, inputEl) {
+        const currentVal = inputEl.value.trim();
+        const st = state[prefix];
+        const wasWhite = isWhiteLike(st.prevVal);
+        const isNowWhite = isWhiteLike(currentVal);
 
-        // If no longer white (empty or switched to non-white), force cc reset
-        if (!isLikelyWhite(val)) {
-            forceResetCAllele(prefix);
+        // ONLY reset C if switching AWAY from white (prevents random changes)
+        if (wasWhite && !isNowWhite) {
+            forceResetC(prefix);
         }
-        // If it's still white → your existing overlay will handle forcing cc
+
+        // Update tracked prev
+        st.prevVal = currentVal;
     }
 
-    // Attach to both inputs
+    // Attach lightly — only on meaningful changes
     [{el: sireInput, prefix: 'sire'}, {el: damInput, prefix: 'dam'}]
         .filter(item => item.el)
         .forEach(({el, prefix}) => {
-            // On every change
-            el.addEventListener('input', () => handleChange(prefix, el));
-            // Safety nets
-            el.addEventListener('blur', () => handleChange(prefix, el));
-            el.addEventListener('paste', () => setTimeout(() => handleChange(prefix, el), 80));
-            // Also clear when field emptied via backspace to nothing
-            el.addEventListener('keydown', (e) => {
-                if (e.key === 'Backspace' || e.key === 'Delete') {
-                    setTimeout(() => {
-                        if (!el.value.trim()) handleChange(prefix, el);
-                    }, 50);
-                }
-            });
+            // On blur (when user finishes typing/switches fields) — safer to avoid mid-type resets
+            el.addEventListener('blur', () => handleVarietyChange(prefix, el));
+
+            // On paste/change — but delayed slightly to let apply functions run first
+            el.addEventListener('change', () => setTimeout(() => handleVarietyChange(prefix, el), 100));
+            el.addEventListener('paste', () => setTimeout(() => handleVarietyChange(prefix, el), 150));
+
+            // Initial track on focus
+            el.addEventListener('focus', () => { state[prefix].prevVal = el.value.trim(); });
         });
 
-    console.log("[White CC Fix] Added protection against cc carry-over when switching varieties");
+    console.log("[Revised White Fix] Now only resets cc when switching AWAY from white — no random changes");
 })();
-
 
 
 
