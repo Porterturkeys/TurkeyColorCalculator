@@ -3317,106 +3317,114 @@ window.addEventListener("load", () => {
 /////////////////
 
 // ────────────────────────────────────────────────────────────────
-// FINAL NUCLEAR CLEAR FOR WHITE / WILD / BROAD BRONZE OVERLAYS
-// Forces full reset of special states on EVERY variety input change
-// Prevents any carry-over (cc, bb, images, names) without reset button
+// FINAL TARGETED CLEAR FOR NAMED WHITE / WILD / BROAD BRONZE OVERLAYS
+// Clears ONLY the forced states these overlays care about
+// (cc, bb, dataset flags, images/names) when input no longer matches
+// Add this BELOW your existing autoResetSireDamVariety() block
 // ────────────────────────────────────────────────────────────────
 
-(function nuclearOverlayClear() {
-    const inputs = {
-        sire: document.getElementById('sireVarietyInput'),
-        dam:  document.getElementById('damVarietyInput')
+(function clearNamedSpecialOverlays() {
+    const sireInput = document.getElementById('sireVarietyInput');
+    const damInput  = document.getElementById('damVarietyInput');
+    if (!sireInput && !damInput) return;
+
+    // Patterns for the overlays that are sticking
+    const patterns = {
+        white: [
+            'beltsville small white', 'beltsville white', 'white beltsville',
+            'midget white', 'midget', 'white midget',
+            'white holland', 'holland white', 'holland',
+            'broad breasted white', 'broad-breasted white', 'large white',
+            'commercial white', 'giant white', 'broad white', 'breasted white'
+        ],
+        wild: [
+            'eastern wild', 'eastern', 'wild eastern',
+            'goulds wild', "gould's wild", 'goulds', "gould's",
+            'merriams wild', "merriam's wild", 'merriams',
+            'osceola wild', 'rio grande wild', 'hybrid wild'
+        ],
+        broadBronze: [
+            'broad breasted bronze', 'broad-breasted bronze', 'mammoth bronze',
+            'orlopp bronze', 'breasted bronze', 'bronze breasted', 'large bronze'
+        ]
     };
 
-    if (!inputs.sire && !inputs.dam) return;
-
-    // Known special patterns
-    const isSpecial = (val, type) => {
+    function matchesAny(val, list) {
         if (!val) return false;
         const lower = val.toLowerCase().trim();
-        if (type === 'white') {
-            return /(beltsville|midget|holland|broad breasted white|broad-breasted white|large white|commercial white|giant white|broad white|breasted white)/i.test(lower);
-        }
-        if (type === 'wild') {
-            return /(eastern|gould|merriam|osceola|rio|hybrid wild)/i.test(lower);
-        }
-        if (type === 'bronze') {
-            return /(broad breasted bronze|broad-breasted bronze|mammoth bronze|orlopp bronze|breasted bronze|bronze breasted|large bronze)/i.test(lower);
-        }
-        return false;
-    };
+        return list.some(item => lower.includes(item));
+    }
 
-    function fullResetParent(prefix) {
-        // 1. Reset ALL allele dropdowns
-        ['Alleleb','AlleleC','Alleled','AlleleE','AlleleN','AllelePn','AlleleR','AlleleSl','AlleleSp']
-            .forEach(suffix => {
-                const el = document.getElementById(prefix + suffix);
-                if (el) el.selectedIndex = 0;
-            });
-
-        // 2. Blank image and name display
+    function clearOverlayForces(prefix) {
         const container = document.getElementById(prefix + 'ImageContainer');
         if (container) {
-            const img = container.querySelector('img');
-            if (img) img.src = ''; // or set to default placeholder if you have one
-
-            const strong = container.querySelector('strong');
-            if (strong) strong.innerHTML = '';
-
-            // Clear ALL dataset flags that trigger overlays
+            // Clear all overlay-triggering dataset flags
             delete container.dataset.wildKey;
             delete container.dataset.whiteKey;
             delete container.dataset.bronzeKey;
+
+            // Blank forced image
+            const img = container.querySelector('img');
+            if (img && img.src.includes('porters turkeys.github.io/Pictures/')) {
+                img.src = '';  // remove special image
+            }
+
+            // Clear forced name
+            const strong = container.querySelector('strong');
+            if (strong) strong.innerHTML = '';
         }
 
-        // 3. Force genotype refresh
+        // Force-reset only the problematic alleles (C for white, B for wild/bronze)
+        const cSelect = document.getElementById(prefix + 'AlleleC');
+        if (cSelect && cSelect.value === 'cc') {
+            cSelect.value = 'CC';  // ← change to 'C-' if that's your default
+        }
+
+        const bSelect = document.getElementById(prefix + 'Alleleb');
+        if (bSelect && bSelect.value === 'bb') {
+            bSelect.selectedIndex = 0;  // reset to default (usually not bb)
+        }
+
+        // Refresh display
         if (prefix === 'sire' && typeof updateSireGenotype === 'function') updateSireGenotype();
         if (prefix === 'dam' && typeof updateDamGenotype === 'function') updateDamGenotype();
     }
 
-    function handleChange(prefix, inputEl) {
+    function onInputChange(prefix, inputEl) {
         const val = inputEl.value.trim();
 
-        // ALWAYS reset special forces first (prevents carry-over)
-        fullResetParent(prefix);
+        // If the current value does NOT match any special overlay pattern → clear forces
+        if (!matchesAny(val, patterns.white) &&
+            !matchesAny(val, patterns.wild) &&
+            !matchesAny(val, patterns.broadBronze)) {
+            clearOverlayForces(prefix);
 
-        // Then let normal apply happen if new value is valid
-        // (your applyVarietyToSire/Dam will set correct alleles if match found)
-        setTimeout(() => {
-            // Double-check no special state lingered
-            if (!isSpecial(val, 'white') && !isSpecial(val, 'wild') && !isSpecial(val, 'bronze')) {
-                fullResetParent(prefix);
-            }
-        }, 150);
-
-        // Triple-check after longer delay (beats observers)
-        setTimeout(() => {
-            if (!isSpecial(val, 'white') && !isSpecial(val, 'wild') && !isSpecial(val, 'bronze')) {
-                fullResetParent(prefix);
-            }
-        }, 400);
+            // Extra override for delayed re-applies
+            setTimeout(() => clearOverlayForces(prefix), 120);
+            setTimeout(() => clearOverlayForces(prefix), 350);
+        }
     }
 
-    Object.entries(inputs).forEach(([prefix, el]) => {
+    // Attach listeners
+    Object.entries({sire: sireInput, dam: damInput}).forEach(([prefix, el]) => {
         if (!el) return;
 
-        // On every change — delayed slightly to let applyVariety run
+        // Typing / deleting
         let timer;
         el.addEventListener('input', () => {
             clearTimeout(timer);
-            timer = setTimeout(() => handleChange(prefix, el), 180);
+            timer = setTimeout(() => onInputChange(prefix, el), 160);
         });
 
-        // On leaving field (clicking to mate) — immediate
-        el.addEventListener('blur', () => handleChange(prefix, el));
-        el.addEventListener('change', () => handleChange(prefix, el));
+        // When clicking out (to mate field or calculate)
+        el.addEventListener('blur', () => onInputChange(prefix, el));
+        el.addEventListener('change', () => onInputChange(prefix, el));
 
-        // Paste safety
-        el.addEventListener('paste', () => setTimeout(() => handleChange(prefix, el), 250));
+        // Paste
+        el.addEventListener('paste', () => setTimeout(() => onInputChange(prefix, el), 200));
     });
 
-    console.log("[Nuclear Clear] All white/wild/bronze overlays now fully reset on ANY variety change");
+    console.log("[Final Overlay Clear] Named white / wild / broad bronze now reset on variety change");
 })();
-
 
 
