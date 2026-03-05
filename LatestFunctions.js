@@ -3317,25 +3317,23 @@ window.addEventListener("load", () => {
 /////////////////
 
 // ────────────────────────────────────────────────────────────────
-// REVISED FIX for white variety cc carry-over
-// (avoids weird auto-changes when clicking to mate field)
-// Now tracks previous value to reset ONLY when switching AWAY from white
-// Add/replace this BELOW the original auto-reset block
+// FINAL REVISED FIX for white cc carry-over (no random reverts)
+// Resets cc ONLY when value CHANGED from white to non-white
+// Leaves Cc/Ccg/cgcg intact for non-white varieties
+// Replace the previous white fix block with this one
 // ────────────────────────────────────────────────────────────────
 
-(function revisedFixWhiteCcCarryOver() {
+(function finalFixWhiteCcCarryOver() {
     const sireInput  = document.getElementById('sireVarietyInput');
     const damInput   = document.getElementById('damVarietyInput');
 
     if (!sireInput && !damInput) return;
 
-    // Track previous values for each
     const state = {
         sire: { prevVal: '' },
         dam: { prevVal: '' }
     };
 
-    // White keywords (same as before)
     const whiteKeywords = [
         'white', 'beltsville', 'midget', 'holland', 'broad breasted white',
         'broad-breasted white', 'large white', 'commercial white', 'giant white'
@@ -3351,10 +3349,12 @@ window.addEventListener("load", () => {
         const cId = prefix + 'AlleleC';
         const select = document.getElementById(cId);
         if (select && select.value === 'cc') {
-            select.selectedIndex = 0;  // or select.value = 'C-'; if known default
+            // Explicitly reset to non-white default (adjust if your default is different)
+            select.value = 'CC';  // or 'C-' if that's your unselected value
+            // Do NOT use selectedIndex = 0 if it might not be CC
         }
 
-        // Refresh
+        // Refresh display
         if (prefix === 'sire' && typeof updateSireGenotype === 'function') updateSireGenotype();
         if (prefix === 'dam' && typeof updateDamGenotype === 'function') updateDamGenotype();
     }
@@ -3362,34 +3362,39 @@ window.addEventListener("load", () => {
     function handleVarietyChange(prefix, inputEl) {
         const currentVal = inputEl.value.trim();
         const st = state[prefix];
+
+        // ONLY proceed if value actually CHANGED (prevents blur-only reverts)
+        if (currentVal === st.prevVal) return;
+
         const wasWhite = isWhiteLike(st.prevVal);
         const isNowWhite = isWhiteLike(currentVal);
 
-        // ONLY reset C if switching AWAY from white (prevents random changes)
+        // ONLY reset if switched AWAY from white
         if (wasWhite && !isNowWhite) {
             forceResetC(prefix);
         }
 
-        // Update tracked prev
         st.prevVal = currentVal;
     }
 
-    // Attach lightly — only on meaningful changes
+    // Attach events carefully
     [{el: sireInput, prefix: 'sire'}, {el: damInput, prefix: 'dam'}]
         .filter(item => item.el)
         .forEach(({el, prefix}) => {
-            // On blur (when user finishes typing/switches fields) — safer to avoid mid-type resets
-            el.addEventListener('blur', () => handleVarietyChange(prefix, el));
+            // Primary: on change (fires after apply, when user tabs/clicks away)
+            el.addEventListener('change', () => handleVarietyChange(prefix, el));
 
-            // On paste/change — but delayed slightly to let apply functions run first
-            el.addEventListener('change', () => setTimeout(() => handleVarietyChange(prefix, el), 100));
-            el.addEventListener('paste', () => setTimeout(() => handleVarietyChange(prefix, el), 150));
+            // Backup: delayed input (catches mid-type clears)
+            el.addEventListener('input', () => setTimeout(() => handleVarietyChange(prefix, el), 200));
 
-            // Initial track on focus
+            // Paste: delayed to let apply run first
+            el.addEventListener('paste', () => setTimeout(() => handleVarietyChange(prefix, el), 250));
+
+            // Update prev on focus (in case programmatic change)
             el.addEventListener('focus', () => { state[prefix].prevVal = el.value.trim(); });
         });
 
-    console.log("[Revised White Fix] Now only resets cc when switching AWAY from white — no random changes");
+    console.log("[Final White Fix] Resets cc only on actual change away from white — no Cc/Ccg reverts");
 })();
 
 
