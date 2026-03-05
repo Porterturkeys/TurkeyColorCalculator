@@ -3246,7 +3246,7 @@ window.addEventListener("load", () => {
 // AUTO-RESET for Sire & Dam Variety Inputs
 // Clears genotype dropdowns + images when user clears or changes variety name
 // (no need to click Reset Calculator anymore)
-// Add ONLY this block at the very bottom
+
 // ────────────────────────────────────────────────────────────────
 
 (function autoResetSireDamVariety() {
@@ -3317,13 +3317,13 @@ window.addEventListener("load", () => {
 /////////////////
 
 // ────────────────────────────────────────────────────────────────
-// FINAL REVISED FIX for white cc carry-over (no random reverts)
-// Resets cc ONLY when value CHANGED from white to non-white
-// Leaves Cc/Ccg/cgcg intact for non-white varieties
-// Replace the previous white fix block with this one
+// ROBUST FIX for white cc carry-over (handles all aliases & timing)
+// Resets cc ONLY when CHANGING from white-like input to non-white
+// Leaves all other alleles intact
+// Replace any previous white fix block with this one
 // ────────────────────────────────────────────────────────────────
 
-(function finalFixWhiteCcCarryOver() {
+(function robustFixWhiteCcCarryOver() {
     const sireInput  = document.getElementById('sireVarietyInput');
     const damInput   = document.getElementById('damVarietyInput');
 
@@ -3334,69 +3334,72 @@ window.addEventListener("load", () => {
         dam: { prevVal: '' }
     };
 
-    const whiteKeywords = [
-        'white', 'beltsville', 'midget', 'holland', 'broad breasted white',
-        'broad-breasted white', 'large white', 'commercial white', 'giant white'
+    // Expanded white aliases (from your WHITE_VARIETY_MAP)
+    const whiteAliases = [
+        'beltsville small white', 'beltsville white', 'white beltsville',
+        'midget white', 'midget', 'white midget',
+        'white holland', 'holland white', 'holland',
+        'broad breasted white', 'broad-breasted white', 'large white',
+        'commercial white', 'giant white', 'broad white', 'breasted white',
+        'white'  // catch plain "white" as well
     ];
 
     function isWhiteLike(val) {
         if (!val) return false;
         const lower = val.toLowerCase().trim();
-        return whiteKeywords.some(kw => lower.includes(kw));
+        return whiteAliases.some(alias => lower.includes(alias));
     }
 
-    function forceResetC(prefix) {
+    function resetOnlyCc(prefix) {
         const cId = prefix + 'AlleleC';
         const select = document.getElementById(cId);
         if (select && select.value === 'cc') {
-            // Explicitly reset to non-white default (adjust if your default is different)
-            select.value = 'CC';  // or 'C-' if that's your unselected value
-            // Do NOT use selectedIndex = 0 if it might not be CC
+            select.value = 'CC';  // assume 'CC' is non-white default; change to 'C-' or whatever if needed
         }
 
-        // Refresh display
+        // Re-update to apply the reset
         if (prefix === 'sire' && typeof updateSireGenotype === 'function') updateSireGenotype();
         if (prefix === 'dam' && typeof updateDamGenotype === 'function') updateDamGenotype();
     }
 
-    function handleVarietyChange(prefix, inputEl) {
+    function checkForCcReset(prefix, inputEl) {
         const currentVal = inputEl.value.trim();
         const st = state[prefix];
 
-        // ONLY proceed if value actually CHANGED (prevents blur-only reverts)
-        if (currentVal === st.prevVal) return;
+        if (currentVal === st.prevVal) return;  // no change → skip
 
         const wasWhite = isWhiteLike(st.prevVal);
         const isNowWhite = isWhiteLike(currentVal);
 
-        // ONLY reset if switched AWAY from white
         if (wasWhite && !isNowWhite) {
-            forceResetC(prefix);
+            resetOnlyCc(prefix);
         }
 
         st.prevVal = currentVal;
     }
 
-    // Attach events carefully
+    // Attach to inputs
     [{el: sireInput, prefix: 'sire'}, {el: damInput, prefix: 'dam'}]
         .filter(item => item.el)
         .forEach(({el, prefix}) => {
-            // Primary: on change (fires after apply, when user tabs/clicks away)
-            el.addEventListener('change', () => handleVarietyChange(prefix, el));
+            // Input: check after each change (debounced for smoothness)
+            let timer;
+            el.addEventListener('input', () => {
+                clearTimeout(timer);
+                timer = setTimeout(() => checkForCcReset(prefix, el), 150);
+            });
 
-            // Backup: delayed input (catches mid-type clears)
-            el.addEventListener('input', () => setTimeout(() => handleVarietyChange(prefix, el), 200));
+            // Blur: final check when leaving field
+            el.addEventListener('blur', () => checkForCcReset(prefix, el));
 
-            // Paste: delayed to let apply run first
-            el.addEventListener('paste', () => setTimeout(() => handleVarietyChange(prefix, el), 250));
+            // Paste: delayed check
+            el.addEventListener('paste', () => setTimeout(() => checkForCcReset(prefix, el), 200));
 
-            // Update prev on focus (in case programmatic change)
+            // Initial: set prev on focus
             el.addEventListener('focus', () => { state[prefix].prevVal = el.value.trim(); });
         });
 
-    console.log("[Final White Fix] Resets cc only on actual change away from white — no Cc/Ccg reverts");
+    console.log("[Robust White Fix] cc now resets reliably when switching from white varieties");
 })();
-
-
 
 
