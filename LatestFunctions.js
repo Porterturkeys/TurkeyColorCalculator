@@ -3240,8 +3240,55 @@ window.addEventListener("load", () => {
 
 
 })();
+//////////////////////////
 
+// ────────────────────────────────────────────────────────────────
+// Minimal safe patch — fixes stale genotypes on edit/delete
+// Without renaming or overwriting searchResults()
+// Add ONLY this block at the bottom
+// ────────────────────────────────────────────────────────────────
 
+(function patchSearchInputBehavior() {
+    const input = document.getElementById('searchInput');
+    if (!input) return;
 
+    // Helper: force-clear results area (same elements your function uses)
+    function forceClearResults() {
+        const results        = document.getElementById('results');
+        const header         = document.getElementById('resultsHeader');
+        const extra          = document.getElementById('resultsAdditionalText');
+
+        if (results) {
+            results.innerHTML = '';
+            results.style.display = 'none';
+        }
+        if (header)  header.style.display = 'none';
+        if (extra)   extra.style.display = 'none';
+    }
+
+    // When input changes → clear FIRST, then let original function run
+    input.addEventListener('input', function(e) {
+        forceClearResults();
+        // Give the DOM a tiny moment to breathe, then call original
+        setTimeout(() => {
+            if (typeof searchResults === 'function') {
+                searchResults();
+            }
+        }, 0);
+    }, { passive: true });
+
+    // Also good on paste (sometimes paste doesn't trigger 'input' immediately)
+    input.addEventListener('paste', function() {
+        setTimeout(forceClearResults, 0);
+        setTimeout(() => {
+            if (typeof searchResults === 'function') searchResults();
+        }, 50);
+    }, { passive: true });
+
+    // Optional: clear on focus too (helps when coming back to field)
+    input.addEventListener('focus', forceClearResults, { passive: true });
+
+    console.log("[Patch] Stale genotype fix applied to search input");
+})();
 
 
