@@ -3368,7 +3368,170 @@ wrap.appendChild(creditLine);  // append to wrap instead of title
     console.log("[Auto-Reset] Sire & Dam variety inputs now auto-clear genotypes on empty/change");
 })();
 
+/////////////////////////
 
+// =============================================================================
+// PASTE THIS BLOCK AT THE VERY BOTTOM OF YOUR SCRIPT FILE
+// 
+// Goal: When user selects special variety (Wild / Named White / BB Bronze / BB White)
+//       but then manually changes alleles → update displayed variety name
+//       so it no longer shows misleading original variety after modification
+// =============================================================================
+
+(function makeSpecialVarietiesRespectAlleleChanges() {
+    'use strict';
+
+    // Which varieties should lose their "locked" name when alleles are changed
+    const varietiesThatShouldBecomeGenericOnChange = [
+        "eastern wild", "gould's wild", "merriam's wild", "osceola wild", "rio grande wild",
+        "hybrid wild", "beltsville small white", "midget white", "white holland",
+        "broad breasted white", "broad breasted bronze", "mammoth bronze", "orlopp bronze"
+    ].map(s => s.toLowerCase());
+
+    function isSpecialLockedVariety(name) {
+        if (!name) return false;
+        const clean = name.toLowerCase().trim()
+            .replace(/\s*\([^)]*\)/g, '')           // remove (Split …), (Dark Brown Eyes), etc.
+            .replace(/\s+/g, ' ');
+        return varietiesThatShouldBecomeGenericOnChange.some(v => clean.includes(v));
+    }
+
+    function getCurrentDisplayedName(prefix) {
+        const container = document.getElementById(prefix + "ImageContainer");
+        if (!container) return "";
+        const strong = container.querySelector("strong");
+        if (!strong) return "";
+        const spans = strong.querySelectorAll("span");
+        const firstSpan = spans[0] || strong;
+        return (firstSpan.textContent || "").trim();
+    }
+
+    function looksLikeWildishName(name) {
+        const n = (name || "").toLowerCase();
+        return /wild|hybrid wild|eastern|gould|merriam|osceola|rio/i.test(n);
+    }
+
+    function looksLikeWhiteName(name) {
+        const n = (name || "").toLowerCase();
+        return /white|beltsville|midget|holland|broad breasted white/i.test(n) && 
+               !/bronze/i.test(n);
+    }
+
+    function looksLikeBronzeCommercialName(name) {
+        const n = (name || "").toLowerCase();
+        return /broad breasted bronze|bronze|mammoth|orlopp/i.test(n);
+    }
+
+    function getFallbackPhenotypeFromGenotype(genotype, isFemale) {
+        if (!genotype) return "To Be Defined";
+        
+        const g = genotype.toLowerCase().replace(/\s+/g, ' ').trim();
+        
+        // Very rough approximation – improve as needed
+        if (g.includes("cc")) {
+            return isFemale ? "White" : "White";
+        }
+        if (g.includes("bb")) {
+            if (g.includes("wild") || g.includes("hybrid")) {
+                return isFemale ? "Wild" : "Wild";
+            }
+            return isFemale ? "Bronze" : "Bronze";
+        }
+        return isFemale ? "Bronze" : "Bronze"; // most common fallback
+    }
+
+    function updateParentNameIfModified(prefix) {
+        const input = document.getElementById(prefix + "VarietyInput");
+        if (!input) return;
+
+        const currentName = getCurrentDisplayedName(prefix);
+        if (!currentName) return;
+
+        // Only act on previously locked special varieties
+        if (!isSpecialLockedVariety(currentName)) return;
+
+        // Get current genotype string (most reliable source)
+        const genoEl = document.getElementById(prefix + "Genotype");
+        const genotype = genoEl ? (genoEl.textContent || "").trim() : "";
+
+        // If genotype is empty or still default → probably not modified yet
+        if (!genotype || genotype === "-- -- -- -- -- -- -- -- --") return;
+
+        // Very basic: if user changed something meaningful → go generic
+        const isFemaleContext = prefix === "dam";
+        let newName = getFallbackPhenotypeFromGenotype(genotype, isFemaleContext);
+
+        // Optional refinement – try to be a bit smarter
+        if (looksLikeWildishName(currentName)) {
+            newName = "Wild";
+        } else if (looksLikeWhiteName(currentName)) {
+            newName = "White";
+        } else if (looksLikeBronzeCommercialName(currentName)) {
+            newName = "Bronze";
+        }
+
+        // Only update if different (prevents flashing)
+        if (newName && newName !== currentName && !currentName.includes(newName)) {
+            const strong = document.querySelector("#" + prefix + "ImageContainer strong");
+            if (strong) {
+                const spans = strong.querySelectorAll("span");
+                if (spans[0]) {
+                    spans[0].textContent = newName;
+                } else {
+                    strong.textContent = newName;
+                }
+            }
+        }
+    }
+
+    // Watch both parents
+    function attachAlleleWatcher(prefix) {
+        const alleleIds = [
+            "Alleleb","AlleleC","Alleled","AlleleE","AlleleN",
+            "AllelePn","AlleleR","AlleleSl","AlleleSp"
+        ];
+
+        alleleIds.forEach(suffix => {
+            const id = prefix + suffix;
+            const select = document.getElementById(id);
+            if (!select) return;
+
+            select.addEventListener("change", () => {
+                // Give genotype string time to update
+                setTimeout(() => {
+                    updateParentNameIfModified(prefix);
+                }, 80);
+            });
+        });
+    }
+
+    // Init
+    window.addEventListener("load", () => {
+        attachAlleleWatcher("sire");
+        attachAlleleWatcher("dam");
+
+        // Also run once after any variety apply (safety)
+        const origSire = window.applyVarietyToSire;
+        if (typeof origSire === "function") {
+            window.applyVarietyToSire = function() {
+                const r = origSire.apply(this, arguments);
+                setTimeout(() => updateParentNameIfModified("sire"), 120);
+                return r;
+            };
+        }
+
+        const origDam = window.applyVarietyToDam;
+        if (typeof origDam === "function") {
+            window.applyVarietyToDam = function() {
+                const r = origDam.apply(this, arguments);
+                setTimeout(() => updateParentNameIfModified("dam"), 120);
+                return r;
+            };
+        }
+    });
+
+    console.log("[Variety Respect Alleles] Special varieties now become generic when alleles change");
+})();
 
 
 
