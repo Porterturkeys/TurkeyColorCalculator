@@ -3440,13 +3440,13 @@ window.addEventListener("load", () => {
 /////////////////
 
 // ────────────────────────────────────────────────────────────────
-// REVISED UNIFIED CLEAR FOR SPECIAL VARIANTS (White, Wild, Broad Bronze)
-// Clears forces ONLY when input CHANGES away from special name
-// No fluttering on initial select; resetCalculator untouched
-// Replace previous unified block with this
+// TARGETED CLEAR FOR NAMED WHITE / WILD / BROAD BRONZE ONLY
+// Clears cc/bb/dataset/image/name ONLY when changing AWAY from special name
+// Does NOT interfere with manual allele changes or resetCalculator
+// Add this BELOW your existing autoResetSireDamVariety() block
 // ────────────────────────────────────────────────────────────────
 
-(function revisedUnifiedClear() {
+(function targetedSpecialClear() {
     const inputs = {
         sire: document.getElementById('sireVarietyInput'),
         dam:  document.getElementById('damVarietyInput')
@@ -3455,112 +3455,93 @@ window.addEventListener("load", () => {
     if (!inputs.sire && !inputs.dam) return;
 
     const state = {
-        sire: { prevVal: '' },
-        dam:  { prevVal: '' }
+        sire: { prev: '' },
+        dam:  { prev: '' }
     };
 
-    // Special patterns
-    const patterns = {
-        white: [
-            'beltsville small white', 'beltsville white', 'white beltsville',
-            'midget white', 'midget', 'white midget',
-            'white holland', 'holland white', 'holland',
-            'broad breasted white', 'broad-breasted white', 'large white',
-            'commercial white', 'giant white', 'broad white', 'breasted white'
-        ],
-        wild: [
-            'eastern wild', 'eastern', 'wild eastern',
-            'goulds wild', "gould's wild", 'goulds', "gould's",
-            'merriams wild', "merriam's wild", 'merriams',
-            'osceola wild', 'rio grande wild', 'hybrid wild'
-        ],
-        broadBronze: [
-            'broad breasted bronze', 'broad-breasted bronze', 'mammoth bronze',
-            'orlopp bronze', 'breasted bronze', 'bronze breasted', 'large bronze'
-        ]
+    const specialPatterns = {
+        white: [/beltsville/i, /midget/i, /holland/i, /broad breasted white/i, /broad-breasted white/i, /large white/i, /commercial white/i, /giant white/i, /broad white/i, /breasted white/i],
+        wild: [/eastern/i, /gould/i, /merriam/i, /osceola/i, /rio/i, /hybrid wild/i],
+        broadBronze: [/broad breasted bronze/i, /broad-breasted bronze/i, /mammoth bronze/i, /orlopp bronze/i, /breasted bronze/i, /bronze breasted/i, /large bronze/i]
     };
 
     function isSpecial(val, type) {
         if (!val) return false;
         const lower = val.toLowerCase().trim();
-        return patterns[type].some(item => lower.includes(item));
+        return specialPatterns[type].some(pat => pat.test(lower));
     }
 
-    function wasSpecial(prevVal) {
-        return isSpecial(prevVal, 'white') || isSpecial(prevVal, 'wild') || isSpecial(prevVal, 'broadBronze');
-    }
-
-    function clearSpecialForces(prefix) {
+    function clearForcedState(prefix) {
         const container = document.getElementById(prefix + 'ImageContainer');
         if (container) {
+            // Clear overlay flags
             delete container.dataset.wildKey;
             delete container.dataset.whiteKey;
             delete container.dataset.bronzeKey;
 
+            // Clear special image if it looks forced
             const img = container.querySelector('img');
-            if (img && /porters turkeys\.github\.io\/Pictures\//i.test(img.src)) {
-                img.src = '';  // clear special image
+            if (img && img.src.includes('https://portersturkeys.github.io/Pictures/')) {
+                img.src = '';
             }
 
+            // Clear forced name
             const strong = container.querySelector('strong');
             if (strong) strong.innerHTML = '';
         }
 
-        // Clear cc for white
-        const cSelect = document.getElementById(prefix + 'AlleleC');
-        if (cSelect && cSelect.value === 'cc') {
-            cSelect.value = 'CC';  // adjust to your non-white default
-        }
+        // Clear cc (white)
+        const c = document.getElementById(prefix + 'AlleleC');
+        if (c && c.value === 'cc') c.value = 'CC';  // change 'CC' to your non-white default if needed
 
-        // Clear bb for wild/bronze
-        const bSelect = document.getElementById(prefix + 'Alleleb');
-        if (bSelect && bSelect.value === 'bb') {
-            bSelect.selectedIndex = 0;
-        }
+        // Clear bb (wild/bronze)
+        const b = document.getElementById(prefix + 'Alleleb');
+        if (b && b.value === 'bb') b.selectedIndex = 0;
 
-        // Refresh
+        // Refresh display
         if (prefix === 'sire' && typeof updateSireGenotype === 'function') updateSireGenotype();
         if (prefix === 'dam' && typeof updateDamGenotype === 'function') updateDamGenotype();
     }
 
-    function onInputChange(prefix, inputEl) {
-        const val = inputEl.value.trim();
-        const prevVal = state[prefix].prevVal;
+    function checkClear(prefix, inputEl) {
+        const current = inputEl.value.trim();
+        const prev = state[prefix].prev;
 
-        // Only clear if value CHANGED and PREVIOUS was special but NEW is not
-        if (val !== prevVal && wasSpecial(prevVal) && !wasSpecial(val)) {
-            clearSpecialForces(prefix);
+        // Only clear if value changed AND previous was special but current is not
+        if (current !== prev && 
+            (isSpecial(prev, 'white') || isSpecial(prev, 'wild') || isSpecial(prev, 'broadBronze')) &&
+            !isSpecial(current, 'white') && !isSpecial(current, 'wild') && !isSpecial(current, 'broadBronze')) {
+            
+            clearForcedState(prefix);
 
-            // Delayed double-check to override re-apply
-            setTimeout(() => clearSpecialForces(prefix), 100);
-            setTimeout(() => clearSpecialForces(prefix), 300);
+            // Extra override for delayed observer re-applies
+            setTimeout(() => clearForcedState(prefix), 120);
+            setTimeout(() => clearForcedState(prefix), 350);
         }
 
-        state[prefix].prevVal = val;
+        state[prefix].prev = current;
     }
 
     Object.entries(inputs).forEach(([prefix, el]) => {
         if (!el) return;
 
-        // Input: delayed to avoid fluttering on type
+        // Delayed on input (avoids flutter on typing same name)
         let timer;
         el.addEventListener('input', () => {
             clearTimeout(timer);
-            timer = setTimeout(() => onInputChange(prefix, el), 250);
+            timer = setTimeout(() => checkClear(prefix, el), 220);
         });
 
-        // Blur/change: immediate (on click to mate)
-        el.addEventListener('blur', () => onInputChange(prefix, el));
-        el.addEventListener('change', () => onInputChange(prefix, el));
+        // Immediate on blur/change (when clicking mate field)
+        el.addEventListener('blur', () => checkClear(prefix, el));
+        el.addEventListener('change', () => checkClear(prefix, el));
 
-        // Paste: delayed
-        el.addEventListener('paste', () => setTimeout(() => onInputChange(prefix, el), 300));
+        // Paste
+        el.addEventListener('paste', () => setTimeout(() => checkClear(prefix, el), 280));
 
-        // Initial prev on load/focus
-        state[prefix].prevVal = el.value.trim();
-        el.addEventListener('focus', () => state[prefix].prevVal = el.value.trim());
+        // Track initial value
+        state[prefix].prev = el.value.trim();
     });
 
-    console.log("[Revised Unified Clear] Special overlays clear only on change away — no fluttering, reset intact");
+    console.log("[Targeted Clear] Named white/wild/bronze now clear on change away — no flutter, manual cc/bb ok");
 })();
-
