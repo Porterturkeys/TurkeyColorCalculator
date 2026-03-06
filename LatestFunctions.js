@@ -3371,167 +3371,100 @@ wrap.appendChild(creditLine);  // append to wrap instead of title
 /////////////////////////
 
 // =============================================================================
-// PASTE THIS BLOCK AT THE VERY BOTTOM OF YOUR SCRIPT FILE
-// 
-// Goal: When user selects special variety (Wild / Named White / BB Bronze / BB White)
-//       but then manually changes alleles → update displayed variety name
-//       so it no longer shows misleading original variety after modification
+// IMPROVED PATCH: Reflect ACTUAL variety name from mappings after allele changes
+// Works for Broad Breasted Bronze → Auburn (bb ee) and thousands of other combos
+// Paste at BOTTOM
 // =============================================================================
 
-(function makeSpecialVarietiesRespectAlleleChanges() {
+(function reflectRealVarietyFromMappingsOnChange() {
     'use strict';
 
-    // Which varieties should lose their "locked" name when alleles are changed
-    const varietiesThatShouldBecomeGenericOnChange = [
-        "eastern wild", "gould's wild", "merriam's wild", "osceola wild", "rio grande wild",
-        "hybrid wild", "beltsville small white", "midget white", "white holland",
-        "broad breasted white", "broad breasted bronze", "mammoth bronze", "orlopp bronze"
-    ].map(s => s.toLowerCase());
-
-    function isSpecialLockedVariety(name) {
-        if (!name) return false;
-        const clean = name.toLowerCase().trim()
-            .replace(/\s*\([^)]*\)/g, '')           // remove (Split …), (Dark Brown Eyes), etc.
-            .replace(/\s+/g, ' ');
-        return varietiesThatShouldBecomeGenericOnChange.some(v => clean.includes(v));
+    function getAllMappings() {
+        return [
+            phenotypeMapping1, phenotypeMapping1A, phenotypeMapping1B, phenotypeMapping1C,
+            phenotypeMapping1D, phenotypeMapping1E, phenotypeMapping2, phenotypeMapping2A,
+            phenotypeMapping3, phenotypeMapping3A, phenotypeMapping4, phenotypeMapping5,
+            phenotypeMapping6, phenotypeMapping7, phenotypeMapping8, phenotypeMapping9,
+            phenotypeMapping10, phenotypeMapping11, phenotypeMapping12, phenotypeMapping13,
+            phenotypeMapping14, phenotypeMapping15
+        ].filter(m => typeof m !== 'undefined' && m);
     }
 
-    function getCurrentDisplayedName(prefix) {
-        const container = document.getElementById(prefix + "ImageContainer");
-        if (!container) return "";
-        const strong = container.querySelector("strong");
-        if (!strong) return "";
-        const spans = strong.querySelectorAll("span");
-        const firstSpan = spans[0] || strong;
-        return (firstSpan.textContent || "").trim();
-    }
-
-    function looksLikeWildishName(name) {
-        const n = (name || "").toLowerCase();
-        return /wild|hybrid wild|eastern|gould|merriam|osceola|rio/i.test(n);
-    }
-
-    function looksLikeWhiteName(name) {
-        const n = (name || "").toLowerCase();
-        return /white|beltsville|midget|holland|broad breasted white/i.test(n) && 
-               !/bronze/i.test(n);
-    }
-
-    function looksLikeBronzeCommercialName(name) {
-        const n = (name || "").toLowerCase();
-        return /broad breasted bronze|bronze|mammoth|orlopp/i.test(n);
-    }
-
-    function getFallbackPhenotypeFromGenotype(genotype, isFemale) {
-        if (!genotype) return "To Be Defined";
-        
-        const g = genotype.toLowerCase().replace(/\s+/g, ' ').trim();
-        
-        // Very rough approximation – improve as needed
-        if (g.includes("cc")) {
-            return isFemale ? "White" : "White";
-        }
-        if (g.includes("bb")) {
-            if (g.includes("wild") || g.includes("hybrid")) {
-                return isFemale ? "Wild" : "Wild";
-            }
-            return isFemale ? "Bronze" : "Bronze";
-        }
-        return isFemale ? "Bronze" : "Bronze"; // most common fallback
-    }
-
-    function updateParentNameIfModified(prefix) {
-        const input = document.getElementById(prefix + "VarietyInput");
-        if (!input) return;
-
-        const currentName = getCurrentDisplayedName(prefix);
-        if (!currentName) return;
-
-        // Only act on previously locked special varieties
-        if (!isSpecialLockedVariety(currentName)) return;
-
-        // Get current genotype string (most reliable source)
-        const genoEl = document.getElementById(prefix + "Genotype");
-        const genotype = genoEl ? (genoEl.textContent || "").trim() : "";
-
-        // If genotype is empty or still default → probably not modified yet
-        if (!genotype || genotype === "-- -- -- -- -- -- -- -- --") return;
-
-        // Very basic: if user changed something meaningful → go generic
-        const isFemaleContext = prefix === "dam";
-        let newName = getFallbackPhenotypeFromGenotype(genotype, isFemaleContext);
-
-        // Optional refinement – try to be a bit smarter
-        if (looksLikeWildishName(currentName)) {
-            newName = "Wild";
-        } else if (looksLikeWhiteName(currentName)) {
-            newName = "White";
-        } else if (looksLikeBronzeCommercialName(currentName)) {
-            newName = "Bronze";
-        }
-
-        // Only update if different (prevents flashing)
-        if (newName && newName !== currentName && !currentName.includes(newName)) {
-            const strong = document.querySelector("#" + prefix + "ImageContainer strong");
-            if (strong) {
-                const spans = strong.querySelectorAll("span");
-                if (spans[0]) {
-                    spans[0].textContent = newName;
-                } else {
-                    strong.textContent = newName;
+    function findVarietyForGenotype(genotype) {
+        if (!genotype) return null;
+        const cleanGeno = genotype.replace(/\s+/g, ' ').trim();
+        const allMaps = getAllMappings();
+        for (const map of allMaps) {
+            for (const [genoKey, pheno] of Object.entries(map)) {
+                if (genoKey.replace(/\s+/g, ' ').trim() === cleanGeno) {
+                    return pheno; // e.g. "Auburn", "Narragansett", etc.
                 }
             }
         }
+        return null;
     }
 
-    // Watch both parents
-    function attachAlleleWatcher(prefix) {
-        const alleleIds = [
-            "Alleleb","AlleleC","Alleled","AlleleE","AlleleN",
-            "AllelePn","AlleleR","AlleleSl","AlleleSp"
-        ];
+    function getDisplayedNameElement(prefix) {
+        const container = document.getElementById(prefix + "ImageContainer");
+        if (!container) return null;
+        const strong = container.querySelector("strong");
+        if (!strong) return null;
+        return strong.querySelector("span") || strong;
+    }
 
-        alleleIds.forEach(suffix => {
-            const id = prefix + suffix;
-            const select = document.getElementById(id);
-            if (!select) return;
+    function updateParentVarietyFromGenotype(prefix) {
+        const genoEl = document.getElementById(prefix + "Genotype"); // or short-genotype if separate
+        if (!genoEl) return;
+        const genotype = genoEl.textContent.trim();
+        if (!genotype || genotype.includes("To Be Defined")) return;
 
-            select.addEventListener("change", () => {
-                // Give genotype string time to update
-                setTimeout(() => {
-                    updateParentNameIfModified(prefix);
-                }, 80);
-            });
+        const variety = findVarietyForGenotype(genotype);
+        if (!variety) return; // no match in mappings
+
+        const nameEl = getDisplayedNameElement(prefix);
+        if (nameEl && nameEl.textContent.trim() !== variety) {
+            nameEl.textContent = variety;
+            console.log(`[VarietySync] Updated ${prefix} to "${variety}" (geno: ${genotype})`);
+
+            // Optional: image swap if you have per-variety images
+            // const img = container.querySelector("img");
+            // if (img && variety === "Auburn") { img.src = ".../MAuburn.jpg"; }
+        }
+    }
+
+    function watchAlleles(prefix) {
+        const alleles = ["Alleleb","AlleleC","Alleled","AlleleE","AlleleN","AllelePn","AlleleR","AlleleSl","AlleleSp"];
+        alleles.forEach(suffix => {
+            const sel = document.getElementById(prefix + suffix);
+            if (sel) {
+                sel.addEventListener("change", () => {
+                    // Delay to let core update genotype first
+                    setTimeout(() => updateParentVarietyFromGenotype(prefix), 300);
+                    setTimeout(() => updateParentVarietyFromGenotype(prefix), 600);
+                });
+            }
         });
     }
 
-    // Init
     window.addEventListener("load", () => {
-        attachAlleleWatcher("sire");
-        attachAlleleWatcher("dam");
+        watchAlleles("sire");
+        watchAlleles("dam");
 
-        // Also run once after any variety apply (safety)
-        const origSire = window.applyVarietyToSire;
-        if (typeof origSire === "function") {
-            window.applyVarietyToSire = function() {
-                const r = origSire.apply(this, arguments);
-                setTimeout(() => updateParentNameIfModified("sire"), 120);
-                return r;
-            };
-        }
+        // Hook core updates
+        ["updateSireGenotype", "updateDamGenotype", "setGenotypeImage"].forEach(fn => {
+            if (typeof window[fn] === "function") {
+                const orig = window[fn];
+                window[fn] = function(...args) {
+                    const res = orig.apply(this, args);
+                    setTimeout(() => {
+                        updateParentVarietyFromGenotype("sire");
+                        updateParentVarietyFromGenotype("dam");
+                    }, 400);
+                    return res;
+                };
+            }
+        });
 
-        const origDam = window.applyVarietyToDam;
-        if (typeof origDam === "function") {
-            window.applyVarietyToDam = function() {
-                const r = origDam.apply(this, arguments);
-                setTimeout(() => updateParentNameIfModified("dam"), 120);
-                return r;
-            };
-        }
+        console.log("[VarietyFromMapping] Active — parent name now pulls from phenotype mappings on change");
     });
-
-    console.log("[Variety Respect Alleles] Special varieties now become generic when alleles change");
 })();
-
-
-
