@@ -2528,3 +2528,102 @@ window.addEventListener("load", () => {
     console.log("[Auto-Reset v2] Installed — skips reset for wild/white varieties to preserve bb & genotype");
 })();
 
+////////////////////////
+// Force "bb" on b locus for wild varieties only
+// Ensures the barring locus shows bb when a wild variety is selected or switched
+(function forcebbForWild() {
+    if (window._forcebbForWildInstalled) return;
+    window._forcebbForWildInstalled = true;
+
+    function isWild(val) {
+        if (!val) return false;
+        const lower = val.toLowerCase().trim();
+        return lower.includes('wild') || 
+               lower.includes('eastern') || lower.includes('merriams') || 
+               lower.includes('gould') || lower.includes('osceola') || 
+               lower.includes('rio') || lower.includes('hybrid');
+    }
+
+    function forcebb(prefix) {
+        const id = prefix + 'Alleleb';
+        const select = document.getElementById(id);
+        if (!select) {
+            console.warn(`[force bb] No dropdown: ${id}`);
+            return;
+        }
+
+        const curr = (select.value || '').trim().toLowerCase();
+        if (curr === 'bb') {
+            console.log(`[force bb] ${id} already bb`);
+            return;
+        }
+
+        console.log(`[force bb] ${id} is "${select.value || '(empty)'}" → forcing bb`);
+
+        let done = false;
+        for (let opt of select.options) {
+            if ((opt.value || '').trim().toLowerCase() === 'bb') {
+                select.value = opt.value;
+                done = true;
+                console.log(`[force bb] Set ${id} to "${opt.value}"`);
+                break;
+            }
+        }
+
+        if (done) {
+            if (prefix === 'sire' && typeof updateSireGenotype === 'function') {
+                updateSireGenotype();
+                console.log('[force bb] updateSireGenotype called');
+            }
+            if (prefix === 'dam' && typeof updateDamGenotype === 'function') {
+                updateDamGenotype();
+                console.log('[force bb] updateDamGenotype called');
+            }
+        } else {
+            console.warn(`[force bb] "bb" not in options for ${id}. Options listed:`);
+            Array.from(select.options).forEach(o => console.log('  → ' + (o.value || '(empty)')));
+        }
+    }
+
+    function enforcebb(prefix) {
+        const input = document.getElementById(prefix + 'VarietyInput');
+        if (!input || !isWild(input.value)) return;
+
+        forcebb(prefix);
+        setTimeout(() => forcebb(prefix), 200);
+        setTimeout(() => forcebb(prefix), 600);
+    }
+
+    // Hook apply functions
+    function wrap(fn, prefix) {
+        if (typeof window[fn] !== 'function') return;
+        const orig = window[fn];
+        window[fn] = function(...args) {
+            const res = orig.apply(this, args);
+            setTimeout(() => enforcebb(prefix), 300);
+            return res;
+        };
+    }
+
+    window.addEventListener('load', () => {
+        wrap('applyVarietyToSire', 'sire');
+        wrap('applyVarietyToDam', 'dam');
+
+        ['sire', 'dam'].forEach(p => {
+            const inp = document.getElementById(p + 'VarietyInput');
+            if (!inp) return;
+            const h = () => setTimeout(() => enforcebb(p), 400);
+            inp.addEventListener('input', h);
+            inp.addEventListener('blur', h);
+            inp.addEventListener('change', h);
+        });
+
+        setTimeout(() => {
+            enforcebb('sire');
+            enforcebb('dam');
+        }, 1200);
+    });
+
+    console.log('[force bb for wild] Installed - all lowercase bb');
+})();
+
