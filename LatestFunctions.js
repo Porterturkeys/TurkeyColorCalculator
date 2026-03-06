@@ -919,7 +919,7 @@ if (KEEP_QUALIFIERS_IN_SUMMARY && typeof cleanSummaryPhenotypesOnce === "functio
     // Force bb if not already set
     const bronzeId = prefix === "sire" ? "sireAlleleb" : "damAlleleb";
     const bronzeSel = document.getElementById(bronzeId);
-    if (bronzeSel && bronzeSel.value !== "bb" && !container._wildBbForced) {
+    if (bronzeSel && bronzeSel.value !== "bb" && !container._wildbbForced) {
       bronzeSel.value = "bb";
       if (prefix === "sire" && typeof updateSireGenotype === "function") updateSireGenotype();
       if (prefix === "dam" && typeof updateDamGenotype === "function") updateDamGenotype();
