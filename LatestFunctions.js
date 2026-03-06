@@ -2462,6 +2462,18 @@ window.addEventListener("load", () => {
     const damInput  = document.getElementById('damVarietyInput');
     if (!sireInput && !damInput) return;
 
+    // Known wild/white patterns (expand as needed)
+    const SKIP_RESET_PATTERNS = [
+        /wild/i, /eastern/i, /merriam/i, /gould/i, /osceola/i, /rio/i, /hybrid wild/i,
+        /beltsville/i, /midget white/i, /white holland/i, /broad breasted white/i
+    ];
+
+    function shouldSkipReset(val) {
+        if (!val) return false;
+        const lower = val.toLowerCase().trim();
+        return SKIP_RESET_PATTERNS.some(pattern => pattern.test(lower));
+    }
+
     function resetParent(prefix) {
         const alleles = ['Alleleb','AlleleC','Alleled','AlleleE','AlleleN','AllelePn','AlleleR','AlleleSl','AlleleSp'];
         let anyChanged = false;
@@ -2476,56 +2488,43 @@ window.addEventListener("load", () => {
         });
 
         if (anyChanged) {
-            if (prefix === 'sire' && typeof updateSireGenotype === 'function') {
-                updateSireGenotype();
-            }
-            if (prefix === 'dam' && typeof updateDamGenotype === 'function') {
-                updateDamGenotype();
-            }
+            if (prefix === 'sire' && typeof updateSireGenotype === 'function') updateSireGenotype();
+            if (prefix === 'dam' && typeof updateDamGenotype === 'function') updateDamGenotype();
         }
 
-        // Optional: only clear image/name if you really want aggressive reset
-        // Most people prefer to keep last good image until new valid variety is chosen
-        // const container = document.getElementById(prefix + 'ImageContainer');
-        // if (container) { ... clear img/src and strong ... }
-    }
-
-    function isProbablyValidVariety(val) {
-        val = (val || '').trim();
-        if (!val) return false;
-        if (val.length < 3) return false;
-        // You can make this stricter if you want
-        return true;
+        // Do NOT aggressively clear image/name here — overlays handle that
     }
 
     function handleChange(prefix, inputEl) {
         const val = inputEl.value.trim();
 
-        // Only reset when it became clearly invalid/empty
-        if (!isProbablyValidVariety(val)) {
-            // Add small delay so applyVarietyToXxx has chance to run first
-            setTimeout(() => {
-                // Only reset if still invalid after delay
-                if (!isProbablyValidVariety(inputEl.value.trim())) {
-                    resetParent(prefix);
-                }
-            }, 300);   // ← most important line — gives apply* functions time to finish
+        if (shouldSkipReset(val)) {
+            // Wild/white → preserve genotype (bb etc.) — do NOT reset
+            return;
         }
-        // If it's valid → do nothing here (let applyVarietyToSire/Dam do their job)
+
+        // Only reset non-wild when clearly invalid/empty
+        if (!val || val.length < 3) {
+            setTimeout(() => {
+                const currentVal = inputEl.value.trim();
+                if (!currentVal || currentVal.length < 3) {
+                    if (!shouldSkipReset(currentVal)) {
+                        resetParent(prefix);
+                    }
+                }
+            }, 400);  // give applyVariety + wild overlay time to finish
+        }
     }
 
-    [ {el: sireInput, prefix: 'sire'}, {el: damInput, prefix: 'dam'} ]
+    [{el: sireInput, prefix: 'sire'}, {el: damInput, prefix: 'dam'}]
         .filter(item => item.el)
         .forEach(({el, prefix}) => {
-            el.addEventListener('input', () => handleChange(prefix, el));
+            el.addEventListener('input',  () => handleChange(prefix, el));
             el.addEventListener('blur',   () => handleChange(prefix, el));
             el.addEventListener('change', () => handleChange(prefix, el));
-            // Paste needs extra love
-            el.addEventListener('paste', () => setTimeout(() => handleChange(prefix, el), 80));
+            el.addEventListener('paste',  () => setTimeout(() => handleChange(prefix, el), 100));
         });
 
-    console.log("[Auto-Reset] Improved version installed — only resets after delay when field is clearly empty/invalid");
+    console.log("[Auto-Reset v2] Installed — skips reset for wild/white varieties to preserve bb & genotype");
 })();
-
-
 
