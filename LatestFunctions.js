@@ -3440,18 +3440,26 @@ window.addEventListener("load", () => {
 /////////////////
 
 // ────────────────────────────────────────────────────────────────
-// FINAL TARGETED CLEAR FOR NAMED WHITE / WILD / BROAD BRONZE OVERLAYS
-// Clears ONLY the forced states these overlays care about
-// (cc, bb, dataset flags, images/names) when input no longer matches
-// Add this BELOW your existing autoResetSireDamVariety() block
+// REVISED UNIFIED CLEAR FOR SPECIAL VARIANTS (White, Wild, Broad Bronze)
+// Clears forces ONLY when input CHANGES away from special name
+// No fluttering on initial select; resetCalculator untouched
+// Replace previous unified block with this
 // ────────────────────────────────────────────────────────────────
 
-(function clearNamedSpecialOverlays() {
-    const sireInput = document.getElementById('sireVarietyInput');
-    const damInput  = document.getElementById('damVarietyInput');
-    if (!sireInput && !damInput) return;
+(function revisedUnifiedClear() {
+    const inputs = {
+        sire: document.getElementById('sireVarietyInput'),
+        dam:  document.getElementById('damVarietyInput')
+    };
 
-    // Patterns for the overlays that are sticking
+    if (!inputs.sire && !inputs.dam) return;
+
+    const state = {
+        sire: { prevVal: '' },
+        dam:  { prevVal: '' }
+    };
+
+    // Special patterns
     const patterns = {
         white: [
             'beltsville small white', 'beltsville white', 'white beltsville',
@@ -3472,82 +3480,87 @@ window.addEventListener("load", () => {
         ]
     };
 
-    function matchesAny(val, list) {
+    function isSpecial(val, type) {
         if (!val) return false;
         const lower = val.toLowerCase().trim();
-        return list.some(item => lower.includes(item));
+        return patterns[type].some(item => lower.includes(item));
     }
 
-    function clearOverlayForces(prefix) {
+    function wasSpecial(prevVal) {
+        return isSpecial(prevVal, 'white') || isSpecial(prevVal, 'wild') || isSpecial(prevVal, 'broadBronze');
+    }
+
+    function clearSpecialForces(prefix) {
         const container = document.getElementById(prefix + 'ImageContainer');
         if (container) {
-            // Clear all overlay-triggering dataset flags
             delete container.dataset.wildKey;
             delete container.dataset.whiteKey;
             delete container.dataset.bronzeKey;
 
-            // Blank forced image
             const img = container.querySelector('img');
-            if (img && img.src.includes('porters turkeys.github.io/Pictures/')) {
-                img.src = '';  // remove special image
+            if (img && /porters turkeys\.github\.io\/Pictures\//i.test(img.src)) {
+                img.src = '';  // clear special image
             }
 
-            // Clear forced name
             const strong = container.querySelector('strong');
             if (strong) strong.innerHTML = '';
         }
 
-        // Force-reset only the problematic alleles (C for white, B for wild/bronze)
+        // Clear cc for white
         const cSelect = document.getElementById(prefix + 'AlleleC');
         if (cSelect && cSelect.value === 'cc') {
-            cSelect.value = 'CC';  // ← change to 'C-' if that's your default
+            cSelect.value = 'CC';  // adjust to your non-white default
         }
 
+        // Clear bb for wild/bronze
         const bSelect = document.getElementById(prefix + 'Alleleb');
         if (bSelect && bSelect.value === 'bb') {
-            bSelect.selectedIndex = 0;  // reset to default (usually not bb)
+            bSelect.selectedIndex = 0;
         }
 
-        // Refresh display
+        // Refresh
         if (prefix === 'sire' && typeof updateSireGenotype === 'function') updateSireGenotype();
         if (prefix === 'dam' && typeof updateDamGenotype === 'function') updateDamGenotype();
     }
 
     function onInputChange(prefix, inputEl) {
         const val = inputEl.value.trim();
+        const prevVal = state[prefix].prevVal;
 
-        // If the current value does NOT match any special overlay pattern → clear forces
-        if (!matchesAny(val, patterns.white) &&
-            !matchesAny(val, patterns.wild) &&
-            !matchesAny(val, patterns.broadBronze)) {
-            clearOverlayForces(prefix);
+        // Only clear if value CHANGED and PREVIOUS was special but NEW is not
+        if (val !== prevVal && wasSpecial(prevVal) && !wasSpecial(val)) {
+            clearSpecialForces(prefix);
 
-            // Extra override for delayed re-applies
-            setTimeout(() => clearOverlayForces(prefix), 120);
-            setTimeout(() => clearOverlayForces(prefix), 350);
+            // Delayed double-check to override re-apply
+            setTimeout(() => clearSpecialForces(prefix), 100);
+            setTimeout(() => clearSpecialForces(prefix), 300);
         }
+
+        state[prefix].prevVal = val;
     }
 
-    // Attach listeners
-    Object.entries({sire: sireInput, dam: damInput}).forEach(([prefix, el]) => {
+    Object.entries(inputs).forEach(([prefix, el]) => {
         if (!el) return;
 
-        // Typing / deleting
+        // Input: delayed to avoid fluttering on type
         let timer;
         el.addEventListener('input', () => {
             clearTimeout(timer);
-            timer = setTimeout(() => onInputChange(prefix, el), 160);
+            timer = setTimeout(() => onInputChange(prefix, el), 250);
         });
 
-        // When clicking out (to mate field or calculate)
+        // Blur/change: immediate (on click to mate)
         el.addEventListener('blur', () => onInputChange(prefix, el));
         el.addEventListener('change', () => onInputChange(prefix, el));
 
-        // Paste
-        el.addEventListener('paste', () => setTimeout(() => onInputChange(prefix, el), 200));
+        // Paste: delayed
+        el.addEventListener('paste', () => setTimeout(() => onInputChange(prefix, el), 300));
+
+        // Initial prev on load/focus
+        state[prefix].prevVal = el.value.trim();
+        el.addEventListener('focus', () => state[prefix].prevVal = el.value.trim());
     });
 
-    console.log("[Final Overlay Clear] Named white / wild / broad bronze now reset on variety change");
+    console.log("[Revised Unified Clear] Special overlays clear only on change away — no fluttering, reset intact");
 })();
-
 
