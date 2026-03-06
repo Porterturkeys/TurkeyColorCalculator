@@ -3103,5 +3103,77 @@ window.addEventListener("load", () => {
 
 ///////////////////////////////////
 
+// ────────────────────────────────────────────────────────────────
+// AUTO-RESET for Sire & Dam Variety Inputs
+// Clears genotype dropdowns + images when user clears or changes variety name
+// (No need to click Reset Calculator anymore)
+// ────────────────────────────────────────────────────────────────
+
+(function autoResetSireDamVariety() {
+    const sireInput  = document.getElementById('sireVarietyInput');
+    const damInput   = document.getElementById('damVarietyInput');
+
+    if (!sireInput && !damInput) return;
+
+    // Function to reset one parent (dropdowns + image + phenotype display)
+    function resetParent(prefix) {
+        // Reset all allele dropdowns to default (usually the first option or empty)
+        const alleles = ['Alleleb', 'AlleleC', 'Alleled', 'AlleleE', 'AlleleN', 'AllelePn', 'AlleleR', 'AlleleSl', 'AlleleSp'];
+        alleles.forEach(suffix => {
+            const id = prefix + suffix;
+            const select = document.getElementById(id);
+            if (select) {
+                select.selectedIndex = 0;  // reset to first option (usually default like "B-" or "--")
+            }
+        });
+
+        // Force update genotype display / image
+        if (prefix === 'sire' && typeof updateSireGenotype === 'function') {
+            updateSireGenotype();
+        }
+        if (prefix === 'dam' && typeof updateDamGenotype === 'function') {
+            updateDamGenotype();
+        }
+
+        // Clear any forced images or text (wild/white/BB overlays etc.)
+        const container = document.getElementById(prefix + 'ImageContainer');
+        if (container) {
+            const img = container.querySelector('img');
+            if (img) img.src = '';  // blank image or set to placeholder if you have one
+            const strong = container.querySelector('strong');
+            if (strong) strong.innerHTML = '';  // clear phenotype text
+        }
+    }
+
+    // Check if value is "valid" enough to keep genotype applied
+    function shouldKeepApplied(val) {
+        val = (val || '').trim().toLowerCase();
+        if (!val) return false;  // empty → reset
+        // Optional: add more checks if you want (e.g. length < 3 → reset)
+        return val.length > 2;
+    }
+
+    function handleInputChange(prefix, inputEl) {
+        const val = inputEl.value.trim();
+        if (!shouldKeepApplied(val)) {
+            resetParent(prefix);
+        }
+        // If it's a new valid name, existing applyVarietyToSire/Dam will handle applying it
+    }
+
+    // Attach listeners
+    [ {el: sireInput, prefix: 'sire'}, {el: damInput, prefix: 'dam'} ]
+        .filter(item => item.el)
+        .forEach(({el, prefix}) => {
+            el.addEventListener('input', () => handleInputChange(prefix, el));
+            // Also on blur/paste (extra safety)
+            el.addEventListener('blur', () => handleInputChange(prefix, el));
+            el.addEventListener('paste', () => setTimeout(() => handleInputChange(prefix, el), 50));
+        });
+
+    console.log("[Auto-Reset] Sire & Dam variety inputs now auto-clear genotypes on empty/change");
+})();
+
+
 
 
