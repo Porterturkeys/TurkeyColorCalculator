@@ -923,7 +923,7 @@ if (KEEP_QUALIFIERS_IN_SUMMARY && typeof cleanSummaryPhenotypesOnce === "functio
       bronzeSel.value = "bb";
       if (prefix === "sire" && typeof updateSireGenotype === "function") updateSireGenotype();
       if (prefix === "dam" && typeof updateDamGenotype === "function") updateDamGenotype();
-      container._wildBbForced = true;
+      container._wildbbForced = true;
     }
 
     // Force image
@@ -1084,6 +1084,7 @@ if (KEEP_QUALIFIERS_IN_SUMMARY && typeof cleanSummaryPhenotypesOnce === "functio
   }
 
   window.addEventListener("load", () => {
+      
     wrapVarietyFn("applyVarietyToSire", "sire");
     wrapVarietyFn("applyVarietyToDam", "dam");
 
@@ -1097,7 +1098,7 @@ if (KEEP_QUALIFIERS_IN_SUMMARY && typeof cleanSummaryPhenotypesOnce === "functio
           const container = document.getElementById(prefix + "ImageContainer");
           if (container) {
             delete container.dataset.wildKey;
-            delete container._wildBbForced;
+            delete container._wildbbForced;
           }
         });
         return result;
