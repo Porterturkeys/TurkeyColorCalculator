@@ -1116,7 +1116,56 @@ if (KEEP_QUALIFIERS_IN_SUMMARY && typeof cleanSummaryPhenotypesOnce === "functio
     
     installObservers();
     installWildOffspringObserver();
-    
+//////////////////////////////////////////
+// NEW: Re-apply (or clear) wild overlay when alleles change manually
+// This fixes: changing bronze from bb → something else should drop wild overlay
+if (typeof updateSireGenotype === "function" && !window._wildAlleleSirePatched) {
+  window._wildAlleleSirePatched = true;
+  const origSireUpdate = updateSireGenotype;
+  updateSireGenotype = function () {
+    const result = origSireUpdate.apply(this, arguments);
+    setTimeout(() => {
+      const bronzeSel = document.getElementById("sireAlleleb");
+      if (bronzeSel && bronzeSel.value !== "bb") {
+        // User changed away from bb → no longer wild-like, clear overlay
+        wildState.sire = null;
+        const container = document.getElementById("sireImageContainer");
+        if (container) {
+          delete container.dataset.wildKey;
+          // Reset image/name to whatever core wants (let genotype redraw handle it)
+        }
+      } else if (wildState.sire) {
+        // Still bb + wild state → re-apply wild name/image
+        applyWildToParent("sire");
+      }
+    }, 0);
+    return result;
+  };
+}
+
+if (typeof updateDamGenotype === "function" && !window._wildAlleleDamPatched) {
+  window._wildAlleleDamPatched = true;
+  const origDamUpdate = updateDamGenotype;
+  updateDamGenotype = function () {
+    const result = origDamUpdate.apply(this, arguments);
+    setTimeout(() => {
+      const bronzeSel = document.getElementById("damAlleleb");
+      if (bronzeSel && bronzeSel.value !== "bb") {
+        wildState.dam = null;
+        const container = document.getElementById("damImageContainer");
+        if (container) {
+          delete container.dataset.wildKey;
+        }
+      } else if (wildState.dam) {
+        applyWildToParent("dam");
+      }
+    }, 0);
+    return result;
+  };
+}
+
+      
+ /////////////////////////////////////////   
     // NEW FEATURE: Transfer fix from current version
     if (typeof window.transferOffspringToParent === "function" && !window._wildTransferPatched) {
       window._wildTransferPatched = true;
