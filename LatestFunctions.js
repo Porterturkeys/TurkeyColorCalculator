@@ -906,54 +906,72 @@ if (KEEP_QUALIFIERS_IN_SUMMARY && typeof cleanSummaryPhenotypesOnce === "functio
     return key;
   }
 
+    
   function forceApplyWild(prefix) {
-    const container = document.getElementById(prefix + "ImageContainer");
-    if (!container) return;
+  const container = document.getElementById(prefix + "ImageContainer");
+  if (!container) return;
+  
+  const key = container.dataset.wildKey || wildState[prefix];
+  if (!key) return;
+  
+  const data = WILD_VARIANTS[key];
+  if (!data) return;
 
-    const key = container.dataset.wildKey || wildState[prefix];
-    if (!key) return;
-
-    const data = WILD_VARIANTS[key];
-    if (!data) return;
-
-    // Force bb if not already set
-    const bronzeId = prefix === "sire" ? "sireAlleleb" : "damAlleleb";
-    const bronzeSel = document.getElementById(bronzeId);
-    if (bronzeSel && bronzeSel.value !== "bb" && !container._wildbbForced) {
-      bronzeSel.value = "bb";
-      if (prefix === "sire" && typeof updateSireGenotype === "function") updateSireGenotype();
-      if (prefix === "dam" && typeof updateDamGenotype === "function") updateDamGenotype();
-      container._wildbbForced = true;
-    }
-
-    // Force image
-    const img = container.querySelector("img");
-    if (img) {
-      img.src = "https://portersturkeys.github.io/Pictures/" + (prefix === "dam" ? data.female : data.male);
-    }
-
-    // Force name
-    const strong = container.querySelector("strong");
-    if (strong) {
-      let phenoSpan = strong.querySelector("span");
-      if (!phenoSpan) {
-        phenoSpan = document.createElement("span");
-        strong.innerHTML = '';
-        strong.appendChild(phenoSpan);
+  // ────────────────────────────────────────────────
+  // FORCE the bronze allele EVERY TIME for wilds
+  // ────────────────────────────────────────────────
+  const bronzeId = prefix === "sire" ? "sireAlleleb" : "damAlleleb";
+  const bronzeSel = document.getElementById(bronzeId);
+  if (bronzeSel) {
+    const wasAlreadyBB = bronzeSel.value === "bb";
+    bronzeSel.value = "bb";  // always set it
+    
+    // If it changed (or even if not), force full genotype refresh
+    if (!wasAlreadyBB || true) {  // the || true is intentional — always refresh display
+      if (prefix === "sire" && typeof updateSireGenotype === "function") {
+        updateSireGenotype();
       }
-      phenoSpan.textContent = data.name;
-    }
-
-    // Cleanup
-    const info = document.getElementById(prefix + "InfoContainer");
-    if (info) {
-      info.querySelectorAll("span, div, strong").forEach(el => {
-        if (/to be defined|bronze/i.test(el.textContent)) {
-          el.textContent = data.name;
-        }
-      });
+      if (prefix === "dam" && typeof updateDamGenotype === "function") {
+        updateDamGenotype();
+      }
     }
   }
+
+  // Force correct wild image
+  const img = container.querySelector("img");
+  if (img) {
+    const correctSrc = "https://portersturkeys.github.io/Pictures/" + 
+                       (prefix === "dam" ? data.female : data.male);
+    if (img.src !== correctSrc) {
+      img.src = correctSrc;
+    }
+  }
+
+  // Force correct name in the strong/span
+  const strong = container.querySelector("strong");
+  if (strong) {
+    let phenoSpan = strong.querySelector("span");
+    if (!phenoSpan) {
+      phenoSpan = document.createElement("span");
+      strong.innerHTML = '';
+      strong.appendChild(phenoSpan);
+    }
+    if (phenoSpan.textContent.trim() !== data.name) {
+      phenoSpan.textContent = data.name;
+    }
+  }
+
+  // Cleanup any leftover "to be defined" or generic bronze text
+  const info = document.getElementById(prefix + "InfoContainer");
+  if (info) {
+    info.querySelectorAll("span, div, strong").forEach(el => {
+      if (/to be defined|bronze/i.test(el.textContent || "")) {
+        el.textContent = data.name;
+      }
+    });
+  }
+}
+    
 
   function applyWildToParent(prefix) {
     const container = document.getElementById(prefix + "ImageContainer");
