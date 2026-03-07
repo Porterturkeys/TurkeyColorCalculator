@@ -906,6 +906,7 @@ if (KEEP_QUALIFIERS_IN_SUMMARY && typeof cleanSummaryPhenotypesOnce === "functio
     return key;
   }
 
+    /////////////////////////////////////////
     
   function forceApplyWild(prefix) {
   const container = document.getElementById(prefix + "ImageContainer");
@@ -917,77 +918,65 @@ if (KEEP_QUALIFIERS_IN_SUMMARY && typeof cleanSummaryPhenotypesOnce === "functio
   const data = WILD_VARIANTS[key];
   if (!data) return;
 
-  // ───────────────────────────────────────────────────────────────
-  // 1. FORCE bronze allele selection EVERY SINGLE TIME
-  // ───────────────────────────────────────────────────────────────
-  const bronzeId = prefix === "sire" ? "sireAlleleb" : "damAlleleb";
-  const bronzeSel = document.getElementById(bronzeId);
-  if (bronzeSel) {
-    // Explicitly set to "bb" (even if already set — clears any stale UI)
-    bronzeSel.value = "bb";
+  // Only force bb + genotype update if not already forced for this container
+  // (flag gets deleted when switching away via the else block in wrapVarietyFn)
+  if (!container._wildbbForced) {
+    const bronzeId = prefix === "sire" ? "sireAlleleb" : "damAlleleb";
+    const bronzeSel = document.getElementById(bronzeId);
+    if (bronzeSel && bronzeSel.value !== "bb") {
+      bronzeSel.value = "bb";
+    }
     
-    // Trigger change event manually in case the UI listens for it
-    const changeEvent = new Event('change', { bubbles: true });
-    bronzeSel.dispatchEvent(changeEvent);
+    // ALWAYS refresh the genotype display/short text — this is critical for wild-to-wild switches
+    if (prefix === "sire" && typeof updateSireGenotype === "function") {
+      updateSireGenotype();
+    }
+    if (prefix === "dam" && typeof updateDamGenotype === "function") {
+      updateDamGenotype();
+    }
+    
+    // Set flag so we don't hammer it unnecessarily on same wild
+    container._wildbbForced = true;
   }
 
-  // ───────────────────────────────────────────────────────────────
-  // 2. FORCE genotype display refresh — call update EVERY TIME
-  //    (this is what rebuilds the short genotype text below the image)
-  // ───────────────────────────────────────────────────────────────
-  if (prefix === "sire" && typeof updateSireGenotype === "function") {
-    updateSireGenotype();           // immediate call
-    setTimeout(updateSireGenotype, 0);   // queued microtask
-    setTimeout(updateSireGenotype, 50);  // small delay for DOM settle
-  }
-  if (prefix === "dam" && typeof updateDamGenotype === "function") {
-    updateDamGenotype();
-    setTimeout(updateDamGenotype, 0);
-    setTimeout(updateDamGenotype, 50);
-  }
-
-  // ───────────────────────────────────────────────────────────────
-  // 3. Force image (with src change check to avoid reload flicker)
-  // ───────────────────────────────────────────────────────────────
+  // Force image — always check/override
   const img = container.querySelector("img");
   if (img) {
     const correctSrc = "https://portersturkeys.github.io/Pictures/" + 
                        (prefix === "dam" ? data.female : data.male);
-    if (img.src !== correctSrc) {
-      img.src = correctSrc;
-    }
+    img.src = correctSrc;  // set every time to override any "bronze.jpg" fallback
   }
 
-  // ───────────────────────────────────────────────────────────────
-  // 4. Force name display
-  // ───────────────────────────────────────────────────────────────
+  // Force specific wild name — this should override any "Bronze" text
   const strong = container.querySelector("strong");
   if (strong) {
     let phenoSpan = strong.querySelector("span");
     if (!phenoSpan) {
       phenoSpan = document.createElement("span");
-      strong.innerHTML = '';  // wipe old content
+      strong.innerHTML = '';
       strong.appendChild(phenoSpan);
     }
-    phenoSpan.textContent = data.name;
+    phenoSpan.textContent = data.name;  // Eastern Wild, Gould's Wild, etc.
   }
 
-  // ───────────────────────────────────────────────────────────────
-  // 5. Cleanup leftover text in info container
-  // ───────────────────────────────────────────────────────────────
+  // Extra cleanup: hunt down and replace any lingering "Bronze" or "to be defined"
   const info = document.getElementById(prefix + "InfoContainer");
   if (info) {
-    info.querySelectorAll("span, div, strong").forEach(el => {
-      const txt = (el.textContent || "").toLowerCase();
-      if (txt.includes("to be defined") || txt.includes("bronze")) {
+    info.querySelectorAll("span, div, strong, p").forEach(el => {
+      let txt = el.textContent || "";
+      if (txt.toLowerCase().includes("bronze") || txt.toLowerCase().includes("to be defined")) {
         el.textContent = data.name;
       }
     });
   }
 
-  // Optional debug log (remove later if not needed)
-  console.log(`forceApplyWild(${prefix}): Applied ${data.name}, bb forced, genotype refreshed`);
+  // Debug log to confirm it's running (remove after testing if you want)
+  console.log(`Wild applied to ${prefix}: ${data.name} | bb forced: ${!!container._wildbbForced}`);
 }
+    
+////////////////////////////////////////
+      
+  
     
 
   function applyWildToParent(prefix) {
