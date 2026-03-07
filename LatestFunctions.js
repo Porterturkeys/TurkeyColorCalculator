@@ -1190,6 +1190,45 @@ if (KEEP_QUALIFIERS_IN_SUMMARY && typeof cleanSummaryPhenotypesOnce === "functio
 })();
 //////////////////////////
 
+// Hook allele updates to clear wild overlay when user manually changes bronze away from bb
+// (prevents stuck wild name/image after allele change)
+if (typeof updateSireGenotype === "function") {
+  const originalSireUpdate = updateSireGenotype;
+  updateSireGenotype = function() {
+    const res = originalSireUpdate.apply(this, arguments);
+    setTimeout(() => {
+      const bronze = document.getElementById("sireAlleleb");
+      if (bronze && bronze.value !== "bb" && wildState.sire) {
+        wildState.sire = null;
+        const cont = document.getElementById("sireImageContainer");
+        if (cont) delete cont.dataset.wildKey;
+        // Let core redraw name/image on next cycle
+      } else if (wildState.sire) {
+        applyWildToParent("sire");
+      }
+    }, 50); // small delay to run after core DOM update
+    return res;
+  };
+}
+
+if (typeof updateDamGenotype === "function") {
+  const originalDamUpdate = updateDamGenotype;
+  updateDamGenotype = function() {
+    const res = originalDamUpdate.apply(this, arguments);
+    setTimeout(() => {
+      const bronze = document.getElementById("damAlleleb");
+      if (bronze && bronze.value !== "bb" && wildState.dam) {
+        wildState.dam = null;
+        const cont = document.getElementById("damImageContainer");
+        if (cont) delete cont.dataset.wildKey;
+      } else if (wildState.dam) {
+        applyWildToParent("dam");
+      }
+    }, 50);
+    return res;
+  };
+}
+
 
 
 // Toggle enlargement specifically for offspring images within offspring containers
