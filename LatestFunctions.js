@@ -1066,25 +1066,27 @@ if (KEEP_QUALIFIERS_IN_SUMMARY && typeof cleanSummaryPhenotypesOnce === "functio
     });
   }
 
-  function wrapVarietyFn(fnName, prefix) {
-    const original = window[fnName];
-    if (typeof original !== "function") return;
-    window[fnName] = function () {
-      const res = original.apply(this, arguments);
-      const key = detectWildFromVariety(prefix);
-      if (key) {
-        setTimeout(() => applyWildToParent(prefix), 0);
-      } else {
-        const container = document.getElementById(prefix + "ImageContainer");
-        if (container) delete container.dataset.wildKey;
-        delete container._wildbbForced;   // ← THIS IS THE NEW LINE 
+function wrapVarietyFn(fnName, prefix) {
+  const original = window[fnName];
+  if (typeof original !== "function") return;
+  window[fnName] = function () {
+    const res = original.apply(this, arguments);
+    const key = detectWildFromVariety(prefix);
+    if (key) {
+      setTimeout(() => applyWildToParent(prefix), 0);
+    } else {
+      const container = document.getElementById(prefix + "ImageContainer");
+      if (container) {
+        delete container.dataset.wildKey;
+        delete container._wildbbForced;   // ← THIS IS THE NEW LINE /////////////////////////////////////
       }
-        wildState[prefix] = null;
-      }
-      return res;
-    };
-  }
+      wildState[prefix] = null;
+    }
+    return res;
+  };
+}
 
+    
   window.addEventListener("load", () => {
       
     wrapVarietyFn("applyVarietyToSire", "sire");
