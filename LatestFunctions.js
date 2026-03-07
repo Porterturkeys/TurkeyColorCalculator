@@ -867,7 +867,6 @@ if (KEEP_QUALIFIERS_IN_SUMMARY && typeof cleanSummaryPhenotypesOnce === "functio
 (function () {
   'use strict';
   
-  // Adjust filenames to match actual picture names (kept full set with hybrid and poults)
   const WILD_VARIANTS = {
     eastern: { name: "Eastern Wild", male: "MEasternWild.jpg", female: "FEasternWild.jpg", poult: "PEasternWild.jpg" },
     goulds: { name: "Gould's Wild", male: "MGouldsWild.jpg", female: "FGouldsWild.jpg", poult: "PGouldsWild.jpg" },
@@ -877,7 +876,6 @@ if (KEEP_QUALIFIERS_IN_SUMMARY && typeof cleanSummaryPhenotypesOnce === "functio
     hybrid: { name: "Hybrid Wild", male: "MHybridWild.jpg", female: "FHybridWild.jpg", poult: "PHybridWild.jpg" }
   };
   
-  // What the user actually types in the variety box (added hybrid from new)
   const WILD_VARIETY_MAP = {
     "eastern wild": "eastern", "eastern": "eastern", "wild eastern": "eastern",
     "goulds wild": "goulds", "gould's wild": "goulds", "goulds wild turkey": "goulds", "gould's wild turkey": "goulds",
@@ -889,14 +887,12 @@ if (KEEP_QUALIFIERS_IN_SUMMARY && typeof cleanSummaryPhenotypesOnce === "functio
     "hybrid wild": "hybrid", "hybrid": "hybrid"
   };
   
-  // Track current wild variant per parent
   const wildState = { sire: null, dam: null };
   
   function norm(str) {
     return (str || "").trim().toLowerCase();
   }
   
-  // When user types / uses variety autocomplete, figure out if it's a Wild variant
   function detectWildFromVariety(prefix) {
     const input = document.getElementById(prefix + "VarietyInput");
     const val = norm(input && input.value);
@@ -910,7 +906,6 @@ if (KEEP_QUALIFIERS_IN_SUMMARY && typeof cleanSummaryPhenotypesOnce === "functio
     return key;
   }
   
-  // Overlay Wild variant on a parent (image + visible name) — matches old behavior exactly, but always refreshes genotype
   function applyWildToParent(prefix) {
     const container = document.getElementById(prefix + "ImageContainer");
     if (!container) return;
@@ -921,30 +916,21 @@ if (KEEP_QUALIFIERS_IN_SUMMARY && typeof cleanSummaryPhenotypesOnce === "functio
     const data = WILD_VARIANTS[key];
     if (!data) return;
     
-    // Force Bronze locus dropdown to bb for Wild parents (like old — no flag)
     const bronzeSelectId = prefix === "sire" ? "sireAlleleb" : "damAlleleb";
     const bronzeSelect = document.getElementById(bronzeSelectId);
-    let changed = false;
     if (bronzeSelect && bronzeSelect.value !== "bb") {
       bronzeSelect.value = "bb";
-      changed = true;
     }
     
-    // ALWAYS refresh genotype display (ensures short genotype shows on wild-to-wild switches)
-    if (prefix === "sire" && typeof updateSireGenotype === "function") {
-      updateSireGenotype();
-    }
-    if (prefix === "dam" && typeof updateDamGenotype === "function") {
-      updateDamGenotype();
-    }
+    // Always refresh genotype display/short text
+    if (prefix === "sire" && typeof updateSireGenotype === "function") updateSireGenotype();
+    if (prefix === "dam" && typeof updateDamGenotype === "function") updateDamGenotype();
     
-    // Swap parent image to correct Wild file
     const img = container.querySelector("img");
     if (img) {
       img.src = "https://portersturkeys.github.io/Pictures/" + (prefix === "dam" ? data.female : data.male);
     }
     
-    // Fix visible phenotype/variety label, assuming first <span> under a <strong>
     const strong = container.querySelector("strong");
     if (strong) {
       const spans = strong.querySelectorAll("span");
@@ -954,7 +940,6 @@ if (KEEP_QUALIFIERS_IN_SUMMARY && typeof cleanSummaryPhenotypesOnce === "functio
       }
     }
     
-    // Clean up "To Be Defined" in parent info container, if present
     const info = document.getElementById(prefix + "InfoContainer");
     if (info) {
       info.querySelectorAll("span, div, strong").forEach(el => {
@@ -965,7 +950,6 @@ if (KEEP_QUALIFIERS_IN_SUMMARY && typeof cleanSummaryPhenotypesOnce === "functio
     }
   }
   
-  // Wild offspring naming + images (added hybrid logic from new)
   function applyWildToOffspring() {
     const sireKey = wildState.sire;
     const damKey = wildState.dam;
@@ -977,7 +961,6 @@ if (KEEP_QUALIFIERS_IN_SUMMARY && typeof cleanSummaryPhenotypesOnce === "functio
     
     const displayName = data.name;
     
-    // Patch visible offspring text
     document.querySelectorAll("#maleOffspringResults li, #femaleOffspringResults li").forEach(li => {
       let html = li.innerHTML;
       if (html.includes(displayName)) return;
@@ -987,8 +970,7 @@ if (KEEP_QUALIFIERS_IN_SUMMARY && typeof cleanSummaryPhenotypesOnce === "functio
       li.innerHTML = html;
     });
     
-    // Patch summary chart
-    const summaryBody = document.querySelector("#summaryChart tbody");
+    const summaryBody = document.getElementById("summaryChart")?.querySelector("tbody");
     if (summaryBody) {
       summaryBody.querySelectorAll("tr").forEach(tr => {
         const phenoCell = tr.cells?.[1];
@@ -1002,7 +984,6 @@ if (KEEP_QUALIFIERS_IN_SUMMARY && typeof cleanSummaryPhenotypesOnce === "functio
       });
     }
     
-    // Patch internal arrays
     function patchWildOffspringArray(arr) {
       if (!Array.isArray(arr)) return;
       arr.forEach(o => {
@@ -1028,7 +1009,6 @@ if (KEEP_QUALIFIERS_IN_SUMMARY && typeof cleanSummaryPhenotypesOnce === "functio
     if (window.maleOffspring) patchWildOffspringArray(window.maleOffspring);
     if (window.femaleOffspring) patchWildOffspringArray(window.femaleOffspring);
     
-    // Patch visible images
     document.querySelectorAll("#maleOffspringResults img, #femaleOffspringResults img").forEach(img => {
       const file = img.src.split("/").pop()?.toLowerCase();
       if (file === "mbronze.jpg") img.src = "https://portersturkeys.github.io/Pictures/" + data.male;
@@ -1037,7 +1017,6 @@ if (KEEP_QUALIFIERS_IN_SUMMARY && typeof cleanSummaryPhenotypesOnce === "functio
     });
   }
   
-  // Offspring/summary observer
   function installWildOffspringObserver() {
     let patching = false;
     const targets = [
@@ -1059,7 +1038,6 @@ if (KEEP_QUALIFIERS_IN_SUMMARY && typeof cleanSummaryPhenotypesOnce === "functio
     });
   }
   
-  // Wrap variety functions so they record Wild state + apply overlay (like old)
   function wrapVarietyFn(fnName, prefix) {
     const original = window[fnName];
     if (typeof original !== "function") return;
@@ -1077,7 +1055,6 @@ if (KEEP_QUALIFIERS_IN_SUMMARY && typeof cleanSummaryPhenotypesOnce === "functio
     };
   }
   
-  // Watch parents for DOM changes and re-apply Wild overlay (like old)
   function installObservers() {
     const parentFlags = { sire: false, dam: false };
     ["sire", "dam"].forEach(prefix => {
@@ -1095,7 +1072,6 @@ if (KEEP_QUALIFIERS_IN_SUMMARY && typeof cleanSummaryPhenotypesOnce === "functio
     });
   }
   
-  // Hook everything after core is loaded
   window.addEventListener("load", () => {
     wrapVarietyFn("applyVarietyToSire", "sire");
     wrapVarietyFn("applyVarietyToDam", "dam");
@@ -1116,57 +1092,53 @@ if (KEEP_QUALIFIERS_IN_SUMMARY && typeof cleanSummaryPhenotypesOnce === "functio
     
     installObservers();
     installWildOffspringObserver();
-//////////////////////////////////////////
-// NEW: Re-apply (or clear) wild overlay when alleles change manually
-// This fixes: changing bronze from bb → something else should drop wild overlay
-if (typeof updateSireGenotype === "function" && !window._wildAlleleSirePatched) {
-  window._wildAlleleSirePatched = true;
-  const origSireUpdate = updateSireGenotype;
-  updateSireGenotype = function () {
-    const result = origSireUpdate.apply(this, arguments);
-    setTimeout(() => {
-      const bronzeSel = document.getElementById("sireAlleleb");
-      if (bronzeSel && bronzeSel.value !== "bb") {
-        // User changed away from bb → no longer wild-like, clear overlay
-        wildState.sire = null;
-        const container = document.getElementById("sireImageContainer");
-        if (container) {
-          delete container.dataset.wildKey;
-          // Reset image/name to whatever core wants (let genotype redraw handle it)
-        }
-      } else if (wildState.sire) {
-        // Still bb + wild state → re-apply wild name/image
-        applyWildToParent("sire");
-      }
-    }, 0);
-    return result;
-  };
-}
-
-if (typeof updateDamGenotype === "function" && !window._wildAlleleDamPatched) {
-  window._wildAlleleDamPatched = true;
-  const origDamUpdate = updateDamGenotype;
-  updateDamGenotype = function () {
-    const result = origDamUpdate.apply(this, arguments);
-    setTimeout(() => {
-      const bronzeSel = document.getElementById("damAlleleb");
-      if (bronzeSel && bronzeSel.value !== "bb") {
-        wildState.dam = null;
-        const container = document.getElementById("damImageContainer");
-        if (container) {
-          delete container.dataset.wildKey;
-        }
-      } else if (wildState.dam) {
-        applyWildToParent("dam");
-      }
-    }, 0);
-    return result;
-  };
-}
-
-      
- /////////////////////////////////////////   
-    // NEW FEATURE: Transfer fix from current version
+    
+    // FIX: Hook allele updates so manual bronze change clears wild overlay
+    if (typeof updateSireGenotype === "function" && !window._wildAlleleSirePatched) {
+      window._wildAlleleSirePatched = true;
+      const origSire = updateSireGenotype;
+      updateSireGenotype = function () {
+        const res = origSire.apply(this, arguments);
+        setTimeout(() => {
+          const bronze = document.getElementById("sireAlleleb");
+          const container = document.getElementById("sireImageContainer");
+          if (bronze && container) {
+            if (bronze.value !== "bb") {
+              wildState.sire = null;
+              delete container.dataset.wildKey;
+              // Optional: let core redraw image/name on next update
+            } else if (wildState.sire) {
+              applyWildToParent("sire");
+            }
+          }
+        }, 0);
+        return res;
+      };
+    }
+    
+    if (typeof updateDamGenotype === "function" && !window._wildAlleleDamPatched) {
+      window._wildAlleleDamPatched = true;
+      const origDam = updateDamGenotype;
+      updateDamGenotype = function () {
+        const res = origDam.apply(this, arguments);
+        setTimeout(() => {
+          const bronze = document.getElementById("damAlleleb");
+          const container = document.getElementById("damImageContainer");
+          if (bronze && container) {
+            if (bronze.value !== "bb") {
+              wildState.dam = null;
+              delete container.dataset.wildKey;
+            } else if (wildState.dam) {
+              applyWildToParent("dam");
+            }
+          }
+        }, 0);
+        return res;
+      };
+    }
+    
+    // Re-add your new features here if they were removed
+    // Transfer
     if (typeof window.transferOffspringToParent === "function" && !window._wildTransferPatched) {
       window._wildTransferPatched = true;
       const originalTransfer = window.transferOffspringToParent;
@@ -1186,7 +1158,7 @@ if (typeof updateDamGenotype === "function" && !window._wildAlleleDamPatched) {
       };
     }
     
-    // NEW FEATURE: Favorites patch from current version
+    // Favorites
     if (typeof window.handleDropdownChange === "function" && !window._wildFavoritesPatched) {
       window._wildFavoritesPatched = true;
       const originalHandle = window.handleDropdownChange;
@@ -1220,7 +1192,7 @@ if (typeof updateDamGenotype === "function" && !window._wildAlleleDamPatched) {
       };
     }
     
-    // NEW FEATURE: Calc wrapper from current version
+    // Calc wrapper
     if (typeof window.calculateOffspringWrapper === "function" && !window._wildCalcPatched) {
       window._wildCalcPatched = true;
       const origCalc = window.calculateOffspringWrapper;
@@ -1237,8 +1209,6 @@ if (typeof updateDamGenotype === "function" && !window._wildAlleleDamPatched) {
     }
   });
 })();
-
-
 //////////////////////////
 
 
