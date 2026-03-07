@@ -1077,6 +1077,8 @@ if (KEEP_QUALIFIERS_IN_SUMMARY && typeof cleanSummaryPhenotypesOnce === "functio
       } else {
         const container = document.getElementById(prefix + "ImageContainer");
         if (container) delete container.dataset.wildKey;
+        delete container._wildbbForced;   // ← THIS IS THE NEW LINE 
+      }
         wildState[prefix] = null;
       }
       return res;
