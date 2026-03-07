@@ -917,27 +917,38 @@ if (KEEP_QUALIFIERS_IN_SUMMARY && typeof cleanSummaryPhenotypesOnce === "functio
   const data = WILD_VARIANTS[key];
   if (!data) return;
 
-  // ────────────────────────────────────────────────
-  // FORCE the bronze allele EVERY TIME for wilds
-  // ────────────────────────────────────────────────
+  // ───────────────────────────────────────────────────────────────
+  // 1. FORCE bronze allele selection EVERY SINGLE TIME
+  // ───────────────────────────────────────────────────────────────
   const bronzeId = prefix === "sire" ? "sireAlleleb" : "damAlleleb";
   const bronzeSel = document.getElementById(bronzeId);
   if (bronzeSel) {
-    const wasAlreadyBB = bronzeSel.value === "bb";
-    bronzeSel.value = "bb";  // always set it
+    // Explicitly set to "bb" (even if already set — clears any stale UI)
+    bronzeSel.value = "bb";
     
-    // If it changed (or even if not), force full genotype refresh
-    if (!wasAlreadyBB || true) {  // the || true is intentional — always refresh display
-      if (prefix === "sire" && typeof updateSireGenotype === "function") {
-        updateSireGenotype();
-      }
-      if (prefix === "dam" && typeof updateDamGenotype === "function") {
-        updateDamGenotype();
-      }
-    }
+    // Trigger change event manually in case the UI listens for it
+    const changeEvent = new Event('change', { bubbles: true });
+    bronzeSel.dispatchEvent(changeEvent);
   }
 
-  // Force correct wild image
+  // ───────────────────────────────────────────────────────────────
+  // 2. FORCE genotype display refresh — call update EVERY TIME
+  //    (this is what rebuilds the short genotype text below the image)
+  // ───────────────────────────────────────────────────────────────
+  if (prefix === "sire" && typeof updateSireGenotype === "function") {
+    updateSireGenotype();           // immediate call
+    setTimeout(updateSireGenotype, 0);   // queued microtask
+    setTimeout(updateSireGenotype, 50);  // small delay for DOM settle
+  }
+  if (prefix === "dam" && typeof updateDamGenotype === "function") {
+    updateDamGenotype();
+    setTimeout(updateDamGenotype, 0);
+    setTimeout(updateDamGenotype, 50);
+  }
+
+  // ───────────────────────────────────────────────────────────────
+  // 3. Force image (with src change check to avoid reload flicker)
+  // ───────────────────────────────────────────────────────────────
   const img = container.querySelector("img");
   if (img) {
     const correctSrc = "https://portersturkeys.github.io/Pictures/" + 
@@ -947,29 +958,35 @@ if (KEEP_QUALIFIERS_IN_SUMMARY && typeof cleanSummaryPhenotypesOnce === "functio
     }
   }
 
-  // Force correct name in the strong/span
+  // ───────────────────────────────────────────────────────────────
+  // 4. Force name display
+  // ───────────────────────────────────────────────────────────────
   const strong = container.querySelector("strong");
   if (strong) {
     let phenoSpan = strong.querySelector("span");
     if (!phenoSpan) {
       phenoSpan = document.createElement("span");
-      strong.innerHTML = '';
+      strong.innerHTML = '';  // wipe old content
       strong.appendChild(phenoSpan);
     }
-    if (phenoSpan.textContent.trim() !== data.name) {
-      phenoSpan.textContent = data.name;
-    }
+    phenoSpan.textContent = data.name;
   }
 
-  // Cleanup any leftover "to be defined" or generic bronze text
+  // ───────────────────────────────────────────────────────────────
+  // 5. Cleanup leftover text in info container
+  // ───────────────────────────────────────────────────────────────
   const info = document.getElementById(prefix + "InfoContainer");
   if (info) {
     info.querySelectorAll("span, div, strong").forEach(el => {
-      if (/to be defined|bronze/i.test(el.textContent || "")) {
+      const txt = (el.textContent || "").toLowerCase();
+      if (txt.includes("to be defined") || txt.includes("bronze")) {
         el.textContent = data.name;
       }
     });
   }
+
+  // Optional debug log (remove later if not needed)
+  console.log(`forceApplyWild(${prefix}): Applied ${data.name}, bb forced, genotype refreshed`);
 }
     
 
