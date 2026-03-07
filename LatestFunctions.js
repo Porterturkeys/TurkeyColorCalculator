@@ -1216,6 +1216,79 @@ function wrapVarietyFn(fnName, prefix) {
     }
   });
 })();
+////////////////////////
+
+// =====================================================
+// FINAL WILD OVERRIDE: Hook the phenotype/image builder
+// Prevents "Bronze" fallback from clobbering wild names
+// =====================================================
+if (typeof setGenotypeImage === "function" && !window._wildSetGenotypeImagePatched) {
+  window._wildSetGenotypeImagePatched = true;
+  
+  const originalSetGenotypeImage = setGenotypeImage;
+  
+  setGenotypeImage = function (...args) {
+    // Run the original function first (builds image + phenotype normally)
+    const result = originalSetGenotypeImage.apply(this, args);
+    
+    // Immediately after: check if this is a wild parent and re-apply specifics
+    ["sire", "dam"].forEach(prefix => {
+      const key = wildState[prefix];
+      if (key && WILD_VARIANTS[key]) {
+        const data = WILD_VARIANTS[key];
+        const container = document.getElementById(prefix + "ImageContainer");
+        if (!container) return;
+        
+        // Force correct wild image
+        const img = container.querySelector("img");
+        if (img) {
+          const correctSrc = "https://portersturkeys.github.io/Pictures/" + 
+                             (prefix === "dam" ? data.female : data.male);
+          img.src = correctSrc;
+        }
+        
+        // Force correct wild name (override any "Bronze" or default)
+        const strong = container.querySelector("strong");
+        if (strong) {
+          let span = strong.querySelector("span");
+          if (!span) {
+            span = document.createElement("span");
+            strong.innerHTML = '';
+            strong.appendChild(span);
+          }
+          span.textContent = data.name;
+        }
+        
+        // Extra cleanup in case "Bronze" is elsewhere
+        const info = document.getElementById(prefix + "InfoContainer");
+        if (info) {
+          info.querySelectorAll("span, div, strong, p").forEach(el => {
+            if (/bronze|to be defined/i.test(el.textContent || "")) {
+              el.textContent = data.name;
+            }
+          });
+        }
+        
+        // Force bb + genotype refresh (safe to call again)
+        const bronzeId = prefix === "sire" ? "sireAlleleb" : "damAlleleb";
+        const bronzeSel = document.getElementById(bronzeId);
+        if (bronzeSel && bronzeSel.value !== "bb") {
+          bronzeSel.value = "bb";
+        }
+        const updateFunc = prefix === "sire" ? updateSireGenotype : updateDamGenotype;
+        if (typeof updateFunc === "function") {
+          updateFunc();
+          setTimeout(updateFunc, 50);  // extra kick for short genotype text
+        }
+      }
+    });
+    
+    return result;
+  };
+  
+  console.log("Wild override hooked into setGenotypeImage — should prevent Bronze fallback now");
+}
+
 //////////////////////////
 
 
