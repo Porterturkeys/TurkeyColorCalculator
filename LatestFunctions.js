@@ -1190,45 +1190,106 @@ if (KEEP_QUALIFIERS_IN_SUMMARY && typeof cleanSummaryPhenotypesOnce === "functio
 })();
 //////////////////////////
 
-// Hook allele updates to clear wild overlay when user manually changes bronze away from bb
-// (prevents stuck wild name/image after allele change)
-if (typeof updateSireGenotype === "function") {
-  const originalSireUpdate = updateSireGenotype;
-  updateSireGenotype = function() {
-    const res = originalSireUpdate.apply(this, arguments);
+// CORRECTED: Check ONLY the relevant turkey loci you specified: B, C, D, E, N, R, Sl, Sp, Pn
+if (typeof updateSireGenotype === "function" && !window._wildAlleleSirePatched) {
+  window._wildAlleleSirePatched = true;
+  const origSire = updateSireGenotype;
+  updateSireGenotype = function () {
+    const res = origSire.apply(this, arguments);
     setTimeout(() => {
-      const bronze = document.getElementById("sireAlleleb");
-      if (bronze && bronze.value !== "bb" && wildState.sire) {
-        wildState.sire = null;
-        const cont = document.getElementById("sireImageContainer");
-        if (cont) delete cont.dataset.wildKey;
-        // Let core redraw name/image on next cycle
-      } else if (wildState.sire) {
-        applyWildToParent("sire");
+      const container = document.getElementById("sireImageContainer");
+      if (!container) return;
+
+      // Get values from exactly your loci
+      const b   = document.getElementById("sireAlleleb")?.value || "";
+      const c   = document.getElementById("sireAlleleC")?.value || "";
+      const d   = document.getElementById("sireAlleled")?.value || "";
+      const e   = document.getElementById("sireAlleleE")?.value || "";
+      const n   = document.getElementById("sireAlleleN")?.value || "";
+      const r   = document.getElementById("sireAlleleR")?.value || "";
+      const sl  = document.getElementById("sireAlleleSl")?.value || "";
+      const sp  = document.getElementById("sireAlleleSp")?.value || "";
+      const pn  = document.getElementById("sireAllelePn")?.value || "";
+
+      // Typical wild = bb + neutral on all other relevant loci
+      // Neutral usually means "-" or empty or wild-compatible (adjust if your wilds allow specific values)
+      const isTypicalWild =
+        b === "bb" &&
+        c === "-" &&   // or "" or whatever neutral is for C
+        d === "-" &&
+        !/^[Ee]/.test(e) &&   // no Ee, EE, ee
+        !/^[Nn]/.test(n) &&   // no Nn, NN, nn
+        r === "-" &&
+        sl === "-" &&
+        sp === "-" &&
+        pn === "-";
+
+      if (wildState.sire) {
+        if (isTypicalWild) {
+          // Still matches typical wild → keep/refresh wild overlay
+          applyWildToParent("sire");
+        } else {
+          // Any change to non-neutral on these loci → clear wild overlay
+          wildState.sire = null;
+          delete container.dataset.wildKey;
+          const img = container.querySelector("img");
+          if (img) img.src = "";          // blank to force core redraw
+          const strong = container.querySelector("strong");
+          if (strong) strong.innerHTML = "";
+        }
       }
-    }, 50); // small delay to run after core DOM update
+    }, 100);
     return res;
   };
 }
 
-if (typeof updateDamGenotype === "function") {
-  const originalDamUpdate = updateDamGenotype;
-  updateDamGenotype = function() {
-    const res = originalDamUpdate.apply(this, arguments);
+// Identical logic for dam
+if (typeof updateDamGenotype === "function" && !window._wildAlleleDamPatched) {
+  window._wildAlleleDamPatched = true;
+  const origDam = updateDamGenotype;
+  updateDamGenotype = function () {
+    const res = origDam.apply(this, arguments);
     setTimeout(() => {
-      const bronze = document.getElementById("damAlleleb");
-      if (bronze && bronze.value !== "bb" && wildState.dam) {
-        wildState.dam = null;
-        const cont = document.getElementById("damImageContainer");
-        if (cont) delete cont.dataset.wildKey;
-      } else if (wildState.dam) {
-        applyWildToParent("dam");
+      const container = document.getElementById("damImageContainer");
+      if (!container) return;
+
+      const b   = document.getElementById("damAlleleb")?.value || "";
+      const c   = document.getElementById("damAlleleC")?.value || "";
+      const d   = document.getElementById("damAlleled")?.value || "";
+      const e   = document.getElementById("damAlleleE")?.value || "";
+      const n   = document.getElementById("damAlleleN")?.value || "";
+      const r   = document.getElementById("damAlleleR")?.value || "";
+      const sl  = document.getElementById("damAlleleSl")?.value || "";
+      const sp  = document.getElementById("damAlleleSp")?.value || "";
+      const pn  = document.getElementById("damAllelePn")?.value || "";
+
+      const isTypicalWild =
+        b === "bb" &&
+        c === "-" &&
+        d === "-" &&
+        !/^[Ee]/.test(e) &&
+        !/^[Nn]/.test(n) &&
+        r === "-" &&
+        sl === "-" &&
+        sp === "-" &&
+        pn === "-";
+
+      if (wildState.dam) {
+        if (isTypicalWild) {
+          applyWildToParent("dam");
+        } else {
+          wildState.dam = null;
+          delete container.dataset.wildKey;
+          const img = container.querySelector("img");
+          if (img) img.src = "";
+          const strong = container.querySelector("strong");
+          if (strong) strong.innerHTML = "";
+        }
       }
-    }, 50);
+    }, 100);
     return res;
   };
 }
-
 
 
 // Toggle enlargement specifically for offspring images within offspring containers
