@@ -918,36 +918,48 @@ if (KEEP_QUALIFIERS_IN_SUMMARY && typeof cleanSummaryPhenotypesOnce === "functio
   const data = WILD_VARIANTS[key];
   if (!data) return;
 
-  // Only force bb + genotype update if not already forced for this container
-  // (flag gets deleted when switching away via the else block in wrapVarietyFn)
-  if (!container._wildbbForced) {
-    const bronzeId = prefix === "sire" ? "sireAlleleb" : "damAlleleb";
-    const bronzeSel = document.getElementById(bronzeId);
-    if (bronzeSel && bronzeSel.value !== "bb") {
-      bronzeSel.value = "bb";
-    }
+  // ───────────────────────────────────────────────────────────────
+  // ALWAYS force bb - no skipping, even on rapid wild-to-wild switches
+  // ───────────────────────────────────────────────────────────────
+  const bronzeId = prefix === "sire" ? "sireAlleleb" : "damAlleleb";
+  const bronzeSel = document.getElementById(bronzeId);
+  if (bronzeSel) {
+    const previousValue = bronzeSel.value;
+    bronzeSel.value = "bb";
     
-    // ALWAYS refresh the genotype display/short text — this is critical for wild-to-wild switches
-    if (prefix === "sire" && typeof updateSireGenotype === "function") {
-      updateSireGenotype();
+    // If value changed (or to force refresh anyway), trigger events
+    if (previousValue !== "bb") {
+      const changeEvent = new Event('change', { bubbles: true, cancelable: true });
+      bronzeSel.dispatchEvent(changeEvent);
     }
-    if (prefix === "dam" && typeof updateDamGenotype === "function") {
-      updateDamGenotype();
-    }
-    
-    // Set flag so we don't hammer it unnecessarily on same wild
-    container._wildbbForced = true;
   }
 
-  // Force image — always check/override
+  // ───────────────────────────────────────────────────────────────
+  // Force genotype refresh with small delays to beat any async UI
+  // This rebuilds the short genotype text (e.g. "bb ...") below image
+  // ───────────────────────────────────────────────────────────────
+  const updateFunc = prefix === "sire" ? updateSireGenotype : updateDamGenotype;
+  if (typeof updateFunc === "function") {
+    updateFunc();                    // immediate
+    setTimeout(updateFunc, 0);       // next microtask
+    setTimeout(updateFunc, 80);      // give DOM time to settle (increased from 50)
+  }
+
+  // ───────────────────────────────────────────────────────────────
+  // Force image - override any lingering bronze/generic
+  // ───────────────────────────────────────────────────────────────
   const img = container.querySelector("img");
   if (img) {
     const correctSrc = "https://portersturkeys.github.io/Pictures/" + 
                        (prefix === "dam" ? data.female : data.male);
-    img.src = correctSrc;  // set every time to override any "bronze.jpg" fallback
+    if (img.src !== correctSrc) {
+      img.src = correctSrc;
+    }
   }
 
-  // Force specific wild name — this should override any "Bronze" text
+  // ───────────────────────────────────────────────────────────────
+  // Force SPECIFIC wild name - prevent "Bronze" fallback
+  // ───────────────────────────────────────────────────────────────
   const strong = container.querySelector("strong");
   if (strong) {
     let phenoSpan = strong.querySelector("span");
@@ -956,22 +968,22 @@ if (KEEP_QUALIFIERS_IN_SUMMARY && typeof cleanSummaryPhenotypesOnce === "functio
       strong.innerHTML = '';
       strong.appendChild(phenoSpan);
     }
-    phenoSpan.textContent = data.name;  // Eastern Wild, Gould's Wild, etc.
+    phenoSpan.textContent = data.name;  // e.g. "Eastern Wild" or "Gould's Wild"
   }
 
-  // Extra cleanup: hunt down and replace any lingering "Bronze" or "to be defined"
+  // Extra aggressive cleanup: replace any "Bronze" text that sneaks in
   const info = document.getElementById(prefix + "InfoContainer");
   if (info) {
     info.querySelectorAll("span, div, strong, p").forEach(el => {
-      let txt = el.textContent || "";
-      if (txt.toLowerCase().includes("bronze") || txt.toLowerCase().includes("to be defined")) {
+      let txt = (el.textContent || "").trim().toLowerCase();
+      if (txt.includes("bronze") || txt.includes("to be defined") || txt === "") {
         el.textContent = data.name;
       }
     });
   }
 
-  // Debug log to confirm it's running (remove after testing if you want)
-  console.log(`Wild applied to ${prefix}: ${data.name} | bb forced: ${!!container._wildbbForced}`);
+  // Debug: log to console so we can see if/when it runs
+  console.log(`forceApplyWild(${prefix}): ${data.name} | bb set, genotype refresh queued`);
 }
     
 ////////////////////////////////////////
