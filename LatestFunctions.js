@@ -3368,9 +3368,123 @@ wrap.appendChild(creditLine);  // append to wrap instead of title
     console.log("[Auto-Reset] Sire & Dam variety inputs now auto-clear genotypes on empty/change");
 })();
 
+///////////////////////////////////
 
+// =====================================================
+// New Feature: Sync Variety Name and Phenotype on Allele Changes
+// - When alleles change, if genotype differs from original applied via variety,
+//   clear overlays, set variety input to new base phenotype, re-detect/apply overlays.
+// - Preserves special overlays until alleles change away from original genotype.
+// - Added at the end to not interfere with existing code.
+// =====================================================
 
+let appliedGenotypes = { sire: null, dam: null };
 
+function findPhenotypeForGenotype(genotypeInput) {
+    if (!genotypeInput) return null;
+    const normalized = genotypeInput.replace(/\s+/g, ' ').trim();
+    const allMaps = getAllPhenotypeMappings();
+    for (const map of allMaps) {
+        for (const [genotype, pheno] of Object.entries(map)) {
+            const normGeno = genotype.replace(/\s+/g, ' ').trim();
+            if (normGeno === normalized) {
+                return pheno;
+            }
+        }
+    }
+    return null;
+}
+
+function checkGenotypeChange(prefix) {
+    const info = document.getElementById(prefix + "InfoContainer");
+    const currentG = info ? info.getAttribute("data-short-genotype").replace(/\s+/g, ' ').trim() : null;
+    const originalG = appliedGenotypes[prefix] ? appliedGenotypes[prefix].replace(/\s+/g, ' ').trim() : null;
+    if (currentG && originalG && currentG !== originalG) {
+        const input = document.getElementById(prefix + "VarietyInput");
+        if (input) input.value = "";
+        // Clear overlay states
+        wildState[prefix] = null;
+        whiteState[prefix] = null;
+        bronzeState[prefix] = null;
+        const container = document.getElementById(prefix + "ImageContainer");
+        if (container) {
+            delete container.dataset.wildKey;
+            delete container.dataset.whiteKey;
+            delete container.dataset.bronzeKey;
+        }
+        // Set to new base phenotype
+        const newPheno = findPhenotypeForGenotype(currentG);
+        if (newPheno && input) {
+            input.value = newPheno;
+        }
+        // Re-detect and apply overlays based on new input
+        detectWildFromVariety(prefix);
+        detectWhiteFromVariety(prefix);
+        detectBronzeFromVariety(prefix);
+        applyWildToParent(prefix);
+        applyWhiteToParent(prefix);
+        applyBronzeToParent(prefix);
+        // Update applied to current
+        appliedGenotypes[prefix] = currentG;
+    }
+}
+
+// Hook updateSireGenotype (add to existing hooks)
+if (typeof updateSireGenotype === "function") {
+    const _updateSireGenotypeOrig = updateSireGenotype;
+    updateSireGenotype = function (...args) {
+        const res = _updateSireGenotypeOrig.apply(this, args);
+        setTimeout(() => checkGenotypeChange("sire"), 0);
+        return res;
+    };
+}
+
+// Hook updateDamGenotype (add to existing hooks)
+if (typeof updateDamGenotype === "function") {
+    const _updateDamGenotypeOrig = updateDamGenotype;
+    updateDamGenotype = function (...args) {
+        const res = _updateDamGenotypeOrig.apply(this, args);
+        setTimeout(() => checkGenotypeChange("dam"), 0);
+        return res;
+    };
+}
+
+// Hook applyVarietyToSire to record applied genotype
+if (typeof applyVarietyToSire === "function") {
+    const _applyVarietyToSireOrig = applyVarietyToSire;
+    applyVarietyToSire = function (...args) {
+        const res = _applyVarietyToSireOrig.apply(this, args);
+        setTimeout(() => {
+            const info = document.getElementById("sireInfoContainer");
+            if (info) appliedGenotypes.sire = info.getAttribute("data-short-genotype");
+        }, 0);
+        return res;
+    };
+}
+
+// Hook applyVarietyToDam to record applied genotype
+if (typeof applyVarietyToDam === "function") {
+    const _applyVarietyToDamOrig = applyVarietyToDam;
+    applyVarietyToDam = function (...args) {
+        const res = _applyVarietyToDamOrig.apply(this, args);
+        setTimeout(() => {
+            const info = document.getElementById("damInfoContainer");
+            if (info) appliedGenotypes.dam = info.getAttribute("data-short-genotype");
+        }, 0);
+        return res;
+    };
+}
+
+// Hook resetCalculator to clear appliedGenotypes
+if (typeof resetCalculator === "function") {
+    const _resetCalculatorOrig = resetCalculator;
+    resetCalculator = function (...args) {
+        const res = _resetCalculatorOrig.apply(this, args);
+        appliedGenotypes.sire = null;
+        appliedGenotypes.dam = null;
+        return res;
+    };
+}
 
 
 
