@@ -2868,8 +2868,76 @@ window.addEventListener("load", () => {
     console.log("[Auto-Reset] Sire & Dam variety inputs now auto-clear genotypes on empty/change (with wild bb fix)");
 })();
 
+///////////////////////////
+// MINIMAL TRANSFER PATCH: Fix regular varieties reverting to Broad Breasted Bronze
+// Only runs if not wild/white/BB (those are already protected)
+(function fixRegularTransferRevert() {
+  if (typeof window.transferOffspringToParent !== "function") return;
+  if (window._regularTransferFixed) return;
+  window._regularTransferFixed = true;
 
+  const original = window.transferOffspringToParent;
+  window.transferOffspringToParent = function(genotype, parent) {
+    const result = original.apply(this, arguments);
 
+    if (parent !== "sire" && parent !== "dam") return result;
+
+    const input = document.getElementById(parent + "VarietyInput");
+    if (!input) return result;
+
+    // Bail early if special variety already handled (wild/white/BB keys present)
+    const container = document.getElementById(parent + "ImageContainer");
+    if (container && (
+      container.dataset.wildKey ||
+      container.dataset.whiteKey ||
+      container.dataset.bbType
+    )) {
+      return result;
+    }
+
+    // Get the variety name that was just transferred (from the clicked offspring item)
+    // Adjust selector if your offspring items use different classes/IDs
+    const resultsContainerId = parent === "sire" ? "maleOffspringResults" : "femaleOffspringResults";
+    const nameSpans = document.querySelectorAll(`#${resultsContainerId} .variety-name`);
+    if (nameSpans.length === 0) return result;
+
+    // Use the last one (most recent/highlighted) or improve logic if needed
+    let rawName = nameSpans[nameSpans.length - 1].textContent.trim();
+
+    // Clean qualifiers that break lookup/apply
+    const cleanName = rawName
+      .replace(/\s*\(Split.*?\)/gi, '')
+      .replace(/\s*\(Semi-?Pencilled.*?\)/gi, '')
+      .replace(/\s*\(.*?\)/g, '')
+      .trim();
+
+    if (!cleanName) return result;
+
+    // Set it and re-apply (this should trigger your normal variety → genotype → image flow)
+    input.value = cleanName;
+
+    if (parent === "sire" && typeof window.applyVarietyToSire === "function") {
+      window.applyVarietyToSire();
+    }
+    if (parent === "dam" && typeof window.applyVarietyToDam === "function") {
+      window.applyVarietyToDam();
+    }
+
+    // Extra nudge: force genotype refresh after apply (helps with timing)
+    setTimeout(() => {
+      if (parent === "sire" && typeof updateSireGenotype === "function") {
+        updateSireGenotype();
+      }
+      if (parent === "dam" && typeof updateDamGenotype === "function") {
+        updateDamGenotype();
+      }
+    }, 80);
+
+    return result;
+  };
+
+  console.log("[Transfer Fix] Regular varieties now preserved on Continue as Sire/Dam");
+})();
 
 
 
