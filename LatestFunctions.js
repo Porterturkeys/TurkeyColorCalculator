@@ -2869,92 +2869,42 @@ window.addEventListener("load", () => {
 })();
 
 ///////////////////////////
-// FINAL AGGRESSIVE TRANSFER FIX - prevents Broad Breasted Bronze revert on regular varieties
-// Preserves original bb allele, forces full parent re-render, bypasses Bronze fallback
-(function ultimateTransferFix() {
+// TRICK: Make regular transfers pretend to be "Eastern Wild" temporarily to survive Bronze fallback
+(function forceRegularViaWildTrick() {
   if (typeof window.transferOffspringToParent !== "function") return;
-  if (window._ultimateTransferFixed) return;
-  window._ultimateTransferFixed = true;
+  if (window._wildTrickApplied) return;
+  window._wildTrickApplied = true;
 
-  const originalTransfer = window.transferOffspringToParent;
-
+  const orig = window.transferOffspringToParent;
   window.transferOffspringToParent = function(genotype, parent) {
-    // Run the original transfer first (sets alleles, calls updates, etc.)
-    const result = originalTransfer.apply(this, arguments);
+    const res = orig.apply(this, arguments);
 
-    if (parent !== "sire" && parent !== "dam") return result;
+    if (parent !== "sire" && parent !== "dam") return res;
 
     const container = document.getElementById(parent + "ImageContainer");
-    const input = document.getElementById(parent + "VarietyInput");
-    if (!container || !input) return result;
+    if (!container) return res;
 
-    // --------------------------------------------------------------------
-    // 1. Preserve original bb from the transferred genotype (critical!)
-    // --------------------------------------------------------------------
-    const bbSelect = document.getElementById(parent + "Alleleb");
-    if (bbSelect && genotype) {
-      // Extract bb part from genotype string (e.g. "Bb Ee nn" → "Bb")
-      const bbMatch = genotype.match(/\b[Bb]{2}\b/);
-      if (bbMatch) {
-        bbSelect.value = bbMatch[0];  // Restore exact original (BB, Bb, or bb)
-      }
+    // Skip if already wild/white/BB (don't mess with real specials)
+    if (container.dataset.wildKey || container.dataset.whiteKey || container.dataset.bbType) {
+      return res;
     }
 
-    // --------------------------------------------------------------------
-    // 2. Trick any Bronze fallback logic by briefly setting a non-empty placeholder
-    //    then clearing it — many calculators skip default Bronze if input isn't empty/blank
-    // --------------------------------------------------------------------
-    const originalInputValue = input.value;
-    input.value = "TRANSFERRED";  // temporary placeholder
-
-    // --------------------------------------------------------------------
-    // 3. Force multiple full re-renders with increasing delays
-    //    This beats almost all timing/race conditions in setGenotypeImage / updateGenotype
-    // --------------------------------------------------------------------
-    const forceReRender = () => {
-      if (parent === "sire") {
-        if (typeof updateSireGenotype === "function") updateSireGenotype();
-        if (typeof setGenotypeImage === "function") setGenotypeImage();  // if it exists
-      }
-      if (parent === "dam") {
-        if (typeof updateDamGenotype === "function") updateDamGenotype();
-        if (typeof setGenotypeImage === "function") setGenotypeImage();
-      }
-    };
-
-    // Immediate + staggered calls
-    forceReRender();
-    setTimeout(forceReRender, 0);
-    setTimeout(forceReRender, 50);
-    setTimeout(forceReRender, 150);
-    setTimeout(forceReRender, 300);
-
-    // --------------------------------------------------------------------
-    // 4. Re-apply any special wild/white/BB state that existed before transfer
-    // --------------------------------------------------------------------
-    if (container.dataset.wildKey && typeof forceApplyWild === "function") {
-      setTimeout(() => forceApplyWild(parent), 100);
-      setTimeout(() => forceApplyWild(parent), 250);
-    }
-    if (container.dataset.whiteKey && typeof forceApplyWhite === "function") {
-      setTimeout(() => forceApplyWhite(parent), 100);
-      setTimeout(() => forceApplyWhite(parent), 250);
-    }
-    if (container.dataset.bbType && typeof forceApply === "function") {
-      setTimeout(() => forceApply(parent), 100);
-      setTimeout(() => forceApply(parent), 250);
+    // Fake wild state to trigger the aggressive wild forceApply
+    container.dataset.wildKey = "eastern";
+    if (typeof forceApplyWild === "function") {
+      forceApplyWild(parent);
+      setTimeout(() => forceApplyWild(parent), 80);
+      setTimeout(() => forceApplyWild(parent), 200);
     }
 
-    // --------------------------------------------------------------------
-    // 5. Restore original input value (or leave blank to avoid stale data)
-    // --------------------------------------------------------------------
+    // Immediately after faking, clear the fake key so it doesn't stick
     setTimeout(() => {
-      input.value = originalInputValue || "";  // put back what was there, or blank
-    }, 400);
+      delete container.dataset.wildKey;
+      // Re-render again to let normal logic run (now hopefully without Bronze fallback)
+      if (parent === "sire" && typeof updateSireGenotype === "function") updateSireGenotype();
+      if (parent === "dam" && typeof updateDamGenotype === "function") updateDamGenotype();
+    }, 300);
 
-    return result;
+    return res;
   };
-
-  console.log("[Ultimate Transfer Fix] Installed — regular varieties should no longer revert to Broad Breasted Bronze");
 })();
-
