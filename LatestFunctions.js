@@ -2869,75 +2869,87 @@ window.addEventListener("load", () => {
 })();
 
 ///////////////////////////
-// MINIMAL TRANSFER PATCH: Fix regular varieties reverting to Broad Breasted Bronze
-// Only runs if not wild/white/BB (those are already protected)
-(function fixRegularTransferRevert() {
+// DIAGNOSTIC + STRONGER TRANSFER FIX for regular varieties
+// Logs key steps + forces re-apply with delays
+(function fixRegularTransferWithLogs() {
   if (typeof window.transferOffspringToParent !== "function") return;
-  if (window._regularTransferFixed) return;
-  window._regularTransferFixed = true;
+  if (window._regularTransferDiagnostic) return;
+  window._regularTransferDiagnostic = true;
 
   const original = window.transferOffspringToParent;
   window.transferOffspringToParent = function(genotype, parent) {
+    console.log(`[TRANSFER START] Parent: ${parent}, Genotype: ${genotype}`);
+
     const result = original.apply(this, arguments);
 
     if (parent !== "sire" && parent !== "dam") return result;
 
     const input = document.getElementById(parent + "VarietyInput");
-    if (!input) return result;
-
-    // Bail early if special variety already handled (wild/white/BB keys present)
     const container = document.getElementById(parent + "ImageContainer");
-    if (container && (
-      container.dataset.wildKey ||
-      container.dataset.whiteKey ||
-      container.dataset.bbType
-    )) {
+    if (!input || !container) {
+      console.log("[TRANSFER] Missing input or container");
       return result;
     }
 
-    // Get the variety name that was just transferred (from the clicked offspring item)
-    // Adjust selector if your offspring items use different classes/IDs
-    const resultsContainerId = parent === "sire" ? "maleOffspringResults" : "femaleOffspringResults";
-    const nameSpans = document.querySelectorAll(`#${resultsContainerId} .variety-name`);
-    if (nameSpans.length === 0) return result;
+    // Skip if special (wild/white/BB) already handled
+    if (container.dataset.wildKey || container.dataset.whiteKey || container.dataset.bbType) {
+      console.log("[TRANSFER] Skipped - special variety detected (wild/white/BB)");
+      return result;
+    }
 
-    // Use the last one (most recent/highlighted) or improve logic if needed
-    let rawName = nameSpans[nameSpans.length - 1].textContent.trim();
+    // Grab displayed name from the most recent offspring item
+    const resultsId = parent === "sire" ? "maleOffspringResults" : "femaleOffspringResults";
+    const nameSpans = document.querySelectorAll(`#${resultsId} .variety-name`);
+    let rawName = nameSpans.length > 0 ? nameSpans[nameSpans.length - 1].textContent.trim() : "";
+    console.log("[TRANSFER] Raw offspring variety name:", rawName);
 
-    // Clean qualifiers that break lookup/apply
     const cleanName = rawName
       .replace(/\s*\(Split.*?\)/gi, '')
       .replace(/\s*\(Semi-?Pencilled.*?\)/gi, '')
       .replace(/\s*\(.*?\)/g, '')
+      .replace(/\s+/g, ' ')
       .trim();
+    console.log("[TRANSFER] Cleaned name:", cleanName || "(empty after clean)");
 
-    if (!cleanName) return result;
+    if (cleanName) {
+      input.value = cleanName;
+      console.log("[TRANSFER] Set variety input to:", input.value);
 
-    // Set it and re-apply (this should trigger your normal variety → genotype → image flow)
-    input.value = cleanName;
-
-    if (parent === "sire" && typeof window.applyVarietyToSire === "function") {
-      window.applyVarietyToSire();
-    }
-    if (parent === "dam" && typeof window.applyVarietyToDam === "function") {
-      window.applyVarietyToDam();
-    }
-
-    // Extra nudge: force genotype refresh after apply (helps with timing)
-    setTimeout(() => {
-      if (parent === "sire" && typeof updateSireGenotype === "function") {
-        updateSireGenotype();
+      // Try immediate apply
+      if (parent === "sire" && typeof window.applyVarietyToSire === "function") {
+        console.log("[TRANSFER] Calling applyVarietyToSire()");
+        window.applyVarietyToSire();
       }
-      if (parent === "dam" && typeof updateDamGenotype === "function") {
-        updateDamGenotype();
+      if (parent === "dam" && typeof window.applyVarietyToDam === "function") {
+        console.log("[TRANSFER] Calling applyVarietyToDam()");
+        window.applyVarietyToDam();
       }
-    }, 80);
+
+      // Delayed forces to beat any async UI updates
+      setTimeout(() => {
+        console.log("[TRANSFER DELAY 100ms] Forcing genotype update");
+        if (parent === "sire" && typeof updateSireGenotype === "function") updateSireGenotype();
+        if (parent === "dam" && typeof updateDamGenotype === "function") updateDamGenotype();
+
+        // One more apply attempt in case first failed
+        if (parent === "sire" && typeof window.applyVarietyToSire === "function") window.applyVarietyToSire();
+        if (parent === "dam" && typeof window.applyVarietyToDam === "function") window.applyVarietyToDam();
+      }, 100);
+
+      setTimeout(() => {
+        console.log("[TRANSFER DELAY 300ms] Final check - bb value:", 
+          document.getElementById(parent + "Alleleb")?.value || "(not found)");
+        console.log("[TRANSFER DELAY 300ms] Variety input final:", input.value);
+      }, 300);
+    } else {
+      console.log("[TRANSFER] No usable name after cleaning - leaving input as-is");
+      input.value = "";  // prevent stale value
+    }
 
     return result;
   };
 
-  console.log("[Transfer Fix] Regular varieties now preserved on Continue as Sire/Dam");
+  console.log("[Diagnostic Transfer Fix] Installed - check console after transfer");
 })();
-
 
 
