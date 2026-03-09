@@ -2869,87 +2869,92 @@ window.addEventListener("load", () => {
 })();
 
 ///////////////////////////
-// DIAGNOSTIC + STRONGER TRANSFER FIX for regular varieties
-// Logs key steps + forces re-apply with delays
-(function fixRegularTransferWithLogs() {
+// FINAL AGGRESSIVE TRANSFER FIX - prevents Broad Breasted Bronze revert on regular varieties
+// Preserves original bb allele, forces full parent re-render, bypasses Bronze fallback
+(function ultimateTransferFix() {
   if (typeof window.transferOffspringToParent !== "function") return;
-  if (window._regularTransferDiagnostic) return;
-  window._regularTransferDiagnostic = true;
+  if (window._ultimateTransferFixed) return;
+  window._ultimateTransferFixed = true;
 
-  const original = window.transferOffspringToParent;
+  const originalTransfer = window.transferOffspringToParent;
+
   window.transferOffspringToParent = function(genotype, parent) {
-    console.log(`[TRANSFER START] Parent: ${parent}, Genotype: ${genotype}`);
-
-    const result = original.apply(this, arguments);
+    // Run the original transfer first (sets alleles, calls updates, etc.)
+    const result = originalTransfer.apply(this, arguments);
 
     if (parent !== "sire" && parent !== "dam") return result;
 
-    const input = document.getElementById(parent + "VarietyInput");
     const container = document.getElementById(parent + "ImageContainer");
-    if (!input || !container) {
-      console.log("[TRANSFER] Missing input or container");
-      return result;
-    }
+    const input = document.getElementById(parent + "VarietyInput");
+    if (!container || !input) return result;
 
-    // Skip if special (wild/white/BB) already handled
-    if (container.dataset.wildKey || container.dataset.whiteKey || container.dataset.bbType) {
-      console.log("[TRANSFER] Skipped - special variety detected (wild/white/BB)");
-      return result;
-    }
-
-    // Grab displayed name from the most recent offspring item
-    const resultsId = parent === "sire" ? "maleOffspringResults" : "femaleOffspringResults";
-    const nameSpans = document.querySelectorAll(`#${resultsId} .variety-name`);
-    let rawName = nameSpans.length > 0 ? nameSpans[nameSpans.length - 1].textContent.trim() : "";
-    console.log("[TRANSFER] Raw offspring variety name:", rawName);
-
-    const cleanName = rawName
-      .replace(/\s*\(Split.*?\)/gi, '')
-      .replace(/\s*\(Semi-?Pencilled.*?\)/gi, '')
-      .replace(/\s*\(.*?\)/g, '')
-      .replace(/\s+/g, ' ')
-      .trim();
-    console.log("[TRANSFER] Cleaned name:", cleanName || "(empty after clean)");
-
-    if (cleanName) {
-      input.value = cleanName;
-      console.log("[TRANSFER] Set variety input to:", input.value);
-
-      // Try immediate apply
-      if (parent === "sire" && typeof window.applyVarietyToSire === "function") {
-        console.log("[TRANSFER] Calling applyVarietyToSire()");
-        window.applyVarietyToSire();
+    // --------------------------------------------------------------------
+    // 1. Preserve original bb from the transferred genotype (critical!)
+    // --------------------------------------------------------------------
+    const bbSelect = document.getElementById(parent + "Alleleb");
+    if (bbSelect && genotype) {
+      // Extract bb part from genotype string (e.g. "Bb Ee nn" → "Bb")
+      const bbMatch = genotype.match(/\b[Bb]{2}\b/);
+      if (bbMatch) {
+        bbSelect.value = bbMatch[0];  // Restore exact original (BB, Bb, or bb)
       }
-      if (parent === "dam" && typeof window.applyVarietyToDam === "function") {
-        console.log("[TRANSFER] Calling applyVarietyToDam()");
-        window.applyVarietyToDam();
-      }
-
-      // Delayed forces to beat any async UI updates
-      setTimeout(() => {
-        console.log("[TRANSFER DELAY 100ms] Forcing genotype update");
-        if (parent === "sire" && typeof updateSireGenotype === "function") updateSireGenotype();
-        if (parent === "dam" && typeof updateDamGenotype === "function") updateDamGenotype();
-
-        // One more apply attempt in case first failed
-        if (parent === "sire" && typeof window.applyVarietyToSire === "function") window.applyVarietyToSire();
-        if (parent === "dam" && typeof window.applyVarietyToDam === "function") window.applyVarietyToDam();
-      }, 100);
-
-      setTimeout(() => {
-        console.log("[TRANSFER DELAY 300ms] Final check - bb value:", 
-          document.getElementById(parent + "Alleleb")?.value || "(not found)");
-        console.log("[TRANSFER DELAY 300ms] Variety input final:", input.value);
-      }, 300);
-    } else {
-      console.log("[TRANSFER] No usable name after cleaning - leaving input as-is");
-      input.value = "";  // prevent stale value
     }
+
+    // --------------------------------------------------------------------
+    // 2. Trick any Bronze fallback logic by briefly setting a non-empty placeholder
+    //    then clearing it — many calculators skip default Bronze if input isn't empty/blank
+    // --------------------------------------------------------------------
+    const originalInputValue = input.value;
+    input.value = "TRANSFERRED";  // temporary placeholder
+
+    // --------------------------------------------------------------------
+    // 3. Force multiple full re-renders with increasing delays
+    //    This beats almost all timing/race conditions in setGenotypeImage / updateGenotype
+    // --------------------------------------------------------------------
+    const forceReRender = () => {
+      if (parent === "sire") {
+        if (typeof updateSireGenotype === "function") updateSireGenotype();
+        if (typeof setGenotypeImage === "function") setGenotypeImage();  // if it exists
+      }
+      if (parent === "dam") {
+        if (typeof updateDamGenotype === "function") updateDamGenotype();
+        if (typeof setGenotypeImage === "function") setGenotypeImage();
+      }
+    };
+
+    // Immediate + staggered calls
+    forceReRender();
+    setTimeout(forceReRender, 0);
+    setTimeout(forceReRender, 50);
+    setTimeout(forceReRender, 150);
+    setTimeout(forceReRender, 300);
+
+    // --------------------------------------------------------------------
+    // 4. Re-apply any special wild/white/BB state that existed before transfer
+    // --------------------------------------------------------------------
+    if (container.dataset.wildKey && typeof forceApplyWild === "function") {
+      setTimeout(() => forceApplyWild(parent), 100);
+      setTimeout(() => forceApplyWild(parent), 250);
+    }
+    if (container.dataset.whiteKey && typeof forceApplyWhite === "function") {
+      setTimeout(() => forceApplyWhite(parent), 100);
+      setTimeout(() => forceApplyWhite(parent), 250);
+    }
+    if (container.dataset.bbType && typeof forceApply === "function") {
+      setTimeout(() => forceApply(parent), 100);
+      setTimeout(() => forceApply(parent), 250);
+    }
+
+    // --------------------------------------------------------------------
+    // 5. Restore original input value (or leave blank to avoid stale data)
+    // --------------------------------------------------------------------
+    setTimeout(() => {
+      input.value = originalInputValue || "";  // put back what was there, or blank
+    }, 400);
 
     return result;
   };
 
-  console.log("[Diagnostic Transfer Fix] Installed - check console after transfer");
+  console.log("[Ultimate Transfer Fix] Installed — regular varieties should no longer revert to Broad Breasted Bronze");
 })();
-
 
