@@ -1571,279 +1571,285 @@ document.addEventListener('click', function (event) {
 ////////////////////////////////
 
 // ===========================================
-// BROAD BREASTED BRONZE + WHITE OVERLAY (final - aggressive bb Cc override)
+// BROAD BREASTED BRONZE + WHITE OVERLAY (fixed for Bronze × White transfers)
 // ===========================================
 (function () {
-  'use strict';
-  const BRONZE = {
-    name: "Broad Breasted Bronze",
-    male: "MBroadBreastedBronze.jpg",
-    female: "FBroadBreastedBronze.jpg",
-    poult: "PBroadBreastedBronze.jpg"
-  };
-  const WHITE = {
-    name: "Broad Breasted White",
-    male: "MBroadBreastedWhite.jpg",
-    female: "FBroadBreastedWhite.jpg",
-    poult: "PBroadBreastedWhite.jpg"
-  };
-  const BRONZE_MAP = {
-    "broad breasted bronze": true,
-    "broad-breasted bronze": true,
-    "mammoth bronze": true,
-    "orlopp bronze": true,
-    "breasted bronze": true,
-    "bronze breasted": true,
-    "large bronze": true
-  };
-  const WHITE_MAP = {
-    "broad breasted white": true,
-    "broad-breasted white": true,
-    "giant white": true,
-    "commercial white": true,
-    "large white": true,
-    "broad white": true,
-    "breasted white": true
-  };
-  const state = { sire: null, dam: null }; // "bronze" or "white"
-
-  function norm(str) {
-    return (str || "").trim().toLowerCase();
-  }
-
-  function detectType(prefix) {
-    const input = document.getElementById(prefix + "VarietyInput");
-    const val = norm(input?.value);
-    let type = null;
-    if (BRONZE_MAP[val]) type = "bronze";
-    else if (WHITE_MAP[val]) type = "white";
-    state[prefix] = type;
-    const container = document.getElementById(prefix + "ImageContainer");
-    if (container) {
-      if (type) container.dataset.bbType = type;
-      else delete container.dataset.bbType;
-    }
-    return type;
-  }
-
-  function forceApply(prefix) {
-    const container = document.getElementById(prefix + "ImageContainer");
-    if (!container) return;
-    const type = state[prefix];
-    if (!type) return;
-    const data = type === "bronze" ? BRONZE : WHITE;
-
-    const bId = prefix === "sire" ? "sireAlleleb" : "damAlleleb";
-    const cId = prefix === "sire" ? "sireAlleleC" : "damAlleleC";
-    const bSel = document.getElementById(bId);
-    const cSel = document.getElementById(cId);
-
-    // Force bb always
-    if (bSel) bSel.value = "bb";
-
-    // Only force cc for explicit white
-    if (type === "white" && cSel && cSel.value !== "cc") cSel.value = "cc";
-
-    // Bronze: no C force - keep transferred Cc/CC
-
-    if (prefix === "sire" && typeof updateSireGenotype === "function") updateSireGenotype();
-    if (prefix === "dam" && typeof updateDamGenotype === "function") updateDamGenotype();
-
-    const img = container.querySelector("img");
-    if (img) img.src = "https://portersturkeys.github.io/Pictures/" + (prefix === "dam" ? data.female : data.male);
-
-    const strong = container.querySelector("strong");
-    if (strong) {
-      let span = strong.querySelector("span");
-      if (!span) {
-        span = document.createElement("span");
-        strong.innerHTML = '';
-        strong.appendChild(span);
-      }
-      span.textContent = data.name;
-    }
-
-    const info = document.getElementById(prefix + "InfoContainer");
-    if (info) {
-      info.querySelectorAll("span, div, strong").forEach(el => {
-        if (/bronze|white.*eyes|to be defined/i.test(el.textContent || "")) {
-          el.textContent = data.name;
-        }
-      });
-    }
-  }
-
-  function applyToOffspring() {
-    if (!state.sire || !state.dam) return;
-    function patchArray(arr) {
-      if (!Array.isArray(arr)) return;
-      arr.forEach(o => {
-        if (!o) return;
-        let name = BRONZE.name;
-        if (o.genotype && /\bcc\b/.test(o.genotype)) {
-          name = WHITE.name;
-        }
-        if (o.phenotype) {
-          o.phenotype = o.phenotype
-            .replace(/\bBronze\b/gi, name)
-            .replace(/\bWhite\b/gi, name)
-            .replace(/To Be Defined/gi, name);
-        }
-        const data = (name === WHITE.name) ? WHITE : BRONZE;
-        if (o.picturePath) {
-          const f = o.picturePath.split("/").pop()?.toLowerCase() || "";
-          if (f === "mbronze.jpg") o.picturePath = "https://portersturkeys.github.io/Pictures/" + data.male;
-          if (f === "fbronze.jpg") o.picturePath = "https://portersturkeys.github.io/Pictures/" + data.female;
-          if (f === "pbronze.jpg") o.picturePath = "https://portersturkeys.github.io/Pictures/" + data.poult;
-        }
-        if (o.poultImagePath) {
-          const f2 = o.poultImagePath.split("/").pop()?.toLowerCase() || "";
-          if (f2 === "pbronze.jpg") o.poultImagePath = "https://portersturkeys.github.io/Pictures/" + data.poult;
-        }
-      });
-    }
-    if (window.maleOffspring) patchArray(window.maleOffspring);
-    if (window.femaleOffspring) patchArray(window.femaleOffspring);
-    document.querySelectorAll("#maleOffspringResults li, #femaleOffspringResults li").forEach(li => {
-      let html = li.innerHTML;
-      const fullBronze = BRONZE.name;
-      const fullWhite = WHITE.name;
-      if (html.includes(fullBronze) || html.includes(fullWhite)) return;
-      html = html.replace(/\bBronze\b/gi, fullBronze)
-                 .replace(/\bWhite\b/gi, fullWhite)
-                 .replace(/To Be Defined/gi, fullBronze);
-      li.innerHTML = html.trim();
-    });
-    const summaryBody = document.querySelector("#summaryChart tbody");
-    if (summaryBody) {
-      summaryBody.querySelectorAll("tr").forEach(tr => {
-        const cell = tr.cells?.[1];
-        if (!cell) return;
-        let text = cell.textContent || "";
-        const fullBronze = BRONZE.name;
-        const fullWhite = WHITE.name;
-        if (text.includes(fullBronze) || text.includes(fullWhite)) return;
-        text = text.replace(/\bBronze\b/gi, fullBronze)
-                   .replace(/\bWhite\b/gi, fullWhite)
-                   .replace(/to be defined/gi, fullBronze);
-        cell.textContent = text.trim();
-      });
-    }
-    document.querySelectorAll("#maleOffspringResults img, #femaleOffspringResults img").forEach(img => {
-      const file = img.src.split("/").pop()?.toLowerCase() || "";
-      if (file === "mbronze.jpg") img.src = "https://portersturkeys.github.io/Pictures/" + BRONZE.male;
-      if (file === "fbronze.jpg") img.src = "https://portersturkeys.github.io/Pictures/" + BRONZE.female;
-      if (file === "pbronze.jpg") img.src = "https://portersturkeys.github.io/Pictures/" + BRONZE.poult;
-    });
-  }
-
-  function wrapVarietyFn(fnName, prefix) {
-    const orig = window[fnName];
-    if (typeof orig !== "function" || orig._bbWrapped) return;
-    window[fnName] = function (...args) {
-      const res = orig.apply(this, args);
-      if (detectType(prefix)) {
-        setTimeout(() => forceApply(prefix), 100);
-        setTimeout(() => forceApply(prefix), 400);
-      }
-      return res;
-    };
-    window[fnName]._bbWrapped = true;
-  }
-
-  window.addEventListener("load", () => {
-    wrapVarietyFn("applyVarietyToSire", "sire");
-    wrapVarietyFn("applyVarietyToDam", "dam");
-    if (typeof window.resetCalculator === "function") {
-      const orig = window.resetCalculator;
-      window.resetCalculator = function (...args) {
-        const res = orig.apply(this, args);
-        state.sire = state.dam = null;
-        ["sire", "dam"].forEach(p => {
-          const c = document.getElementById(p + "ImageContainer");
-          if (c) delete c.dataset.bbType;
-        });
-        return res;
-      };
-    }
-
-    // TRANSFER - final: clear state, prioritize genotype for bb Cc = bronze override
-    if (typeof window.transferOffspringToParent === "function" && !window._bbTransferPatchedUltimate) {
-      window._bbTransferPatchedUltimate = true;
-      const orig = window.transferOffspringToParent;
-      window.transferOffspringToParent = function (genotype, parent) {
-        const res = orig.apply(this, arguments);
-
-        if (parent !== "sire" && parent !== "dam") return res;
-
-        const varietyInput = document.getElementById(parent + "VarietyInput");
-        const container = document.getElementById(parent + "ImageContainer");
-        if (!varietyInput || !container) return res;
-
-        // Clear EVERYTHING first - no stale white state
-        state[parent] = null;
-        delete container.dataset.bbType;
-
-        // Clean name
-        let val = norm(varietyInput.value || "");
-        val = val.replace(/\s*\(.*?\)/g, '').replace(/\s+/g, ' ').trim().toLowerCase();
-
-        let type = null;
-
-        // Name match (strong priority)
-        if (BRONZE_MAP[val] || val.includes("bronze") || val.includes("broad breasted bronze")) {
-          type = "bronze";
-        } else if (WHITE_MAP[val] || val.includes("white") || val.includes("broad breasted white")) {
-          type = "white";
-        }
-
-        // Genotype check - if bb and no cc → bronze (overrides name if needed)
-        const geno = String(genotype || "").toLowerCase();
-        const hasCC = /\bcc\b/.test(geno);  // only cc = white
-        const hasBB = /\bbb\b/.test(geno);
-        if (hasBB) {
-          if (hasCC) {
-            type = "white";
-          } else {
-            type = "bronze";  // bb Cc or bb CC = bronze
-          }
-        }
-
-        if (type) {
-          state[parent] = type;
-          container.dataset.bbType = type;
-
-          setTimeout(() => forceApply(parent), 50);
-          setTimeout(() => forceApply(parent), 150);
-          setTimeout(() => forceApply(parent), 300);
-
-          const targetName = type === "white" ? WHITE.name : BRONZE.name;
-          if (!varietyInput.value.trim() || varietyInput.value.trim().toLowerCase().includes("to be defined")) {
-            varietyInput.value = targetName;
-          }
-        }
-
-        return res;
-      };
-    }
-
-    if (typeof window.calculateOffspringWrapper === "function" && !window._bbCalcPatched) {
-      window._bbCalcPatched = true;
-      const orig = window.calculateOffspringWrapper;
-      window.calculateOffspringWrapper = function (...args) {
-        const res = orig.apply(this, args);
-        setTimeout(() => {
-          ["sire", "dam"].forEach(prefix => {
-            if (state[prefix]) forceApply(prefix);
-          });
-          applyToOffspring();
-        }, 200);
-        return res;
-      };
-    }
-  });
+'use strict';
+const BRONZE = {
+name: "Broad Breasted Bronze",
+male: "MBroadBreastedBronze.jpg",
+female: "FBroadBreastedBronze.jpg",
+poult: "PBroadBreastedBronze.jpg"
+};
+const WHITE = {
+name: "Broad Breasted White",
+male: "MBroadBreastedWhite.jpg",
+female: "FBroadBreastedWhite.jpg",
+poult: "PBroadBreastedWhite.jpg"
+};
+const BRONZE_MAP = {
+"broad breasted bronze": true,
+"broad-breasted bronze": true,
+"mammoth bronze": true,
+"orlopp bronze": true,
+"breasted bronze": true,
+"bronze breasted": true,
+"large bronze": true
+};
+const WHITE_MAP = {
+"broad breasted white": true,
+"broad-breasted white": true,
+"giant white": true,
+"commercial white": true,
+"large white": true,
+"broad white": true,
+"breasted white": true
+};
+const state = { sire: null, dam: null }; // "bronze" or "white"
+function norm(str) {
+return (str || "").trim().toLowerCase();
+}
+function detectType(prefix) {
+const input = document.getElementById(prefix + "VarietyInput");
+const val = norm(input?.value);
+let type = null;
+if (BRONZE_MAP[val]) type = "bronze";
+else if (WHITE_MAP[val]) type = "white";
+state[prefix] = type;
+const container = document.getElementById(prefix + "ImageContainer");
+if (container) {
+if (type) container.dataset.bbType = type;
+else delete container.dataset.bbType;
+}
+return type;
+}
+function forceApply(prefix) {
+const container = document.getElementById(prefix + "ImageContainer");
+if (!container) return;
+const type = state[prefix];
+if (!type) return;
+const data = type === "bronze" ? BRONZE : WHITE;
+// Force alleles
+const bId = prefix === "sire" ? "sireAlleleb" : "damAlleleb";
+const cId = prefix === "sire" ? "sireAlleleC" : "damAlleleC";
+const bSel = document.getElementById(bId);
+const cSel = document.getElementById(cId);
+// Always force bb for both
+if (bSel && bSel.value !== "bb") bSel.value = "bb";
+// Bronze: do not force C - preserve transferred value (CC or Cc)
+// White: force cc
+if (type === "white" && cSel && cSel.value !== "cc") cSel.value = "cc";
+if (prefix === "sire" && typeof updateSireGenotype === "function") updateSireGenotype();
+if (prefix === "dam" && typeof updateDamGenotype === "function") updateDamGenotype();
+// Image
+const img = container.querySelector("img");
+if (img) img.src = "https://portersturkeys.github.io/Pictures/" + (prefix === "dam" ? data.female : data.male);
+// Name
+const strong = container.querySelector("strong");
+if (strong) {
+let span = strong.querySelector("span");
+if (!span) {
+span = document.createElement("span");
+strong.innerHTML = '';
+strong.appendChild(span);
+}
+span.textContent = data.name;
+}
+// Cleanup
+const info = document.getElementById(prefix + "InfoContainer");
+if (info) {
+info.querySelectorAll("span, div, strong").forEach(el => {
+if (/bronze|white.*eyes|to be defined/i.test(el.textContent || "")) {
+el.textContent = data.name;
+}
+});
+}
+// Do NOT force variety input here - let transfer or user keep the correct name
+}
+function applyToOffspring() {
+if (!state.sire || !state.dam) return;
+// Patch internal arrays - genotype decides name
+function patchArray(arr) {
+if (!Array.isArray(arr)) return;
+arr.forEach(o => {
+if (!o) return;
+let name = BRONZE.name;
+if (o.genotype && /\bcc\b/.test(o.genotype)) {
+name = WHITE.name;
+}
+if (o.phenotype) {
+o.phenotype = o.phenotype
+.replace(/\bBronze\b/gi, name)
+.replace(/\bWhite\b/gi, name)
+.replace(/To Be Defined/gi, name);
+}
+const data = (name === WHITE.name) ? WHITE : BRONZE;
+if (o.picturePath) {
+const f = o.picturePath.split("/").pop()?.toLowerCase() || "";
+if (f === "mbronze.jpg") o.picturePath = "https://portersturkeys.github.io/Pictures/" + data.male;
+if (f === "fbronze.jpg") o.picturePath = "https://portersturkeys.github.io/Pictures/" + data.female;
+if (f === "pbronze.jpg") o.picturePath = "https://portersturkeys.github.io/Pictures/" + data.poult;
+}
+if (o.poultImagePath) {
+const f2 = o.poultImagePath.split("/").pop()?.toLowerCase() || "";
+if (f2 === "pbronze.jpg") o.poultImagePath = "https://portersturkeys.github.io/Pictures/" + data.poult;
+}
+});
+}
+if (window.maleOffspring) patchArray(window.maleOffspring);
+if (window.femaleOffspring) patchArray(window.femaleOffspring);
+// Patch visible text
+document.querySelectorAll("#maleOffspringResults li, #femaleOffspringResults li").forEach(li => {
+let html = li.innerHTML;
+const fullBronze = BRONZE.name;
+const fullWhite = WHITE.name;
+if (html.includes(fullBronze) || html.includes(fullWhite)) return;
+html = html.replace(/\bBronze\b/gi, fullBronze)
+.replace(/\bWhite\b/gi, fullWhite)
+.replace(/To Be Defined/gi, fullBronze);
+li.innerHTML = html.trim();
+});
+// Patch summary chart
+const summaryBody = document.querySelector("#summaryChart tbody");
+if (summaryBody) {
+summaryBody.querySelectorAll("tr").forEach(tr => {
+const cell = tr.cells?.[1];
+if (!cell) return;
+let text = cell.textContent || "";
+const fullBronze = BRONZE.name;
+const fullWhite = WHITE.name;
+if (text.includes(fullBronze) || text.includes(fullWhite)) return;
+text = text.replace(/\bBronze\b/gi, fullBronze)
+.replace(/\bWhite\b/gi, fullWhite)
+.replace(/to be defined/gi, fullBronze);
+cell.textContent = text.trim();
+});
+}
+// Patch visible images
+document.querySelectorAll("#maleOffspringResults img, #femaleOffspringResults img").forEach(img => {
+const file = img.src.split("/").pop()?.toLowerCase() || "";
+if (file === "mbronze.jpg") img.src = "https://portersturkeys.github.io/Pictures/" + BRONZE.male;
+if (file === "fbronze.jpg") img.src = "https://portersturkeys.github.io/Pictures/" + BRONZE.female;
+if (file === "pbronze.jpg") img.src = "https://portersturkeys.github.io/Pictures/" + BRONZE.poult;
+});
+}
+function wrapVarietyFn(fnName, prefix) {
+const orig = window[fnName];
+if (typeof orig !== "function" || orig._bbWrapped) return;
+window[fnName] = function (...args) {
+const res = orig.apply(this, args);
+if (detectType(prefix)) {
+setTimeout(() => forceApply(prefix), 100);
+setTimeout(() => forceApply(prefix), 400);
+}
+return res;
+};
+window[fnName]._bbWrapped = true;
+}
+window.addEventListener("load", () => {
+wrapVarietyFn("applyVarietyToSire", "sire");
+wrapVarietyFn("applyVarietyToDam", "dam");
+if (typeof window.resetCalculator === "function") {
+const orig = window.resetCalculator;
+window.resetCalculator = function (...args) {
+const res = orig.apply(this, args);
+state.sire = state.dam = null;
+["sire", "dam"].forEach(p => {
+const c = document.getElementById(p + "ImageContainer");
+if (c) delete c.dataset.bbType;
+});
+return res;
+};
+}
+// TRANSFER - refined for Bronze/White: clear old state, precise genotype check
+if (typeof window.transferOffspringToParent === "function" && !window._bbTransferPatchedMixed) {
+window._bbTransferPatchedMixed = true;
+const orig = window.transferOffspringToParent;
+window.transferOffspringToParent = function (genotype, parent) {
+const res = orig.apply(this, arguments);
+if (parent !== "sire" && parent !== "dam") return res;
+const varietyInput = document.getElementById(parent + "VarietyInput");
+const container = document.getElementById(parent + "ImageContainer");
+if (!varietyInput || !container) return res;
+// Clear old state first - allows overriding White with Bronze offspring
+state[parent] = null;
+delete container.dataset.bbType;
+// Clean and normalize variety input value after transfer
+let val = norm(varietyInput.value || "");
+val = val
+.replace(/\s*$  .*?  $/g, '')
+.replace(/\s+/g, ' ')
+.trim()
+.toLowerCase();
+let type = null;
+// Forgiving name match
+if (
+BRONZE_MAP[val] ||
+val.includes("broad breasted bronze") ||
+val.includes("broad bronze") ||
+val.includes("mammoth bronze") ||
+val.includes("orlopp bronze") ||
+val.includes("large bronze")
+) {
+type = "bronze";
+} else if (
+WHITE_MAP[val] ||
+val.includes("broad breasted white") ||
+val.includes("broad white") ||
+val.includes("giant white") ||
+val.includes("large white") ||
+val.includes("commercial white")
+) {
+type = "white";
+}
+// Fallback: precise genotype check without lower (distinguish CC, Cc, cc)
+if (!type) {
+const geno = String(genotype || "");
+const hasCC = /\bCC\b/.test(geno);
+const hasCc = /\bCc\b/.test(geno);
+const hascc = /\bcc\b/.test(geno);
+const hasBB = /\bbb\b/.test(geno);
+if (hasBB) {
+if (hascc) type = "white";     // bb cc = white
+else if (hasCC || hasCc) type = "bronze";  // bb CC or bb Cc = bronze
+}
+}
+if (type) {
+state[parent] = type;
+container.dataset.bbType = type;
+// Force apply with staggered delays for UI timing
+setTimeout(() => forceApply(parent), 50);
+setTimeout(() => forceApply(parent), 150);
+setTimeout(() => forceApply(parent), 300);
+// Only set variety input if it's clearly wrong/blank
+const targetName = type === "white" ? WHITE.name : BRONZE.name;
+if (!varietyInput.value.trim() || varietyInput.value.trim().toLowerCase().includes("to be defined")) {
+varietyInput.value = targetName;
+}
+} else {
+// Not BB-related → ensure no stale forcing
+state[parent] = null;
+delete container.dataset.bbType;
+}
+return res;
+};
+}
+if (typeof window.calculateOffspringWrapper === "function" && !window._bbCalcPatched) {
+window._bbCalcPatched = true;
+const orig = window.calculateOffspringWrapper;
+window.calculateOffspringWrapper = function (...args) {
+const res = orig.apply(this, args);
+setTimeout(() => {
+["sire", "dam"].forEach(prefix => {
+if (state[prefix]) forceApply(prefix);
+});
+applyToOffspring();
+}, 200);
+return res;
+};
+}
+});
 })();
-
 
 // =====================================================
 // SUMMARY CHART / Dam (shows ONLY after calculate)
