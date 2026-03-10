@@ -1571,7 +1571,7 @@ document.addEventListener('click', function (event) {
 ////////////////////////////////
 
 // ===========================================
-// BROAD BREASTED BRONZE + WHITE OVERLAY (fixed Bronze × White transfer)
+// BROAD BREASTED BRONZE + WHITE OVERLAY (fixed White parent override on bb Cc transfer)
 // ===========================================
 (function () {
   'use strict';
@@ -1639,14 +1639,14 @@ document.addEventListener('click', function (event) {
     const bSel = document.getElementById(bId);
     const cSel = document.getElementById(cId);
 
-    // Always force bb for both
-    if (bSel && bSel.value !== "bb") bSel.value = "bb";
+    // Always force bb
+    if (bSel) bSel.value = "bb";
 
-    // White: force cc (recessive)
+    // White: force cc
     if (type === "white" && cSel && cSel.value !== "cc") cSel.value = "cc";
 
-    // Bronze: NO C force - preserve transferred CC or Cc
-    // (this prevents overriding bb Cc to bb cc)
+    // Bronze: NO C force - preserve Cc/CC from transfer
+    // (this is key: don't touch C for bronze so Cc stays Cc)
 
     if (prefix === "sire" && typeof updateSireGenotype === "function") updateSireGenotype();
     if (prefix === "dam" && typeof updateDamGenotype === "function") updateDamGenotype();
@@ -1772,9 +1772,9 @@ document.addEventListener('click', function (event) {
       };
     }
 
-    // TRANSFER - fixed for Bronze × White: clear old state, precise genotype check for bb Cc = bronze
-    if (typeof window.transferOffspringToParent === "function" && !window._bbTransferPatchedMixed) {
-      window._bbTransferPatchedMixed = true;
+    // TRANSFER - fixed for Bronze × White: clear old state, force bronze on bb Cc/CC
+    if (typeof window.transferOffspringToParent === "function" && !window._bbTransferPatchedFinal) {
+      window._bbTransferPatchedFinal = true;
       const orig = window.transferOffspringToParent;
       window.transferOffspringToParent = function (genotype, parent) {
         const res = orig.apply(this, arguments);
@@ -1785,51 +1785,31 @@ document.addEventListener('click', function (event) {
         const container = document.getElementById(parent + "ImageContainer");
         if (!varietyInput || !container) return res;
 
-        // Clear old state first - allows Bronze offspring to override White parent
+        // FORCE CLEAR OLD STATE FIRST - this allows Bronze to override White parent
         state[parent] = null;
         delete container.dataset.bbType;
 
-        // Clean and normalize variety input value after transfer
+        // Clean variety input
         let val = norm(varietyInput.value || "");
-        val = val
-          .replace(/\s*\(.*?\)/g, '')
-          .replace(/\s+/g, ' ')
-          .trim()
-          .toLowerCase();
+        val = val.replace(/\s*\(.*?\)/g, '').replace(/\s+/g, ' ').trim().toLowerCase();
 
         let type = null;
 
-        // Forgiving name match
-        if (
-          BRONZE_MAP[val] ||
-          val.includes("broad breasted bronze") ||
-          val.includes("broad bronze") ||
-          val.includes("mammoth bronze") ||
-          val.includes("orlopp bronze") ||
-          val.includes("large bronze")
-        ) {
+        // Name match priority
+        if (BRONZE_MAP[val] || val.includes("bronze") || val.includes("broad breasted bronze")) {
           type = "bronze";
-        } else if (
-          WHITE_MAP[val] ||
-          val.includes("broad breasted white") ||
-          val.includes("broad white") ||
-          val.includes("giant white") ||
-          val.includes("large white") ||
-          val.includes("commercial white")
-        ) {
+        } else if (WHITE_MAP[val] || val.includes("white") || val.includes("broad breasted white")) {
           type = "white";
         }
 
-        // Fallback: precise genotype check (bb Cc or bb CC = bronze, bb cc = white)
-        if (!type) {
-          const geno = String(genotype || "");
-          const hasCC = /\bCC\b/.test(geno);
-          const hasCc = /\bCc\b/.test(geno);
-          const hascc = /\bcc\b/.test(geno);
+        // Genotype fallback - only if name ambiguous/blank
+        if (!type && (!val || val.includes("to be defined") || val === "" || val.includes("bronze") || val.includes("white"))) {
+          const geno = String(genotype || "").toLowerCase();
+          const hasCC = /\bcc\b/.test(geno);  // recessive cc = white
           const hasBB = /\bbb\b/.test(geno);
           if (hasBB) {
-            if (hascc) type = "white";     // bb cc = white
-            else if (hasCC || hasCc) type = "bronze";  // bb CC or bb Cc = bronze
+            if (hasCC) type = "white";
+            else type = "bronze";  // bb Cc or bb CC = bronze
           }
         }
 
@@ -1837,7 +1817,6 @@ document.addEventListener('click', function (event) {
           state[parent] = type;
           container.dataset.bbType = type;
 
-          // Force apply with staggered delays
           setTimeout(() => forceApply(parent), 50);
           setTimeout(() => forceApply(parent), 150);
           setTimeout(() => forceApply(parent), 300);
@@ -1846,9 +1825,6 @@ document.addEventListener('click', function (event) {
           if (!varietyInput.value.trim() || varietyInput.value.trim().toLowerCase().includes("to be defined")) {
             varietyInput.value = targetName;
           }
-        } else {
-          state[parent] = null;
-          delete container.dataset.bbType;
         }
 
         return res;
