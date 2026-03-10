@@ -1572,7 +1572,7 @@ document.addEventListener('click', function (event) {
 
 
 // ===========================================
-// BROAD BREASTED BRONZE + WHITE OVERLAY (forces override on bb Cc transfer)
+// BROAD BREASTED BRONZE + WHITE OVERLAY (fixed: no forced white on bb Cc)
 // ===========================================
 (function () {
   'use strict';
@@ -1719,7 +1719,7 @@ document.addEventListener('click', function (event) {
                  .replace(/To Be Defined/gi, fullBronze);
       li.innerHTML = html.trim();
     });
-    const summaryBody = document.getElementById("summaryChart")?.querySelector("tbody");
+    const summaryBody = document.querySelector("#summaryChart tbody");
     if (summaryBody) {
       summaryBody.querySelectorAll("tr").forEach(tr => {
         const cell = tr.cells?.[1];
@@ -1772,7 +1772,7 @@ document.addEventListener('click', function (event) {
       };
     }
 
-    // TRANSFER - aggressive override for bb Cc Bronze to replace White parent
+    // TRANSFER - aggressive: clear state first, genotype priority for bb Cc = bronze
     if (typeof window.transferOffspringToParent === "function" && !window._bbTransferPatchedFinal) {
       window._bbTransferPatchedFinal = true;
       const orig = window.transferOffspringToParent;
@@ -1785,7 +1785,7 @@ document.addEventListener('click', function (event) {
         const container = document.getElementById(parent + "ImageContainer");
         if (!varietyInput || !container) return res;
 
-        // AGGRESSIVELY CLEAR OLD STATE FIRST - this forces override on White parent
+        // Clear old state FIRST - this allows override of White
         state[parent] = null;
         delete container.dataset.bbType;
 
@@ -1795,21 +1795,23 @@ document.addEventListener('click', function (event) {
 
         let type = null;
 
-        // Name match priority
+        // Name match priority (stronger than before)
         if (BRONZE_MAP[val] || val.includes("bronze") || val.includes("broad breasted bronze")) {
           type = "bronze";
         } else if (WHITE_MAP[val] || val.includes("white") || val.includes("broad breasted white")) {
           type = "white";
         }
 
-        // Genotype override - always check this for bb Cc/CC = bronze
+        // Genotype priority - always check for bb Cc/CC = bronze
         const geno = String(genotype || "").toLowerCase();
         const hasCC = /\bcc\b/.test(geno);  // recessive cc = white
         const hasBB = /\bbb\b/.test(geno);
-        if (hasBB && !hasCC) {
-          type = "bronze";  // bb without cc = bronze (Cc or CC)
-        } else if (hasBB && hasCC) {
-          type = "white";  // bb cc = white
+        if (hasBB) {
+          if (hasCC) {
+            type = "white";
+          } else {
+            type = "bronze";  // bb without cc = bronze (Cc or CC)
+          }
         }
 
         if (type) {
