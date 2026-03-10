@@ -1777,7 +1777,7 @@ delete container.dataset.bbType;
 // Clean and normalize variety input value after transfer
 let val = norm(varietyInput.value || "");
 val = val
-.replace(/\s*$  .*?  $/g, '')
+.replace(/\s*\(.*?\)\s*/g, '')
 .replace(/\s+/g, ' ')
 .trim()
 .toLowerCase();
@@ -1805,15 +1805,12 @@ type = "white";
 // Fallback: precise genotype check without lower (distinguish CC, Cc, cc)
 if (!type) {
     
-const geno = (" " + genotype + " ").toLowerCase();
+const geno = String(genotype || "").split(/\s+/);
 
-if (geno.includes(" bb ")) {
-    if (geno.includes(" cc ")) {
-        type = "white"; // bb cc
-    } else if (geno.includes(" cc ") === false) {
-        type = "bronze"; // bb CC or bb Cc
-    }
+const hasbb = geno.includes("bb");
+const hascc = geno.includes("cc");
 
+if (hasbb) type = hascc ? "white" : "bronze";
 
     
 if (type) {
