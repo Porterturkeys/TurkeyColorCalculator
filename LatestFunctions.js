@@ -1804,16 +1804,18 @@ type = "white";
 }
 // Fallback: precise genotype check without lower (distinguish CC, Cc, cc)
 if (!type) {
-const geno = String(genotype || "");
-const hasCC = /\bCC\b/.test(geno);
-const hasCc = /\bCc\b/.test(geno);
-const hascc = /\bcc\b/.test(geno);
-const hasBB = /\bbb\b/.test(geno);
-if (hasBB) {
-if (hascc) type = "white";     // bb cc = white
-else if (hasCC || hasCc) type = "bronze";  // bb CC or bb Cc = bronze
+    
+const geno = (" " + genotype + " ").toLowerCase();
+
+if (geno.includes(" bb ")) {
+    if (geno.includes(" cc ")) {
+        type = "white"; // bb cc
+    } else if (geno.includes(" cc ") === false) {
+        type = "bronze"; // bb CC or bb Cc
+    }
 }
-}
+
+    
 if (type) {
 state[parent] = type;
 container.dataset.bbType = type;
