@@ -1570,7 +1570,6 @@ document.addEventListener('click', function (event) {
 })();
 ////////////////////////////////
 
-
 // ===========================================
 // BROAD BREASTED BRONZE + WHITE OVERLAY (fixed: no forced white on bb Cc)
 // ===========================================
