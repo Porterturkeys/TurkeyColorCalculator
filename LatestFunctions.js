@@ -1568,9 +1568,10 @@ document.addEventListener('click', function (event) {
     }
   });
 })();
+////////////////////////////////
 
 // ===========================================
-// BROAD BREASTED BRONZE + WHITE OVERLAY (fixed transfer - only apply when name matches)
+// BROAD BREASTED BRONZE + WHITE OVERLAY (forgiving transfer - name + genotype fallback)
 // ===========================================
 (function () {
   'use strict';
@@ -1764,9 +1765,9 @@ document.addEventListener('click', function (event) {
       };
     }
 
-    // TRANSFER - only apply BB Bronze / White if the variety name actually matches
-    if (typeof window.transferOffspringToParent === "function" && !window._bbTransferPatchedSafe) {
-      window._bbTransferPatchedSafe = true;
+    // TRANSFER - safe + forgiving: apply BB Bronze/White only if name or genotype indicates it
+    if (typeof window.transferOffspringToParent === "function" && !window._bbTransferPatchedSafeV2) {
+      window._bbTransferPatchedSafeV2 = true;
       const orig = window.transferOffspringToParent;
       window.transferOffspringToParent = function (genotype, parent) {
         const res = orig.apply(this, arguments);
@@ -1777,21 +1778,62 @@ document.addEventListener('click', function (event) {
         const container = document.getElementById(parent + "ImageContainer");
         if (!varietyInput || !container) return res;
 
-        // Check what the variety input was set to after the original transfer
-        const val = norm(varietyInput.value);
+        // Clean and normalize variety input value after transfer
+        let val = norm(varietyInput.value || "");
+        val = val
+          .replace(/\s*\(.*?\)/g, '')              // remove (Split …), (Semi-Pencilled …), etc.
+          .replace(/\s+/g, ' ')                    // normalize spaces
+          .trim()
+          .toLowerCase();
 
         let type = null;
-        if (BRONZE_MAP[val]) type = "bronze";
-        else if (WHITE_MAP[val]) type = "white";
+
+        // Forgiving name match (partial + exact)
+        if (
+          BRONZE_MAP[val] ||
+          val.includes("broad breasted bronze") ||
+          val.includes("broad bronze") ||
+          val.includes("mammoth bronze") ||
+          val.includes("orlopp bronze") ||
+          val.includes("large bronze")
+        ) {
+          type = "bronze";
+        } else if (
+          WHITE_MAP[val] ||
+          val.includes("broad breasted white") ||
+          val.includes("broad white") ||
+          val.includes("giant white") ||
+          val.includes("large white") ||
+          val.includes("commercial white")
+        ) {
+          type = "white";
+        }
+
+        // Fallback: if name didn't match clearly, use genotype clues (safe for BB crosses)
+        if (!type) {
+          const hasCC = String(genotype || "").includes("cc");
+          const hasBB = String(genotype || "").includes("bb") || 
+                        document.getElementById(parent + "Alleleb")?.value === "bb";
+          if (hasCC) type = "white";
+          else if (hasBB) type = "bronze";
+        }
 
         if (type) {
           state[parent] = type;
           container.dataset.bbType = type;
+
+          // Force apply with staggered delays for UI timing
           setTimeout(() => forceApply(parent), 50);
+          setTimeout(() => forceApply(parent), 150);
           setTimeout(() => forceApply(parent), 300);
-          // Do NOT overwrite varietyInput.value here - let it keep the correct name
+
+          // Only set variety input if it's clearly wrong/blank (prevents overwriting good names)
+          const targetName = type === "white" ? WHITE.name : BRONZE.name;
+          if (!varietyInput.value.trim() || varietyInput.value.trim().toLowerCase().includes("to be defined")) {
+            varietyInput.value = targetName;
+          }
         } else {
-          // Not a BB Bronze/White variety → clean up state
+          // Not BB-related → ensure no stale forcing
           state[parent] = null;
           delete container.dataset.bbType;
         }
@@ -1816,8 +1858,6 @@ document.addEventListener('click', function (event) {
     }
   });
 })();
-
-
 
 // =====================================================
 // SUMMARY CHART / Dam (shows ONLY after calculate)
