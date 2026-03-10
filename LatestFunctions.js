@@ -1765,82 +1765,108 @@ document.addEventListener('click', function (event) {
       };
     }
 
-    // TRANSFER - safe + forgiving: apply BB Bronze/White only if name or genotype indicates it
-    if (typeof window.transferOffspringToParent === "function" && !window._bbTransferPatchedSafeV2) {
-      window._bbTransferPatchedSafeV2 = true;
-      const orig = window.transferOffspringToParent;
-      window.transferOffspringToParent = function (genotype, parent) {
-        const res = orig.apply(this, arguments);
+    // TRANSFER - refined for mixed crosses: prioritize name, skip fallback if regular variety detected
+if (typeof window.transferOffspringToParent === "function" && !window._bbTransferPatchedSafeV3) {
+  window._bbTransferPatchedSafeV3 = true;
+  const orig = window.transferOffspringToParent;
+  window.transferOffspringToParent = function (genotype, parent) {
+    const res = orig.apply(this, arguments);
 
-        if (parent !== "sire" && parent !== "dam") return res;
+    if (parent !== "sire" && parent !== "dam") return res;
 
-        const varietyInput = document.getElementById(parent + "VarietyInput");
-        const container = document.getElementById(parent + "ImageContainer");
-        if (!varietyInput || !container) return res;
+    const varietyInput = document.getElementById(parent + "VarietyInput");
+    const container = document.getElementById(parent + "ImageContainer");
+    if (!varietyInput || !container) return res;
 
-        // Clean and normalize variety input value after transfer
-        let val = norm(varietyInput.value || "");
-        val = val
-          .replace(/\s*\(.*?\)/g, '')              // remove (Split …), (Semi-Pencilled …), etc.
-          .replace(/\s+/g, ' ')                    // normalize spaces
-          .trim()
-          .toLowerCase();
+    // Clean and normalize variety input value after transfer
+    let val = norm(varietyInput.value || "");
+    val = val
+      .replace(/\s*\(.*?\)/g, '')              // remove (Split …), (Semi-Pencilled …), etc.
+      .replace(/\s+/g, ' ')                    // normalize spaces
+      .trim()
+      .toLowerCase();
 
-        let type = null;
+    let type = null;
 
-        // Forgiving name match (partial + exact)
-        if (
-          BRONZE_MAP[val] ||
-          val.includes("broad breasted bronze") ||
-          val.includes("broad bronze") ||
-          val.includes("mammoth bronze") ||
-          val.includes("orlopp bronze") ||
-          val.includes("large bronze")
-        ) {
-          type = "bronze";
-        } else if (
-          WHITE_MAP[val] ||
-          val.includes("broad breasted white") ||
-          val.includes("broad white") ||
-          val.includes("giant white") ||
-          val.includes("large white") ||
-          val.includes("commercial white")
-        ) {
-          type = "white";
-        }
+    // Regular variety exclude list (add more if needed for your varieties)
+    const regularExcludes = [
+      "narragansett", "slate", "bourbon red", "chocolate", "black", "royal palm", "sweetgrass", "fall fire", "blue palm",
+      "red", "white", "lilac", "lavender", "mottled", "calico", "regal red" // add any others that shouldn't trigger BB
+    ];
 
-        // Fallback: if name didn't match clearly, use genotype clues (safe for BB crosses)
-        if (!type) {
-          const hasCC = String(genotype || "").includes("cc");
-          const hasBB = String(genotype || "").includes("bb") || 
-                        document.getElementById(parent + "Alleleb")?.value === "bb";
-          if (hasCC) type = "white";
-          else if (hasBB) type = "bronze";
-        }
-
-        if (type) {
-          state[parent] = type;
-          container.dataset.bbType = type;
-
-          // Force apply with staggered delays for UI timing
-          setTimeout(() => forceApply(parent), 50);
-          setTimeout(() => forceApply(parent), 150);
-          setTimeout(() => forceApply(parent), 300);
-
-          // Only set variety input if it's clearly wrong/blank (prevents overwriting good names)
-          const targetName = type === "white" ? WHITE.name : BRONZE.name;
-          if (!varietyInput.value.trim() || varietyInput.value.trim().toLowerCase().includes("to be defined")) {
-            varietyInput.value = targetName;
-          }
-        } else {
-          // Not BB-related → ensure no stale forcing
-          state[parent] = null;
-          delete container.dataset.bbType;
-        }
-
-        return res;
-      };
+    // Check if name looks like regular variety → skip BB forcing entirely
+    let isRegular = false;
+    for (const exclude of regularExcludes) {
+      if (val.includes(exclude)) {
+        isRegular = true;
+        break;
+      }
     }
+
+    if (isRegular) {
+      // Regular detected → clean up and bail (let normal rendering handle it)
+      state[parent] = null;
+      delete container.dataset.bbType;
+      return res;
+    }
+
+    // Forgiving name match for BB (partial + exact)
+    if (
+      BRONZE_MAP[val] ||
+      val.includes("broad breasted bronze") ||
+      val.includes("broad bronze") ||
+      val.includes("mammoth bronze") ||
+      val.includes("orlopp bronze") ||
+      val.includes("large bronze") ||
+      val === "bronze"  // catch generic "Bronze"
+    ) {
+      type = "bronze";
+    } else if (
+      WHITE_MAP[val] ||
+      val.includes("broad breasted white") ||
+      val.includes("broad white") ||
+      val.includes("giant white") ||
+      val.includes("large white") ||
+      val.includes("commercial white") ||
+      val === "white"  // catch generic "White"
+    ) {
+      type = "white";
+    }
+
+    // Limited fallback: only if name is blank/ambiguous AND genotype suggests BB
+    if (!type && (!val || val.includes("to be defined") || val.includes("bronze") || val.includes("white"))) {
+      const hasCC = String(genotype || "").includes("cc");
+      const hasBB = String(genotype || "").includes("bb") || 
+                    document.getElementById(parent + "Alleleb")?.value === "bb";
+      if (hasCC) type = "white";
+      else if (hasBB) type = "bronze";
+    }
+
+    if (type) {
+      state[parent] = type;
+      container.dataset.bbType = type;
+
+      // Force apply with staggered delays
+      setTimeout(() => forceApply(parent), 50);
+      setTimeout(() => forceApply(parent), 150);
+      setTimeout(() => forceApply(parent), 300);
+
+      // Only set variety input if blank/ambiguous (prevents overwriting regulars)
+      const targetName = type === "white" ? WHITE.name : BRONZE.name;
+      if (!varietyInput.value.trim() || varietyInput.value.trim().toLowerCase().includes("to be defined")) {
+        varietyInput.value = targetName;
+      }
+    } else {
+      // Not BB-related → ensure no stale forcing
+      state[parent] = null;
+      delete container.dataset.bbType;
+    }
+
+    return res;
+  };
+}
+
+      
 
     if (typeof window.calculateOffspringWrapper === "function" && !window._bbCalcPatched) {
       window._bbCalcPatched = true;
@@ -1856,6 +1882,8 @@ document.addEventListener('click', function (event) {
         return res;
       };
     }
+
+      
   });
 })();
 
