@@ -1813,7 +1813,7 @@ if (geno.includes(" bb ")) {
     } else if (geno.includes(" cc ") === false) {
         type = "bronze"; // bb CC or bb Cc
     }
-}
+
 
     
 if (type) {
