@@ -1777,7 +1777,7 @@ delete container.dataset.bbType;
 // Clean and normalize variety input value after transfer
 let val = norm(varietyInput.value || "");
 val = val
-.replace(/\s*\(.*?\)\s*/g, '')
+.replace(/\s*$  .*?  $/g, '')
 .replace(/\s+/g, ' ')
 .trim()
 .toLowerCase();
@@ -1804,22 +1804,16 @@ type = "white";
 }
 // Fallback: precise genotype check without lower (distinguish CC, Cc, cc)
 if (!type) {
-    
-const geno = " " + String(genotype || "") + " ";
-
-const hasBB = geno.includes(" bb ");
-const hasCC = geno.includes(" CC ");
-const hasCc = geno.includes(" Cc ");
-const hascc = geno.includes(" cc ");
-
-}
-}
-
+const geno = String(genotype || "");
+const hasCC = /\bCC\b/.test(geno);
+const hasCc = /\bCc\b/.test(geno);
+const hascc = /\bcc\b/.test(geno);
+const hasBB = /\bbb\b/.test(geno);
 if (hasBB) {
-    if (hascc) type = "white";        // bb cc
-    else if (hasCC || hasCc) type = "bronze"; // bb CC or bb Cc
+if (hascc) type = "white";     // bb cc = white
+else if (hasCC || hasCc) type = "bronze";  // bb CC or bb Cc = bronze
 }
-    
+}
 if (type) {
 state[parent] = type;
 container.dataset.bbType = type;
