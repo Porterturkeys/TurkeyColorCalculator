@@ -1805,13 +1805,20 @@ type = "white";
 // Fallback: precise genotype check without lower (distinguish CC, Cc, cc)
 if (!type) {
     
-const geno = String(genotype || "").split(/\s+/);
+const geno = " " + String(genotype || "") + " ";
 
-const hasbb = geno.includes("bb");
-const hascc = geno.includes("cc");
+const hasBB = geno.includes(" bb ");
+const hasCC = geno.includes(" CC ");
+const hasCc = geno.includes(" Cc ");
+const hascc = geno.includes(" cc ");
 
-if (hasbb) type = hascc ? "white" : "bronze";
+}
+}
 
+if (hasBB) {
+    if (hascc) type = "white";        // bb cc
+    else if (hasCC || hasCc) type = "bronze"; // bb CC or bb Cc
+}
     
 if (type) {
 state[parent] = type;
