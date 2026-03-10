@@ -1571,7 +1571,7 @@ document.addEventListener('click', function (event) {
 ////////////////////////////////
 
 // ===========================================
-// BROAD BREASTED BRONZE + WHITE OVERLAY (fixed: no forced white on bb Cc)
+// BROAD BREASTED BRONZE + WHITE OVERLAY (final - aggressive bb Cc override)
 // ===========================================
 (function () {
   'use strict';
@@ -1633,28 +1633,25 @@ document.addEventListener('click', function (event) {
     if (!type) return;
     const data = type === "bronze" ? BRONZE : WHITE;
 
-    // Force alleles
     const bId = prefix === "sire" ? "sireAlleleb" : "damAlleleb";
     const cId = prefix === "sire" ? "sireAlleleC" : "damAlleleC";
     const bSel = document.getElementById(bId);
     const cSel = document.getElementById(cId);
 
-    // Always force bb
+    // Force bb always
     if (bSel) bSel.value = "bb";
 
-    // White: force cc
+    // Only force cc for explicit white
     if (type === "white" && cSel && cSel.value !== "cc") cSel.value = "cc";
 
-    // Bronze: NO C force - preserve Cc/CC from transfer
+    // Bronze: no C force - keep transferred Cc/CC
 
     if (prefix === "sire" && typeof updateSireGenotype === "function") updateSireGenotype();
     if (prefix === "dam" && typeof updateDamGenotype === "function") updateDamGenotype();
 
-    // Image
     const img = container.querySelector("img");
     if (img) img.src = "https://portersturkeys.github.io/Pictures/" + (prefix === "dam" ? data.female : data.male);
 
-    // Name
     const strong = container.querySelector("strong");
     if (strong) {
       let span = strong.querySelector("span");
@@ -1666,7 +1663,6 @@ document.addEventListener('click', function (event) {
       span.textContent = data.name;
     }
 
-    // Cleanup
     const info = document.getElementById(prefix + "InfoContainer");
     if (info) {
       info.querySelectorAll("span, div, strong").forEach(el => {
@@ -1771,9 +1767,9 @@ document.addEventListener('click', function (event) {
       };
     }
 
-    // TRANSFER - aggressive: clear state first, genotype priority for bb Cc = bronze
-    if (typeof window.transferOffspringToParent === "function" && !window._bbTransferPatchedFinal) {
-      window._bbTransferPatchedFinal = true;
+    // TRANSFER - final: clear state, prioritize genotype for bb Cc = bronze override
+    if (typeof window.transferOffspringToParent === "function" && !window._bbTransferPatchedUltimate) {
+      window._bbTransferPatchedUltimate = true;
       const orig = window.transferOffspringToParent;
       window.transferOffspringToParent = function (genotype, parent) {
         const res = orig.apply(this, arguments);
@@ -1784,32 +1780,32 @@ document.addEventListener('click', function (event) {
         const container = document.getElementById(parent + "ImageContainer");
         if (!varietyInput || !container) return res;
 
-        // Clear old state FIRST - this allows override of White
+        // Clear EVERYTHING first - no stale white state
         state[parent] = null;
         delete container.dataset.bbType;
 
-        // Clean variety input
+        // Clean name
         let val = norm(varietyInput.value || "");
         val = val.replace(/\s*\(.*?\)/g, '').replace(/\s+/g, ' ').trim().toLowerCase();
 
         let type = null;
 
-        // Name match priority (stronger than before)
+        // Name match (strong priority)
         if (BRONZE_MAP[val] || val.includes("bronze") || val.includes("broad breasted bronze")) {
           type = "bronze";
         } else if (WHITE_MAP[val] || val.includes("white") || val.includes("broad breasted white")) {
           type = "white";
         }
 
-        // Genotype priority - always check for bb Cc/CC = bronze
+        // Genotype check - if bb and no cc → bronze (overrides name if needed)
         const geno = String(genotype || "").toLowerCase();
-        const hasCC = /\bcc\b/.test(geno);  // recessive cc = white
+        const hasCC = /\bcc\b/.test(geno);  // only cc = white
         const hasBB = /\bbb\b/.test(geno);
         if (hasBB) {
           if (hasCC) {
             type = "white";
           } else {
-            type = "bronze";  // bb without cc = bronze (Cc or CC)
+            type = "bronze";  // bb Cc or bb CC = bronze
           }
         }
 
