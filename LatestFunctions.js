@@ -1570,8 +1570,9 @@ document.addEventListener('click', function (event) {
 })();
 ////////////////////////////////
 
+
 // ===========================================
-// BROAD BREASTED BRONZE + WHITE OVERLAY (fixed White parent override on bb Cc transfer)
+// BROAD BREASTED BRONZE + WHITE OVERLAY (forces override on bb Cc transfer)
 // ===========================================
 (function () {
   'use strict';
@@ -1646,7 +1647,6 @@ document.addEventListener('click', function (event) {
     if (type === "white" && cSel && cSel.value !== "cc") cSel.value = "cc";
 
     // Bronze: NO C force - preserve Cc/CC from transfer
-    // (this is key: don't touch C for bronze so Cc stays Cc)
 
     if (prefix === "sire" && typeof updateSireGenotype === "function") updateSireGenotype();
     if (prefix === "dam" && typeof updateDamGenotype === "function") updateDamGenotype();
@@ -1719,7 +1719,7 @@ document.addEventListener('click', function (event) {
                  .replace(/To Be Defined/gi, fullBronze);
       li.innerHTML = html.trim();
     });
-    const summaryBody = document.querySelector("#summaryChart tbody");
+    const summaryBody = document.getElementById("summaryChart")?.querySelector("tbody");
     if (summaryBody) {
       summaryBody.querySelectorAll("tr").forEach(tr => {
         const cell = tr.cells?.[1];
@@ -1772,7 +1772,7 @@ document.addEventListener('click', function (event) {
       };
     }
 
-    // TRANSFER - fixed for Bronze × White: clear old state, force bronze on bb Cc/CC
+    // TRANSFER - aggressive override for bb Cc Bronze to replace White parent
     if (typeof window.transferOffspringToParent === "function" && !window._bbTransferPatchedFinal) {
       window._bbTransferPatchedFinal = true;
       const orig = window.transferOffspringToParent;
@@ -1785,7 +1785,7 @@ document.addEventListener('click', function (event) {
         const container = document.getElementById(parent + "ImageContainer");
         if (!varietyInput || !container) return res;
 
-        // FORCE CLEAR OLD STATE FIRST - this allows Bronze to override White parent
+        // AGGRESSIVELY CLEAR OLD STATE FIRST - this forces override on White parent
         state[parent] = null;
         delete container.dataset.bbType;
 
@@ -1802,15 +1802,14 @@ document.addEventListener('click', function (event) {
           type = "white";
         }
 
-        // Genotype fallback - only if name ambiguous/blank
-        if (!type && (!val || val.includes("to be defined") || val === "" || val.includes("bronze") || val.includes("white"))) {
-          const geno = String(genotype || "").toLowerCase();
-          const hasCC = /\bcc\b/.test(geno);  // recessive cc = white
-          const hasBB = /\bbb\b/.test(geno);
-          if (hasBB) {
-            if (hasCC) type = "white";
-            else type = "bronze";  // bb Cc or bb CC = bronze
-          }
+        // Genotype override - always check this for bb Cc/CC = bronze
+        const geno = String(genotype || "").toLowerCase();
+        const hasCC = /\bcc\b/.test(geno);  // recessive cc = white
+        const hasBB = /\bbb\b/.test(geno);
+        if (hasBB && !hasCC) {
+          type = "bronze";  // bb without cc = bronze (Cc or CC)
+        } else if (hasBB && hasCC) {
+          type = "white";  // bb cc = white
         }
 
         if (type) {
@@ -1847,6 +1846,7 @@ document.addEventListener('click', function (event) {
     }
   });
 })();
+
 
 // =====================================================
 // SUMMARY CHART / Dam (shows ONLY after calculate)
