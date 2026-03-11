@@ -1188,30 +1188,58 @@ document.addEventListener('click', function (event) {
         playSound('imageToggleSound');
     }
 });
+/////////////////////////////////
 
-
-
-
-////////////////////////////////////////
 // ===========================================
-// WHITE VARIANTS OVERLAY – FIXED for transfer of heterozygous C birds
+// WHITE VARIANTS OVERLAY – FIXED transfer + eye suffix removal (full version)
 // ===========================================
 (function () {
   'use strict';
 
   const WHITE_VARIANTS = {
-    beltsville: { name: "Beltsville Small White", male: "MBeltsvilleSmallWhite.jpg", female: "FBeltsvilleSmallWhite.jpg", poult: "PBeltsvilleSmallWhite.jpg" },
-    midget:     { name: "Midget White",           male: "MMidgetWhite.jpg",           female: "FMidgetWhite.jpg",           poult: "PMidgetWhite.jpg" },
-    holland:    { name: "White Holland",          male: "MWhiteHolland.jpg",          female: "FWhiteHolland.jpg",          poult: "PWhiteHolland.jpg" },
-    broad:      { name: "Broad Breasted White",   male: "MBroadBreastedWhite.jpg",    female: "FBroadBreastedWhite.jpg",    poult: "PBroadBreastedWhite.jpg" }
+    beltsville: {
+      name: "Beltsville Small White",
+      male: "MBeltsvilleSmallWhite.jpg",
+      female: "FBeltsvilleSmallWhite.jpg",
+      poult: "PBeltsvilleSmallWhite.jpg"
+    },
+    midget: {
+      name: "Midget White",
+      male: "MMidgetWhite.jpg",
+      female: "FMidgetWhite.jpg",
+      poult: "PMidgetWhite.jpg"
+    },
+    holland: {
+      name: "White Holland",
+      male: "MWhiteHolland.jpg",
+      female: "FWhiteHolland.jpg",
+      poult: "PWhiteHolland.jpg"
+    },
+    broad: {
+      name: "Broad Breasted White",
+      male: "MBroadBreastedWhite.jpg",
+      female: "FBroadBreastedWhite.jpg",
+      poult: "PBroadBreastedWhite.jpg"
+    }
   };
 
   const WHITE_VARIETY_MAP = {
-    "beltsville small white": "beltsville", "beltsville white": "beltsville", "white beltsville": "beltsville",
-    "midget white": "midget", "midget": "midget", "white midget": "midget",
-    "white holland": "holland", "holland white": "holland", "holland": "holland",
-    "broad breasted white": "broad", "broad-breasted white": "broad", "large white": "broad",
-    "commercial white": "broad", "giant white": "broad", "broad white": "broad", "breasted white": "broad"
+    "beltsville small white": "beltsville",
+    "beltsville white": "beltsville",
+    "white beltsville": "beltsville",
+    "midget white": "midget",
+    "midget": "midget",
+    "white midget": "midget",
+    "white holland": "holland",
+    "holland white": "holland",
+    "holland": "holland",
+    "broad breasted white": "broad",
+    "broad-breasted white": "broad",
+    "large white": "broad",
+    "commercial white": "broad",
+    "giant white": "broad",
+    "broad white": "broad",
+    "breasted white": "broad"
   };
 
   const whiteState = { sire: null, dam: null };
@@ -1246,19 +1274,17 @@ document.addEventListener('click', function (event) {
     const data = WHITE_VARIANTS[key];
     if (!data) return;
 
-    // Force bb and cc — but only if still appropriate
-    const bId   = prefix === "sire" ? "sireAlleleb"   : "damAlleleb";
-    const cId   = prefix === "sire" ? "sireAlleleC"   : "damAlleleC";
-    const bSel  = document.getElementById(bId);
-    const cSel  = document.getElementById(cId);
+    // Alleles
+    const bId = prefix === "sire" ? "sireAlleleb" : "damAlleleb";
+    const cId = prefix === "sire" ? "sireAlleleC" : "damAlleleC";
+    const bSel = document.getElementById(bId);
+    const cSel = document.getElementById(cId);
 
     let changed = false;
     if (bSel && bSel.value !== "bb") {
       bSel.value = "bb";
       changed = true;
     }
-    // Only force cc if we believe this should still be white
-    // (this is the critical change — prevents overwriting Cc → cc after transfer)
     if (cSel && cSel.value !== "cc" && whiteState[prefix]) {
       cSel.value = "cc";
       changed = true;
@@ -1268,17 +1294,25 @@ document.addEventListener('click', function (event) {
       (prefix === "sire" ? window.updateSireGenotype : window.updateDamGenotype)?.();
     }
 
-    // Image + name + cleanup (unchanged)
+    // Image
     const img = container.querySelector("img");
-    if (img) img.src = "https://portersturkeys.github.io/Pictures/" + (prefix === "dam" ? data.female : data.male);
+    if (img) {
+      img.src = "https://portersturkeys.github.io/Pictures/" + (prefix === "dam" ? data.female : data.male);
+    }
 
+    // Name
     const strong = container.querySelector("strong");
     if (strong) {
       let span = strong.querySelector("span");
-      if (!span) { span = document.createElement("span"); strong.innerHTML = ''; strong.appendChild(span); }
+      if (!span) {
+        span = document.createElement("span");
+        strong.innerHTML = '';
+        strong.appendChild(span);
+      }
       span.textContent = data.name;
     }
 
+    // Cleanup
     const info = document.getElementById(prefix + "InfoContainer");
     if (info) {
       info.querySelectorAll("span, div, strong").forEach(el => {
@@ -1289,53 +1323,9 @@ document.addEventListener('click', function (event) {
     }
   }
 
-  // ──────────────────────────────────────────────
-  // Most important fix: make transfer genotype-aware
-  // ──────────────────────────────────────────────
-  if (typeof window.transferOffspringToParent === "function" && !window._whiteTransferPatchedGenotypeAware) {
-    window._whiteTransferPatchedGenotypeAware = true;
-    const origTransfer = window.transferOffspringToParent;
-
-    window.transferOffspringToParent = function(genotype, parent) {
-      const res = origTransfer.apply(this, arguments);
-
-      if (parent !== "sire" && parent !== "dam") return res;
-
-      const container = document.getElementById(parent + "ImageContainer");
-      if (!container) return res;
-
-      // Step 1: decide based on ACTUAL transferred genotype
-      const shouldBeWhite = isWhiteGenotype(genotype);
-
-      if (shouldBeWhite) {
-        // Keep / restore white state
-        const key = whiteState[parent] || container.dataset.whiteKey;
-        if (key) {
-          container.dataset.whiteKey = key;
-          setTimeout(() => forceApplyWhite(parent), 80);
-          setTimeout(() => forceApplyWhite(parent), 300);
-        }
-      } else {
-        // Transferred bird is NOT white (e.g. bb Cc → Bronze phenotype)
-        // → Explicitly CLEAR white state so we don't re-force cc / white name/image
-        whiteState[parent] = null;
-        delete container.dataset.whiteKey;
-
-        // Optional: trigger a general UI refresh if the calculator has such a function
-        // window.updateParentDisplay?.(parent);   // if exists
-      }
-
-      return res;
-    };
-  }
-
-  // The rest of your original functions remain mostly unchanged
-  // (applyWhiteToParent, applyWhiteToOffspring, observers, wrappers, etc.)
-
   function applyWhiteToParent(prefix) {
-    // Add safety check: only apply if still white genotype
     const cSel = document.getElementById(prefix + "AlleleC");
-    if (cSel && cSel.value !== "cc") return; // ← prevents forcing white on Cc/C C birds
+    if (cSel && cSel.value !== "cc") return; // Safety: don't force on non-cc birds
 
     const container = document.getElementById(prefix + "ImageContainer");
     if (!container) return;
@@ -1344,35 +1334,241 @@ document.addEventListener('click', function (event) {
     forceApplyWhite(prefix);
   }
 
-  // … keep your existing applyWhiteToOffspring, installWhiteOffspringObserver, wrapVarietyFn, etc. …
+  function applyWhiteToOffspring() {
+    const sireKey = whiteState.sire;
+    const damKey = whiteState.dam;
+    if (!sireKey || !damKey || sireKey !== damKey) return;
+    const data = WHITE_VARIANTS[sireKey];
+    if (!data) return;
+    const displayName = data.name;
+
+    // 1. Patch visible text (lists + summary)
+    document.querySelectorAll("#maleOffspringResults li, #femaleOffspringResults li").forEach(li => {
+      let html = li.innerHTML;
+      if (!html || (html.includes(displayName) && !/eyes/i.test(html))) return;
+
+      html = html.replace(/\bWhite\b(?=\s*\()/gi, displayName)
+                 .replace(/\bBronze\b/gi, displayName)
+                 .replace(/To Be Defined/gi, displayName);
+
+      // Remove eye color suffixes
+      const eyePatterns = [
+        /\s*\(Dark Brown Eyes\)/gi,
+        /\s*Dark Brown Eyes/gi,
+        /\s*\(Light Brown Eyes\)/gi,
+        /\s*Light Brown Eyes/gi,
+        /\s*\(Blue Eyes\)/gi,
+        /\s*Blue Eyes/gi,
+        /\s*\(Dark-Brown Eyes\)/gi,
+        /\s*Dark-Brown Eyes/gi,
+        /\s*\(eyes\)/gi,
+        /\s*eyes/gi
+      ];
+      eyePatterns.forEach(regex => { html = html.replace(regex, ''); });
+
+      html = html.replace(/\s*[,;]\s*$/, '').trim();
+      li.innerHTML = html;
+    });
+
+    const summaryBody = document.querySelector("#summaryChart tbody");
+    if (summaryBody) {
+      summaryBody.querySelectorAll("tr").forEach(tr => {
+        const cell = tr.cells?.[1];
+        if (!cell) return;
+        let text = cell.textContent || "";
+        if (text.includes(displayName) && !/eyes/i.test(text)) return;
+
+        text = text.replace(/\bWhite\b(?=\s*\()/gi, displayName)
+                   .replace(/\bBronze\b/gi, displayName)
+                   .replace(/to be defined/gi, displayName);
+
+        const eyePatterns = [
+          /\s*\(Dark Brown Eyes\)/gi,
+          /\s*Dark Brown Eyes/gi,
+          /\s*\(Light Brown Eyes\)/gi,
+          /\s*Light Brown Eyes/gi,
+          /\s*\(Blue Eyes\)/gi,
+          /\s*Blue Eyes/gi,
+          /\s*\(Dark-Brown Eyes\)/gi,
+          /\s*Dark-Brown Eyes/gi,
+          /\s*\(eyes\)/gi,
+          /\s*eyes/gi
+        ];
+        eyePatterns.forEach(regex => { text = text.replace(regex, ''); });
+
+        text = text.replace(/\s*[,;]\s*$/, '').trim();
+        cell.textContent = text;
+      });
+    }
+
+    // 2. Patch internal arrays phenotypes (for sorting/export consistency)
+    function cleanPhenotype(arr) {
+      if (!Array.isArray(arr)) return;
+      arr.forEach(o => {
+        if (o?.phenotype) {
+          let p = o.phenotype;
+          p = p.replace(/\bWhite\b(?=\s*\()/gi, displayName)
+               .replace(/To Be Defined/gi, displayName);
+
+          const eyePatterns = [
+            /\s*\(Dark Brown Eyes\)/gi, /\s*Dark Brown Eyes/gi,
+            /\s*\(Light Brown Eyes\)/gi, /\s*Light Brown Eyes/gi,
+            /\s*\(Blue Eyes\)/gi, /\s*Blue Eyes/gi,
+            /\s*\(Dark-Brown Eyes\)/gi, /\s*Dark-Brown Eyes/gi,
+            /\s*\(eyes\)/gi, /\s*eyes/gi
+          ];
+          eyePatterns.forEach(r => { p = p.replace(r, ''); });
+
+          p = p.replace(/\s*[,;]\s*$/, '').trim();
+          o.phenotype = p;
+        }
+      });
+    }
+
+    if (window.maleOffspring) cleanPhenotype(window.maleOffspring);
+    if (window.femaleOffspring) cleanPhenotype(window.femaleOffspring);
+
+    // 3. Original image patching (restored)
+    function patchWhiteOffspringArray(arr) {
+      if (!Array.isArray(arr)) return;
+      arr.forEach(o => {
+        if (!o) return;
+        if (o.picturePath) {
+          const file = o.picturePath.split("/").pop()?.toLowerCase() || "";
+          if (/^mwhite/.test(file)) o.picturePath = "https://portersturkeys.github.io/Pictures/" + data.male;
+          if (/^fwhite/.test(file)) o.picturePath = "https://portersturkeys.github.io/Pictures/" + data.female;
+          if (/^pwhite/.test(file)) o.picturePath = "https://portersturkeys.github.io/Pictures/" + data.poult;
+        }
+        if (o.poultImagePath) {
+          const file2 = o.poultImagePath.split("/").pop()?.toLowerCase() || "";
+          if (/^pwhite/.test(file2)) o.poultImagePath = "https://portersturkeys.github.io/Pictures/" + data.poult;
+        }
+      });
+    }
+
+    if (window.maleOffspring) patchWhiteOffspringArray(window.maleOffspring);
+    if (window.femaleOffspring) patchWhiteOffspringArray(window.femaleOffspring);
+
+    // Visible images in DOM
+    document.querySelectorAll("#maleOffspringResults img, #femaleOffspringResults img").forEach(img => {
+      const file = img.src.split("/").pop()?.toLowerCase() || "";
+      if (/^mwhite/.test(file)) img.src = "https://portersturkeys.github.io/Pictures/" + data.male;
+      if (/^fwhite/.test(file)) img.src = "https://portersturkeys.github.io/Pictures/" + data.female;
+      if (/^pwhite/.test(file)) img.src = "https://portersturkeys.github.io/Pictures/" + data.poult;
+    });
+  }
+
+  function installWhiteOffspringObserver() {
+    let patching = false;
+    const targets = [
+      document.getElementById("maleOffspringResults"),
+      document.getElementById("femaleOffspringResults"),
+      document.getElementById("summaryChart")
+    ].filter(Boolean);
+    targets.forEach(target => {
+      if (!target) return;
+      const obs = new MutationObserver(() => {
+        if (patching) return;
+        patching = true;
+        setTimeout(() => {
+          applyWhiteToOffspring();
+          patching = false;
+        }, 0);
+      });
+      obs.observe(target, { childList: true, subtree: true });
+    });
+  }
+
+  function wrapVarietyFn(fnName, prefix) {
+    const original = window[fnName];
+    if (typeof original !== "function") return;
+    window[fnName] = function () {
+      const res = original.apply(this, arguments);
+      const key = detectWhiteFromVariety(prefix);
+      if (key) {
+        setTimeout(() => applyWhiteToParent(prefix), 0);
+      } else {
+        const container = document.getElementById(prefix + "ImageContainer");
+        if (container) delete container.dataset.whiteKey;
+        whiteState[prefix] = null;
+      }
+      return res;
+    };
+  }
+
+  // Transfer patch (genotype-aware)
+  if (typeof window.transferOffspringToParent === "function" && !window._whiteTransferPatchedGenotypeAware) {
+    window._whiteTransferPatchedGenotypeAware = true;
+    const origTransfer = window.transferOffspringToParent;
+    window.transferOffspringToParent = function(genotype, parent) {
+      const res = origTransfer.apply(this, arguments);
+      if (parent !== "sire" && parent !== "dam") return res;
+
+      const container = document.getElementById(parent + "ImageContainer");
+      if (!container) return res;
+
+      const shouldBeWhite = isWhiteGenotype(genotype);
+
+      if (shouldBeWhite) {
+        const key = whiteState[parent] || container.dataset.whiteKey;
+        if (key) {
+          container.dataset.whiteKey = key;
+          setTimeout(() => forceApplyWhite(parent), 80);
+          setTimeout(() => forceApplyWhite(parent), 300);
+        }
+      } else {
+        whiteState[parent] = null;
+        delete container.dataset.whiteKey;
+      }
+
+      return res;
+    };
+  }
 
   window.addEventListener("load", () => {
     wrapVarietyFn("applyVarietyToSire", "sire");
     wrapVarietyFn("applyVarietyToDam", "dam");
 
-    // Your existing resetCalculator, observers, handleDropdownChange, calculateOffspringWrapper patches…
-
-    // Optional: add one more safety hook after calculation
-    if (typeof window.calculateOffspringWrapper === "function" && !window._whiteCalcPatchedV2) {
-      window._whiteCalcPatchedV2 = true;
-      const orig = window.calculateOffspringWrapper;
-      window.calculateOffspringWrapper = function() {
-        const res = orig.apply(this, arguments);
-        setTimeout(() => {
-          ["sire", "dam"].forEach(prefix => {
-            const cSel = document.getElementById(prefix + "AlleleC");
-            if (cSel?.value === "cc" && whiteState[prefix]) {
-              applyWhiteToParent(prefix);
-            }
-          });
-          applyWhiteToOffspring();
-        }, 120);
-        return res;
+    if (typeof window.resetCalculator === "function") {
+      const originalReset = window.resetCalculator;
+      window.resetCalculator = function(initial) {
+        const result = originalReset.apply(this, arguments);
+        whiteState.sire = null;
+        whiteState.dam = null;
+        ["sire", "dam"].forEach(prefix => {
+          const container = document.getElementById(prefix + "ImageContainer");
+          if (container) delete container.dataset.whiteKey;
+        });
+        return result;
       };
     }
+
+    installWhiteOffspringObserver();
+
+    // Re-insert your other patches here if you have them, e.g.:
+
+    // if (typeof window.handleDropdownChange === "function" && !window._whiteFavoritesPatched) {
+    //   // ... your original handleDropdownChange patch ...
+    // }
+
+    // if (typeof window.calculateOffspringWrapper === "function" && !window._whiteCalcPatched) {
+    //   const origCalc = window.calculateOffspringWrapper;
+    //   window.calculateOffspringWrapper = function() {
+    //     const res = origCalc.apply(this, arguments);
+    //     setTimeout(() => {
+    //       ["sire", "dam"].forEach(prefix => {
+    //         if (whiteState[prefix]) applyWhiteToParent(prefix);
+    //       });
+    //       applyWhiteToOffspring();
+    //     }, 100);
+    //     return res;
+    //   };
+    //   window._whiteCalcPatched = true;
+    // }
   });
 })();
-////////////////////////////////
+
+
 
 // ===========================================
 // BROAD BREASTED BRONZE + WHITE OVERLAY (fixed for Bronze × White transfers)
