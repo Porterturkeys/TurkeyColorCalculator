@@ -1191,9 +1191,7 @@ document.addEventListener('click', function (event) {
 /////////////////////////////////
 
 // ===========================================
-// WHITE VARIANTS OVERLAY – FINAL EYE NOTE FIX
-// ONLY added aggressive eye note removal in applyWhiteToOffspring
-// Everything else is your exact original working version
+// WHITE VARIANTS OVERLAY – YOUR ORIGINAL + ONLY EYE NOTE & IMAGE FIX
 // ===========================================
 (function () {
   'use strict';
@@ -1237,7 +1235,6 @@ document.addEventListener('click', function (event) {
     if (!key) return;
     const data = WHITE_VARIANTS[key];
     if (!data) return;
-    // Force bb and cc — but only if still appropriate
     const bId = prefix === "sire" ? "sireAlleleb" : "damAlleleb";
     const cId = prefix === "sire" ? "sireAlleleC" : "damAlleleC";
     const bSel = document.getElementById(bId);
@@ -1247,7 +1244,6 @@ document.addEventListener('click', function (event) {
       bSel.value = "bb";
       changed = true;
     }
-    // Only force cc if we believe this should still be white
     if (cSel && cSel.value !== "cc" && whiteState[prefix]) {
       cSel.value = "cc";
       changed = true;
@@ -1255,7 +1251,6 @@ document.addEventListener('click', function (event) {
     if (changed) {
       (prefix === "sire" ? window.updateSireGenotype : window.updateDamGenotype)?.();
     }
-    // Image + name + cleanup (unchanged)
     const img = container.querySelector("img");
     if (img) img.src = "https://portersturkeys.github.io/Pictures/" + (prefix === "dam" ? data.female : data.male);
     const strong = container.querySelector("strong");
@@ -1273,9 +1268,6 @@ document.addEventListener('click', function (event) {
       });
     }
   }
-  // ──────────────────────────────────────────────
-  // Most important fix: make transfer genotype-aware
-  // ──────────────────────────────────────────────
   if (typeof window.transferOffspringToParent === "function" && !window._whiteTransferPatchedGenotypeAware) {
     window._whiteTransferPatchedGenotypeAware = true;
     const origTransfer = window.transferOffspringToParent;
@@ -1323,12 +1315,9 @@ document.addEventListener('click', function (event) {
       const patterns = [
         /\s*\(?\s*Dark\s*Brown\s*Eyes\s*\)?/gi,
         /\s*Dark\s*Brown\s*Eyes/gi,
-        /\s*\(?\s*Light\s*Brown\s*Eyes\s*\)?/gi,
-        /\s*Light\s*Brown\s*Eyes/gi,
-        /\s*\(?\s*Blue\s*Eyes\s*\)?/gi,
-        /\s*Blue\s*Eyes/gi,
-        /\s*\(?\s*Dark-Brown\s*Eyes\s*\)?/gi,
-        /\s*Dark-Brown\s*Eyes/gi,
+        /\s*\(?\s*Dark\s*Brown\s*Eyes\s*\)?/gi,
+        /\s*Dark\s*Brown\s*Eyes\s*,?/gi,
+        /\s*,\s*Dark\s*Brown\s*Eyes/gi,
         /\s*\(?\s*eyes\s*\)?/gi,
         /\s*eyes/gi
       ];
@@ -1340,12 +1329,9 @@ document.addEventListener('click', function (event) {
     document.querySelectorAll("#maleOffspringResults li, #femaleOffspringResults li").forEach(li => {
       let html = li.innerHTML;
       if (!html) return;
-      // Replace placeholders
-      if (html.includes(displayName)) return;
       html = html.replace(/\bWhite\b(?=\s*\()/gi, displayName)
                  .replace(/\bBronze\b/gi, displayName)
                  .replace(/To Be Defined/gi, displayName);
-      // Strip eye notes
       html = stripEyeNotes(html);
       li.innerHTML = html.trim();
     });
@@ -1357,7 +1343,6 @@ document.addEventListener('click', function (event) {
         const phenoCell = tr.cells?.[1];
         if (!phenoCell) return;
         let text = phenoCell.textContent || "";
-        if (text.includes(displayName)) return;
         text = text.replace(/\bWhite\b(?=\s*\()/gi, displayName)
                    .replace(/\bBronze\b/gi, displayName)
                    .replace(/to be defined/gi, displayName);
@@ -1373,13 +1358,21 @@ document.addEventListener('click', function (event) {
         if (!o) return;
         if (o.picturePath) {
           const file = o.picturePath.split("/").pop()?.toLowerCase();
-          if (/^mwhite/.test(file)) o.picturePath = "https://portersturkeys.github.io/Pictures/" + data.male;
-          if (/^fwhite/.test(file)) o.picturePath = "https://portersturkeys.github.io/Pictures/" + data.female;
-          if (/^pwhite/.test(file)) o.picturePath = "https://portersturkeys.github.io/Pictures/" + data.poult;
+          if (/^mwhite/.test(file) || file.includes("darkbrowneyes")) {
+            o.picturePath = "https://portersturkeys.github.io/Pictures/" + data.male;
+          }
+          if (/^fwhite/.test(file) || file.includes("darkbrowneyes")) {
+            o.picturePath = "https://portersturkeys.github.io/Pictures/" + data.female;
+          }
+          if (/^pwhite/.test(file) || file.includes("darkbrowneyes")) {
+            o.picturePath = "https://portersturkeys.github.io/Pictures/" + data.poult;
+          }
         }
         if (o.poultImagePath) {
           const file2 = o.poultImagePath.split("/").pop()?.toLowerCase();
-          if (/^pwhite/.test(file2)) o.poultImagePath = "https://portersturkeys.github.io/Pictures/" + data.poult;
+          if (/^pwhite/.test(file2) || file2.includes("darkbrowneyes")) {
+            o.poultImagePath = "https://portersturkeys.github.io/Pictures/" + data.poult;
+          }
         }
       });
     }
@@ -1388,9 +1381,9 @@ document.addEventListener('click', function (event) {
 
     document.querySelectorAll("#maleOffspringResults img, #femaleOffspringResults img").forEach(img => {
       const file = img.src.split("/").pop()?.toLowerCase();
-      if (/^mwhite/.test(file)) img.src = "https://portersturkeys.github.io/Pictures/" + data.male;
-      if (/^fwhite/.test(file)) img.src = "https://portersturkeys.github.io/Pictures/" + data.female;
-      if (/^pwhite/.test(file)) img.src = "https://portersturkeys.github.io/Pictures/" + data.poult;
+      if (/^mwhite/.test(file) || file.includes("darkbrowneyes")) img.src = "https://portersturkeys.github.io/Pictures/" + data.male;
+      if (/^fwhite/.test(file) || file.includes("darkbrowneyes")) img.src = "https://portersturkeys.github.io/Pictures/" + data.female;
+      if (/^pwhite/.test(file) || file.includes("darkbrowneyes")) img.src = "https://portersturkeys.github.io/Pictures/" + data.poult;
     });
   }
   function installWhiteOffspringObserver() {
@@ -1429,7 +1422,6 @@ document.addEventListener('click', function (event) {
       return res;
     };
   }
-  // TRANSFER - genotype-aware (unchanged)
   if (typeof window.transferOffspringToParent === "function" && !window._whiteTransferPatchedGenotypeAware) {
     window._whiteTransferPatchedGenotypeAware = true;
     const origTransfer = window.transferOffspringToParent;
@@ -1491,6 +1483,8 @@ document.addEventListener('click', function (event) {
     }
   });
 })();
+
+
 
 // ===========================================
 // BROAD BREASTED BRONZE + WHITE OVERLAY (fixed for Bronze × White transfers)
