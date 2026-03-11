@@ -1191,10 +1191,12 @@ document.addEventListener('click', function (event) {
 /////////////////////////////////
 
 // ===========================================
-// WHITE VARIANTS OVERLAY – COMPLETE VERSION
-// - Genotype-aware transfer fix
-// - Removes "(Dark Brown Eyes)" / eye suffixes from white offspring
-// - Forces bb cc offspring to Broad Breasted White name/image even if parents are Bronze
+// WHITE VARIANTS OVERLAY – FULL & FIXED (no missing parts)
+// - bb cc offspring → Broad Breasted White (no eye note)
+// - bb Cc / bb CC → preserved as Bronze
+// - Correct BB White images only for bb cc
+// - Aggressive eye note removal
+// - Transfer fix: clear white state when not bb cc
 // ===========================================
 (function () {
   'use strict';
@@ -1269,16 +1271,10 @@ document.addEventListener('click', function (event) {
     return /\bbb\b/.test(g) && /\bcc\b/.test(g);
   }
 
-  function isBronzeGenotype(genotype) {
-    const g = String(genotype || "");
-    return /\bbb\b/.test(g) && (/\bCc\b/.test(g) || /\bCC\b/.test(g) || !/\bcc\b/.test(g)); // no c or Cc/CC
-  }
-
   function forceApplyWhite(prefix) {
     const container = document.getElementById(prefix + "ImageContainer");
     if (!container) return;
-    const key = container.dataset.whiteKey || whiteState[prefix];
-    if (!key) return;
+    const key = container.dataset.whiteKey || whiteState[prefix] || 'broad';
     const data = WHITE_VARIANTS[key];
     if (!data) return;
 
@@ -1298,14 +1294,11 @@ document.addEventListener('click', function (event) {
     }
 
     if (changed) {
-      if (prefix === "sire" && typeof updateSireGenotype === "function") updateSireGenotype();
-      if (prefix === "dam" && typeof updateDamGenotype === "function") updateDamGenotype();
+      (prefix === "sire" ? window.updateSireGenotype : window.updateDamGenotype)?.();
     }
 
     const img = container.querySelector("img");
-    if (img) {
-      img.src = "https://portersturkeys.github.io/Pictures/" + (prefix === "dam" ? data.female : data.male);
-    }
+    if (img) img.src = "https://portersturkeys.github.io/Pictures/" + (prefix === "dam" ? data.female : data.male);
 
     const strong = container.querySelector("strong");
     if (strong) {
@@ -1340,53 +1333,52 @@ document.addEventListener('click', function (event) {
   }
 
   function applyWhiteToOffspring() {
-    const defaultWhiteKey = 'broad';
-    const defaultWhiteData = WHITE_VARIANTS[defaultWhiteKey];
-    const whiteName = defaultWhiteData.name;
-    const bronzeName = "Broad Breasted Bronze";
+    const data = WHITE_VARIANTS.broad; // default to broad for bb cc
+    const whiteName = data.name;
 
     function stripEyeNotes(str) {
       if (!str) return str;
-      let cleaned = str;
-      const patterns = [
-        /\s*\(?\s*Dark\s*Brown\s*Eyes\s*\)?/gi,
-        /\s*\(?\s*Light\s*Brown\s*Eyes\s*\)?/gi,
-        /\s*\(?\s*Blue\s*Eyes\s*\)?/gi,
-        /\s*\(?\s*Dark-Brown\s*Eyes\s*\)?/gi,
-        /\s*,\s*Dark\s*Brown\s*Eyes/gi,
-        /\s*Dark\s*Brown\s*Eyes\s*,?/gi,
-        /\s*\(?\s*eyes\s*\)?/gi,
-        /\s*eyes\s*/gi
-      ];
-      patterns.forEach(r => { cleaned = cleaned.replace(r, ''); });
-      return cleaned.replace(/\s*[,;()]\s*$/, '').trim();
+      return str
+        .replace(/\s*\(?\s*Dark\s*Brown\s*Eyes\s*\)?/gi, '')
+        .replace(/\s*\(?\s*Light\s*Brown\s*Eyes\s*\)?/gi, '')
+        .replace(/\s*\(?\s*Blue\s*Eyes\s*\)?/gi, '')
+        .replace(/\s*Dark\s*Brown\s*Eyes/gi, '')
+        .replace(/\s*eyes/gi, '')
+        .replace(/\s*,\s*$/, '')
+        .trim();
     }
 
-    // Patch internal arrays (name/image based on genotype)
+    // Patch internal arrays – genotype decides name & image
     function patchArray(arr, sex) {
       if (!Array.isArray(arr)) return;
       arr.forEach(o => {
         if (!o) return;
         const geno = String(o.genotype || "");
         const isWhite = isWhiteGenotype(geno);
-        const isBronze = isBronzeGenotype(geno);
-        const name = isWhite ? whiteName : isBronze ? bronzeName : o.phenotype || bronzeName;
 
         if (o.phenotype) {
-          o.phenotype = stripEyeNotes(name);
+          let p = o.phenotype;
+          if (isWhite) {
+            p = whiteName;
+          }
+          // No forced White on non-cc – leave as is (Bronze or calculator's call)
+          o.phenotype = stripEyeNotes(p);
         }
 
-        const targetData = isWhite ? defaultWhiteData : null; // only force image for white
-        if (targetData && o.picturePath) {
-          const f = o.picturePath.split("/").pop()?.toLowerCase() || "";
-          if (f.includes("white") || f.includes("bronze")) {
-            o.picturePath = "https://portersturkeys.github.io/Pictures/" + (sex === "male" ? targetData.male : sex === "female" ? targetData.female : targetData.poult);
+        if (isWhite) {
+          // Force correct BB White image only for bb cc
+          if (o.picturePath) {
+            const f = o.picturePath.split("/").pop()?.toLowerCase() || "";
+            if (f.includes("white") || f.includes("pwhite") || f.includes("bronze")) {
+              o.picturePath = "https://portersturkeys.github.io/Pictures/" +
+                (sex === "male" ? data.male : sex === "female" ? data.female : data.poult);
+            }
           }
-        }
-        if (targetData && o.poultImagePath) {
-          const f2 = o.poultImagePath.split("/").pop()?.toLowerCase() || "";
-          if (f2.includes("white")) {
-            o.poultImagePath = "https://portersturkeys.github.io/Pictures/" + targetData.poult;
+          if (o.poultImagePath) {
+            const f2 = o.poultImagePath.split("/").pop()?.toLowerCase() || "";
+            if (f2.includes("white") || f2.includes("pwhite")) {
+              o.poultImagePath = "https://portersturkeys.github.io/Pictures/" + data.poult;
+            }
           }
         }
       });
@@ -1395,11 +1387,11 @@ document.addEventListener('click', function (event) {
     if (window.maleOffspring) patchArray(window.maleOffspring, "male");
     if (window.femaleOffspring) patchArray(window.femaleOffspring, "female");
 
-    // Patch visible text (lists + summary) – use strip only, no over-replace
+    // Visible text patching – strip eyes only
     document.querySelectorAll("#maleOffspringResults li, #femaleOffspringResults li").forEach(li => {
       let html = li.innerHTML || "";
       html = stripEyeNotes(html);
-      li.innerHTML = html.replace(/To Be Defined/gi, bronzeName);
+      li.innerHTML = html;
     });
 
     const summaryBody = document.querySelector("#summaryChart tbody");
@@ -1409,17 +1401,18 @@ document.addEventListener('click', function (event) {
         if (!cell) return;
         let text = cell.textContent || "";
         text = stripEyeNotes(text);
-        cell.textContent = text.replace(/To Be Defined/gi, bronzeName);
+        cell.textContent = text;
       });
     }
 
-    // Patch visible images – force BB White if text includes "White" after strip
+    // Visible images – force BB White if text matches White (after strip)
     document.querySelectorAll("#maleOffspringResults img, #femaleOffspringResults img").forEach(img => {
       const li = img.closest("li");
       if (li) {
-        const text = stripEyeNotes(li.textContent || "");
-        if (/White/i.test(text)) {
-          img.src = "https://portersturkeys.github.io/Pictures/" + (li.closest("#maleOffspringResults") ? defaultWhiteData.male : defaultWhiteData.female);
+        const cleaned = stripEyeNotes(li.textContent || "");
+        if (/White/i.test(cleaned) && !/eyes/i.test(cleaned)) {
+          const isMaleList = li.closest("#maleOffspringResults");
+          img.src = "https://portersturkeys.github.io/Pictures/" + (isMaleList ? data.male : data.female);
         }
       }
     });
@@ -1434,6 +1427,7 @@ document.addEventListener('click', function (event) {
     ].filter(Boolean);
 
     targets.forEach(target => {
+      if (!target) return;
       const obs = new MutationObserver(() => {
         if (patching) return;
         patching = true;
@@ -1463,6 +1457,34 @@ document.addEventListener('click', function (event) {
     };
   }
 
+  // Transfer patch
+  if (typeof window.transferOffspringToParent === "function" && !window._whiteTransferPatchedGenotypeAware) {
+    window._whiteTransferPatchedGenotypeAware = true;
+    const origTransfer = window.transferOffspringToParent;
+    window.transferOffspringToParent = function(genotype, parent) {
+      const res = origTransfer.apply(this, arguments);
+      if (parent !== "sire" && parent !== "dam") return res;
+
+      const container = document.getElementById(parent + "ImageContainer");
+      if (!container) return res;
+
+      const shouldBeWhite = isWhiteGenotype(genotype);
+
+      if (shouldBeWhite) {
+        const key = whiteState[parent] || container.dataset.whiteKey || 'broad';
+        container.dataset.whiteKey = key;
+        whiteState[parent] = key;
+        setTimeout(() => forceApplyWhite(parent), 80);
+        setTimeout(() => forceApplyWhite(parent), 300);
+      } else {
+        whiteState[parent] = null;
+        delete container.dataset.whiteKey;
+      }
+
+      return res;
+    };
+  }
+
   window.addEventListener("load", () => {
     wrapVarietyFn("applyVarietyToSire", "sire");
     wrapVarietyFn("applyVarietyToDam", "dam");
@@ -1483,51 +1505,6 @@ document.addEventListener('click', function (event) {
 
     installWhiteOffspringObserver();
 
-    // TRANSFER
-    if (typeof window.transferOffspringToParent === "function" && !window._whiteTransferPatchedGenotypeAware) {
-      window._whiteTransferPatchedGenotypeAware = true;
-      const origTransfer = window.transferOffspringToParent;
-      window.transferOffspringToParent = function(genotype, parent) {
-        const res = origTransfer.apply(this, arguments);
-        if (parent !== "sire" && parent !== "dam") return res;
-
-        const container = document.getElementById(parent + "ImageContainer");
-        if (!container) return res;
-
-        const shouldBeWhite = isWhiteGenotype(genotype);
-
-        if (shouldBeWhite) {
-          const key = whiteState[parent] || container.dataset.whiteKey || 'broad';
-          container.dataset.whiteKey = key;
-          whiteState[parent] = key;
-          setTimeout(() => forceApplyWhite(parent), 50);
-          setTimeout(() => forceApplyWhite(parent), 150);
-          setTimeout(() => forceApplyWhite(parent), 300);
-        } else {
-          whiteState[parent] = null;
-          delete container.dataset.whiteKey;
-        }
-
-        return res;
-      };
-    }
-
-    if (typeof window.calculateOffspringWrapper === "function" && !window._whiteCalcPatched) {
-      window._whiteCalcPatched = true;
-      const origCalc = window.calculateOffspringWrapper;
-      window.calculateOffspringWrapper = function() {
-        const res = origCalc.apply(this, arguments);
-        setTimeout(() => {
-          ["sire", "dam"].forEach(prefix => {
-            if (whiteState[prefix]) forceApplyWhite(prefix);
-          });
-          applyWhiteToOffspring();
-        }, 200);
-        return res;
-      };
-    }
-
-    // handleDropdownChange if you have it
     if (typeof window.handleDropdownChange === "function" && !window._whiteFavoritesPatched) {
       window._whiteFavoritesPatched = true;
       const originalHandle = window.handleDropdownChange;
@@ -1557,6 +1534,21 @@ document.addEventListener('click', function (event) {
             }
           }
         }
+        return res;
+      };
+    }
+
+    if (typeof window.calculateOffspringWrapper === "function" && !window._whiteCalcPatched) {
+      window._whiteCalcPatched = true;
+      const origCalc = window.calculateOffspringWrapper;
+      window.calculateOffspringWrapper = function() {
+        const res = origCalc.apply(this, arguments);
+        setTimeout(() => {
+          ["sire", "dam"].forEach(prefix => {
+            if (whiteState[prefix]) applyWhiteToParent(prefix);
+          });
+          applyWhiteToOffspring();
+        }, 200);
         return res;
       };
     }
