@@ -1191,18 +1191,19 @@ document.addEventListener('click', function (event) {
 /////////////////////////////////
 
 // ===========================================
-// WHITE VARIANTS OVERLAY – C LOCUS FIXED FOR ALL NAMED WHITES
-// Forces cc reliably for Midget White, Beltsville Small White, White Holland, and Broad Breasted White
-// No more blank C locus on selection
+// WHITE VARIANTS OVERLAY – TRANSFER FIXED
+// - Continue as Sire/Dam now works for same white × white
+// - Different white varieties (Midget, Beltsville, Holland) now transfer correctly
+// - No more forcing everything to Broad Breasted White
 // ===========================================
 (function () {
   'use strict';
 
   const WHITE_VARIANTS = {
     beltsville: { name: "Beltsville Small White", male: "MBeltsvilleSmallWhite.jpg", female: "FBeltsvilleSmallWhite.jpg", poult: "PBeltsvilleSmallWhite.jpg" },
-    midget: { name: "Midget White", male: "MMidgetWhite.jpg", female: "FMidgetWhite.jpg", poult: "PMidgetWhite.jpg" },
-    holland: { name: "White Holland", male: "MWhiteHolland.jpg", female: "FWhiteHolland.jpg", poult: "PWhiteHolland.jpg" },
-    broad: { name: "Broad Breasted White", male: "MBroadBreastedWhite.jpg", female: "FBroadBreastedWhite.jpg", poult: "PBroadBreastedWhite.jpg" }
+    midget:     { name: "Midget White",           male: "MMidgetWhite.jpg",           female: "FMidgetWhite.jpg",           poult: "PMidgetWhite.jpg" },
+    holland:    { name: "White Holland",          male: "MWhiteHolland.jpg",          female: "FWhiteHolland.jpg",          poult: "PWhiteHolland.jpg" },
+    broad:      { name: "Broad Breasted White",   male: "MBroadBreastedWhite.jpg",    female: "FBroadBreastedWhite.jpg",    poult: "PBroadBreastedWhite.jpg" }
   };
 
   const WHITE_VARIETY_MAP = {
@@ -1237,12 +1238,6 @@ document.addEventListener('click', function (event) {
     return /\bbb\b/.test(g) && /\bcc\b/.test(g);
   }
 
-  function isBroadBreastedCross() {
-    const sireG = window.sireGenotype || "";
-    const damG = window.damGenotype || "";
-    return /\bbb\b/.test(sireG) && /\bbb\b/.test(damG);
-  }
-
   function forceApplyWhite(prefix) {
     const container = document.getElementById(prefix + "ImageContainer");
     if (!container) return;
@@ -1257,20 +1252,14 @@ document.addEventListener('click', function (event) {
     const cSel = document.getElementById(cId);
 
     let changed = false;
-
     if (bSel && bSel.value !== "bb") {
       bSel.value = "bb";
       changed = true;
     }
-
-    // FIXED: Force cc if this parent is ANY named white variety (input match or state)
-    const currentVal = norm(document.getElementById(prefix + "VarietyInput")?.value || "");
-    const isNamedWhite = !!WHITE_VARIETY_MAP[currentVal] || !!whiteState[prefix];
-    if (cSel && cSel.value !== "cc" && isNamedWhite) {
+    if (cSel && cSel.value !== "cc") {
       cSel.value = "cc";
       changed = true;
     }
-
     if (changed) {
       (prefix === "sire" ? window.updateSireGenotype : window.updateDamGenotype)?.();
     }
@@ -1295,20 +1284,23 @@ document.addEventListener('click', function (event) {
     }
   }
 
-  // Transfer hook unchanged
+  // FIXED TRANSFER HOOK - preserves specific white variety
   if (typeof window.transferOffspringToParent === "function" && !window._whiteTransferPatchedGenotypeAware) {
     window._whiteTransferPatchedGenotypeAware = true;
     const origTransfer = window.transferOffspringToParent;
     window.transferOffspringToParent = function(genotype, parent) {
       const res = origTransfer.apply(this, arguments);
       if (parent !== "sire" && parent !== "dam") return res;
+
       const container = document.getElementById(parent + "ImageContainer");
       if (!container) return res;
+
       const shouldBeWhite = isWhiteGenotype(genotype);
       if (shouldBeWhite) {
         const key = whiteState[parent] || container.dataset.whiteKey;
         if (key) {
           container.dataset.whiteKey = key;
+          whiteState[parent] = key;                    // ← preserve specific key
           setTimeout(() => forceApplyWhite(parent), 80);
           setTimeout(() => forceApplyWhite(parent), 300);
         }
@@ -1335,6 +1327,7 @@ document.addEventListener('click', function (event) {
     forceApplyWhite(prefix);
   }
 
+ 
   function applyWhiteToOffspring() {
     const sireKey = whiteState.sire;
     const damKey = whiteState.dam;
