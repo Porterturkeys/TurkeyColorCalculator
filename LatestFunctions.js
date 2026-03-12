@@ -1681,19 +1681,16 @@ if (file === "pbronze.jpg") img.src = "https://portersturkeys.github.io/Pictures
 
 ////////////////////////
 
-// Force clean name and standard image for bb cc offspring
-document.querySelectorAll("#maleOffspringResults li, #femaleOffspringResults li").forEach(li => {
-  let html = li.innerHTML || '';
-  html = html.replace(/\s*\(Dark\s*Brown\s*Eyes\)\s*/gi, '');
-  html = html.replace(/\s*\([^)]*Eyes[^)]*\)/gi, '');
-  li.innerHTML = html.trim();
-});
-
+// Force correct poult images for white variants (fix adult image fallback)
 document.querySelectorAll("#maleOffspringResults img, #femaleOffspringResults img").forEach(img => {
-  const src = img.src.toLowerCase();
-  if (src.includes('darkbrowneyes') || (src.includes('white') && !src.includes('broadbreastedwhite'))) {
-    const isMale = img.closest('#maleOffspringResults');
-    img.src = "https://portersturkeys.github.io/Pictures/" + (isMale ? "MBroadBreastedWhite.jpg" : "FBroadBreastedWhite.jpg" : "PBroadBreastedWhite.jpg");
+  const srcLower = img.src.toLowerCase();
+  const fileName = img.src.split("/").pop()?.toLowerCase() || "";
+
+  if (fileName.startsWith("p")) {
+    // It's a poult image
+    if (srcLower.includes("white") && !srcLower.includes("broadbreastedwhite") || srcLower.includes("darkbrowneyes")) {
+      img.src = "https://portersturkeys.github.io/Pictures/" + WHITE.poult;
+    }
   }
 });
     
