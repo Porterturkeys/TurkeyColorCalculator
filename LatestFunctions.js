@@ -1681,40 +1681,19 @@ if (file === "pbronze.jpg") img.src = "https://portersturkeys.github.io/Pictures
 
 ////////////////////////
 
-// Final aggressive patch for all offspring images + name clean
-document.querySelectorAll("#maleOffspringResults img, #femaleOffspringResults img").forEach(img => {
-  const srcLower = img.src.toLowerCase();
-  const fileName = img.src.split("/").pop()?.toLowerCase() || "";
-
-  // Detect and fix bad adult images (m/f prefix)
-  if ((fileName.startsWith("m") || fileName.startsWith("f")) &&
-      (srcLower.includes("darkbrowneyes") || 
-       (srcLower.includes("white") && !srcLower.includes("broadbreastedwhite")))) {
-    const isMale = img.closest("#maleOffspringResults");
-    img.src = "https://portersturkeys.github.io/Pictures/" + 
-              (isMale ? "MBroadBreastedWhite.jpg" : "FBroadBreastedWhite.jpg");
-  }
-
-  // Detect and fix bad poult images (p prefix)
-  if (fileName.startsWith("p") &&
-      (srcLower.includes("darkbrowneyes") || 
-       srcLower.includes("white") && !srcLower.includes("broadbreastedwhite") ||
-       srcLower.includes("pbronze.jpg"))) {  // also catch if it's stuck on bronze poult
-    img.src = "https://portersturkeys.github.io/Pictures/PBroadBreastedWhite.jpg";
-  }
+// Force clean name and standard image for bb cc offspring
+document.querySelectorAll("#maleOffspringResults li, #femaleOffspringResults li").forEach(li => {
+  let html = li.innerHTML || '';
+  html = html.replace(/\s*\(Dark\s*Brown\s*Eyes\)\s*/gi, '');
+  html = html.replace(/\s*\([^)]*Eyes[^)]*\)/gi, '');
+  li.innerHTML = html.trim();
 });
 
-// Extra name cleanup pass (catches any late-added suffix in list items or summary)
-document.querySelectorAll("#maleOffspringResults li, #femaleOffspringResults li, #summaryChart td").forEach(el => {
-  let content = el.textContent || el.innerHTML || "";
-  content = content.replace(/\s*\(Dark\s*Brown\s*Eyes\)\s*/gi, '');
-  content = content.replace(/\s*Dark\s*Brown\s*Eyes/gi, '');
-  content = content.replace(/\s*\([^)]*Eyes[^)]*\)/gi, '');
-  content = content.replace(/\s*eyes/gi, '');
-  if (el.tagName === 'TD') {
-    el.textContent = content.trim();
-  } else {
-    el.innerHTML = content.trim();
+document.querySelectorAll("#maleOffspringResults img, #femaleOffspringResults img").forEach(img => {
+  const src = img.src.toLowerCase();
+  if (src.includes('darkbrowneyes') || (src.includes('white') && !src.includes('broadbreastedwhite'))) {
+    const isMale = img.closest('#maleOffspringResults');
+    img.src = "https://portersturkeys.github.io/Pictures/" + (isMale ? "MBroadBreastedWhite.jpg" : "FBroadBreastedWhite.jpg");
   }
 });
     
