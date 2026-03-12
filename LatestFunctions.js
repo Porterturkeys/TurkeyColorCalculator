@@ -1681,16 +1681,29 @@ if (file === "pbronze.jpg") img.src = "https://portersturkeys.github.io/Pictures
 
 ////////////////////////
 
-// Force correct poult images for white variants (fix adult image fallback)
+// Force correct poult images for BB White (without breaking adult images)
 document.querySelectorAll("#maleOffspringResults img, #femaleOffspringResults img").forEach(img => {
   const srcLower = img.src.toLowerCase();
   const fileName = img.src.split("/").pop()?.toLowerCase() || "";
 
+  // Only touch poult images (p prefix)
   if (fileName.startsWith("p")) {
-    // It's a poult image
-    if (srcLower.includes("white") && !srcLower.includes("broadbreastedwhite") || srcLower.includes("darkbrowneyes")) {
+    // If it's a white poult with bad eyes or wrong file
+    if (srcLower.includes("darkbrowneyes") || 
+        srcLower.includes("white") && !srcLower.includes("broadbreastedwhite")) {
       img.src = "https://portersturkeys.github.io/Pictures/" + WHITE.poult;
     }
+  }
+});
+
+// Extra aggressive name clean for all offspring items (in case core code re-adds suffix)
+document.querySelectorAll("#maleOffspringResults li, #femaleOffspringResults li").forEach(li => {
+  let html = li.innerHTML || '';
+  if (html.includes("White")) {
+    html = html.replace(/\s*\(Dark\s*Brown\s*Eyes\)\s*/gi, '');
+    html = html.replace(/\s*\([^)]*Eyes[^)]*\)/gi, '');
+    html = html.replace(/\s*Dark\s*Brown\s*Eyes/gi, '');
+    li.innerHTML = html.trim();
   }
 });
     
