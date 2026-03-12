@@ -1691,9 +1691,19 @@ document.querySelectorAll("#maleOffspringResults li, #femaleOffspringResults li"
 
 document.querySelectorAll("#maleOffspringResults img, #femaleOffspringResults img").forEach(img => {
   const src = img.src.toLowerCase();
+  const fileName = img.src.split("/").pop()?.toLowerCase() || "";
+
+  // Adult images (unchanged from your working version)
   if (src.includes('darkbrowneyes') || (src.includes('white') && !src.includes('broadbreastedwhite'))) {
     const isMale = img.closest('#maleOffspringResults');
     img.src = "https://portersturkeys.github.io/Pictures/" + (isMale ? "MBroadBreastedWhite.jpg" : "FBroadBreastedWhite.jpg");
+  }
+
+  // Added: Poult images only (p prefix) - force standard BB White poult if wrong
+  if (fileName.startsWith("p") &&
+      (src.includes('darkbrowneyes') || 
+       (src.includes('white') && !src.includes('broadbreastedwhite')))) {
+    img.src = "https://portersturkeys.github.io/Pictures/PBroadBreastedWhite.jpg";
   }
 });
     
