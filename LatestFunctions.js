@@ -1513,12 +1513,14 @@ document.addEventListener('click', function (event) {
     }
   });
 })();
+
 ////////////////////////////////
 
 // ===========================================
-// BROAD BREASTED BRONZE + WHITE OVERLAY – FINAL FIX VERSION
-// Aggressively enforces correct names & standard images for bb cc in BB crosses
-// No "(Dark Brown Eyes)", no dark-eye images – ever
+// BROAD BREASTED BRONZE + WHITE OVERLAY – ULTRA-AGGRESSIVE FIX 2025
+// Forces correct names & standard images for bb cc in BB White × Bronze crosses
+// Removes ALL "(Dark Brown Eyes)" remnants + forces MBroadBreastedWhite.jpg etc.
+// Multiple runs, direct span targeting, characterData observer
 // ===========================================
 (function () {
   'use strict';
@@ -1561,13 +1563,6 @@ document.addEventListener('click', function (event) {
 
   function norm(str) {
     return (str || "").trim().toLowerCase();
-  }
-
-  function isBroadBreastedCross() {
-    // If both parents are bb (Broad Breasted types)
-    const sireG = window.sireGenotype || document.getElementById('sireGenotype')?.textContent || "";
-    const damG  = window.damGenotype  || document.getElementById('damGenotype')?.textContent || "";
-    return /\bbb\b/i.test(sireG) && /\bbb\b/i.test(damG);
   }
 
   function detectType(prefix) {
@@ -1617,7 +1612,9 @@ document.addEventListener('click', function (event) {
     const info = document.getElementById(prefix + "InfoContainer");
     if (info) {
       info.querySelectorAll("span, div, strong").forEach(el => {
-        el.textContent = el.textContent.replace(/\(.*Eyes.*\)/gi, '').trim() || data.name;
+        let txt = el.textContent || "";
+        txt = txt.replace(/\([^)]*\)/g, '').trim();
+        el.textContent = txt || data.name;
       });
     }
   }
@@ -1625,80 +1622,167 @@ document.addEventListener('click', function (event) {
   function applyToOffspring() {
     if (!state.sire || !state.dam) return;
 
-    const isBBcross = isBroadBreastedCross();
-
-    function stripBadSuffix(str) {
+    function ultraStrip(str) {
+      if (!str) return str;
       return str
-        .replace(/\s*\(Dark\s*Brown\s*Eyes\)/gi, '')
+        .replace(/\s*\([^)]*\)/g, '')               // Remove ALL parentheses content
         .replace(/\s*Dark\s*Brown\s*Eyes/gi, '')
-        .replace(/\s*\([^)]*Eyes[^)]*\)/gi, '')
         .replace(/\s*eyes/gi, '')
+        .replace(/\s*[,;]\s*$/g, '')
         .trim();
     }
 
-    function forceCorrectNameAndImage() {
-      // DOM patch – li items
+    function forcePatchAll() {
+      // 1. Direct variety-name span fix (most common class)
+      document.querySelectorAll(".variety-name").forEach(span => {
+        let txt = span.textContent || '';
+        if (/White/i.test(txt)) {
+          txt = ultraStrip(txt);
+          if (txt.includes("White")) {
+            span.textContent = "Broad Breasted White";
+          } else {
+            span.textContent = txt;
+          }
+        }
+      });
+
+      // 2. Full li fallback
       document.querySelectorAll("#maleOffspringResults li, #femaleOffspringResults li").forEach(li => {
         let html = li.innerHTML || '';
-        if (!html) return;
-
-        if (isBBcross) {
-          html = html.replace(/Broad\s*Breasted\s*White\s*\(Dark\s*Brown\s*Eyes\)/gi, 'Broad Breasted White');
-          html = html.replace(/Broad\s*Breasted\s*White\s*\([^)]*\)/gi, 'Broad Breasted White');
-        }
-
-        html = stripBadSuffix(html);
+        html = ultraStrip(html);
+        html = html.replace(/Broad\s*Breasted\s*White\b[^<]*/gi, 'Broad Breasted White');
         li.innerHTML = html;
       });
 
-      // Images – force standard if suspicious
+      // 3. Image force – any suspicious white file → standard BB White
       document.querySelectorAll("#maleOffspringResults img, #femaleOffspringResults img").forEach(img => {
-        let src = img.src.toLowerCase();
-        if (src.includes('darkbrowneyes') || (src.includes('white') && !src.includes('broadbreastedwhite'))) {
+        const src = img.src.toLowerCase();
+        if (src.includes('white') && !src.includes('broadbreastedwhite')) {
           const isMale = img.closest('#maleOffspringResults');
           img.src = "https://portersturkeys.github.io/Pictures/" + (isMale ? WHITE.male : WHITE.female);
         }
       });
 
-      // Summary chart
-      const summary = document.getElementById("summaryChart");
-      if (summary) {
-        summary.querySelectorAll('td').forEach(td => {
-          let txt = td.textContent || '';
-          if (isBBcross) {
-            txt = txt.replace(/Broad\s*Breasted\s*White\s*\(Dark\s*Brown\s*Eyes\)/gi, 'Broad Breasted White');
-            txt = txt.replace(/Broad\s*Breasted\s*White\s*\([^)]*\)/gi, 'Broad Breasted White');
-          }
-          td.textContent = stripBadSuffix(txt);
-        });
-      }
+      // 4. Summary chart cells
+      document.querySelectorAll("#summaryChart td").forEach(td => {
+        let txt = td.textContent || '';
+        td.textContent = ultraStrip(txt);
+      });
     }
 
-    // Run patch multiple times to catch late renders
-    setTimeout(forceCorrectNameAndImage, 0);
-    setTimeout(forceCorrectNameAndImage, 100);
-    setTimeout(forceCorrectNameAndImage, 300);
-    setTimeout(forceCorrectNameAndImage, 600);
+    // Run multiple times with increasing delay to catch late renders
+    [0, 80, 200, 500, 900, 1500].forEach(ms => setTimeout(forcePatchAll, ms));
   }
 
-  // Rest of your code (wrapVarietyFn, resetCalculator, transfer hook, calculate wrapper) remains unchanged
-  // ... paste your original code from "function wrapVarietyFn..." to the end here ...
+  function wrapVarietyFn(fnName, prefix) {
+    const orig = window[fnName];
+    if (typeof orig !== "function" || orig._bbWrapped) return;
+    window[fnName] = function (...args) {
+      const res = orig.apply(this, args);
+      if (detectType(prefix)) {
+        setTimeout(() => forceApply(prefix), 100);
+        setTimeout(() => forceApply(prefix), 400);
+      }
+      return res;
+    };
+    window[fnName]._bbWrapped = true;
+  }
 
-  // But add this stronger observer at the end of load
   window.addEventListener("load", () => {
-    // ... your existing load code ...
+    wrapVarietyFn("applyVarietyToSire", "sire");
+    wrapVarietyFn("applyVarietyToDam", "dam");
 
-    // Extra observer just for offspring results
-    const offspringObserver = new MutationObserver(() => {
+    if (typeof window.resetCalculator === "function") {
+      const orig = window.resetCalculator;
+      window.resetCalculator = function (...args) {
+        const res = orig.apply(this, args);
+        state.sire = state.dam = null;
+        ["sire", "dam"].forEach(p => {
+          const c = document.getElementById(p + "ImageContainer");
+          if (c) delete c.dataset.bbType;
+        });
+        return res;
+      };
+    }
+
+    // TRANSFER hook – keep your original version here
+    if (typeof window.transferOffspringToParent === "function" && !window._bbTransferPatchedMixed) {
+      window._bbTransferPatchedMixed = true;
+      const orig = window.transferOffspringToParent;
+      window.transferOffspringToParent = function (genotype, parent) {
+        const res = orig.apply(this, arguments);
+        if (parent !== "sire" && parent !== "dam") return res;
+        const varietyInput = document.getElementById(parent + "VarietyInput");
+        const container = document.getElementById(parent + "ImageContainer");
+        if (!varietyInput || !container) return res;
+
+        state[parent] = null;
+        delete container.dataset.bbType;
+
+        let val = norm(varietyInput.value || "");
+        val = val.replace(/\s*$ .*? $/g, '').replace(/\s+/g, ' ').trim().toLowerCase();
+
+        let type = null;
+        if (BRONZE_MAP[val] || val.includes("broad breasted bronze") || val.includes("broad bronze") ||
+            val.includes("mammoth bronze") || val.includes("orlopp bronze") || val.includes("large bronze")) {
+          type = "bronze";
+        } else if (WHITE_MAP[val] || val.includes("broad breasted white") || val.includes("broad white") ||
+                   val.includes("giant white") || val.includes("large white") || val.includes("commercial white")) {
+          type = "white";
+        }
+
+        if (!type) {
+          const geno = String(genotype || "");
+          const hasBB  = /\bbb\b/.test(geno);
+          const hascc  = /\bcc\b/.test(geno);
+          if (hasBB) type = hascc ? "white" : "bronze";
+        }
+
+        if (type) {
+          state[parent] = type;
+          container.dataset.bbType = type;
+          setTimeout(() => forceApply(parent), 50);
+          setTimeout(() => forceApply(parent), 150);
+          setTimeout(() => forceApply(parent), 300);
+
+          const targetName = type === "white" ? WHITE.name : BRONZE.name;
+          if (!varietyInput.value.trim() || varietyInput.value.trim().toLowerCase().includes("to be defined")) {
+            varietyInput.value = targetName;
+          }
+        }
+
+        return res;
+      };
+    }
+
+    if (typeof window.calculateOffspringWrapper === "function" && !window._bbCalcPatched) {
+      window._bbCalcPatched = true;
+      const orig = window.calculateOffspringWrapper;
+      window.calculateOffspringWrapper = function (...args) {
+        const res = orig.apply(this, arguments);
+        setTimeout(() => {
+          ["sire", "dam"].forEach(prefix => {
+            if (state[prefix]) forceApply(prefix);
+          });
+          applyToOffspring();
+        }, 200);
+        return res;
+      };
+    }
+
+    // Strong mutation observer on all relevant containers
+    const observer = new MutationObserver(() => {
       if (state.sire && state.dam) applyToOffspring();
     });
-    const maleRes = document.getElementById("maleOffspringResults");
-    const femaleRes = document.getElementById("femaleOffspringResults");
-    if (maleRes) offspringObserver.observe(maleRes, { childList: true, subtree: true });
-    if (femaleRes) offspringObserver.observe(femaleRes, { childList: true, subtree: true });
+
+    const config = { childList: true, subtree: true, characterData: true, attributes: true };
+
+    ["maleOffspringResults", "femaleOffspringResults", "summaryChart"].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) observer.observe(el, config);
+    });
   });
 })();
-
 
 ////////////////////////////////
 // =====================================================
