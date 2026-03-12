@@ -1693,7 +1693,7 @@ document.querySelectorAll("#maleOffspringResults img, #femaleOffspringResults im
   const src = img.src.toLowerCase();
   if (src.includes('darkbrowneyes') || (src.includes('white') && !src.includes('broadbreastedwhite'))) {
     const isMale = img.closest('#maleOffspringResults');
-    img.src = "https://portersturkeys.github.io/Pictures/" + (isMale ? "MBroadBreastedWhite.jpg" : "FBroadBreastedWhite.jpg");
+    img.src = "https://portersturkeys.github.io/Pictures/" + (isMale ? "MBroadBreastedWhite.jpg" : "FBroadBreastedWhite.jpg" : "PBroadBreastedWhite.jpg");
   }
 });
     
