@@ -1191,18 +1191,18 @@ document.addEventListener('click', function (event) {
 /////////////////////////////////
 
 // ===========================================
-// WHITE VARIANTS OVERLAY – FIXED & ROBUST FOR MIXED CROSSES
-// Forces cc reliably even if only one parent is white variety
-// Keeps all eye removal, standard images, and patches
+// WHITE VARIANTS OVERLAY – C LOCUS FIXED FOR ALL NAMED WHITES
+// Forces cc reliably for Midget White, Beltsville Small White, White Holland, and Broad Breasted White
+// No more blank C locus on selection
 // ===========================================
 (function () {
   'use strict';
 
   const WHITE_VARIANTS = {
     beltsville: { name: "Beltsville Small White", male: "MBeltsvilleSmallWhite.jpg", female: "FBeltsvilleSmallWhite.jpg", poult: "PBeltsvilleSmallWhite.jpg" },
-    midget:     { name: "Midget White",           male: "MMidgetWhite.jpg",           female: "FMidgetWhite.jpg",           poult: "PMidgetWhite.jpg" },
-    holland:    { name: "White Holland",          male: "MWhiteHolland.jpg",          female: "FWhiteHolland.jpg",          poult: "PWhiteHolland.jpg" },
-    broad:      { name: "Broad Breasted White",   male: "MBroadBreastedWhite.jpg",    female: "FBroadBreastedWhite.jpg",    poult: "PBroadBreastedWhite.jpg" }
+    midget: { name: "Midget White", male: "MMidgetWhite.jpg", female: "FMidgetWhite.jpg", poult: "PMidgetWhite.jpg" },
+    holland: { name: "White Holland", male: "MWhiteHolland.jpg", female: "FWhiteHolland.jpg", poult: "PWhiteHolland.jpg" },
+    broad: { name: "Broad Breasted White", male: "MBroadBreastedWhite.jpg", female: "FBroadBreastedWhite.jpg", poult: "PBroadBreastedWhite.jpg" }
   };
 
   const WHITE_VARIETY_MAP = {
@@ -1237,10 +1237,9 @@ document.addEventListener('click', function (event) {
     return /\bbb\b/.test(g) && /\bcc\b/.test(g);
   }
 
-  // Check if at least one parent is Broad Breasted (bb) – for cross-specific fixes
   function isBroadBreastedCross() {
     const sireG = window.sireGenotype || "";
-    const damG  = window.damGenotype  || "";
+    const damG = window.damGenotype || "";
     return /\bbb\b/.test(sireG) && /\bbb\b/.test(damG);
   }
 
@@ -1258,15 +1257,16 @@ document.addEventListener('click', function (event) {
     const cSel = document.getElementById(cId);
 
     let changed = false;
+
     if (bSel && bSel.value !== "bb") {
       bSel.value = "bb";
       changed = true;
     }
 
-    // FIXED: Force cc if THIS parent is white OR the other parent is white (mixed cross fix)
-    const otherPrefix = prefix === "sire" ? "dam" : "sire";
-    const isOtherWhite = whiteState[otherPrefix] !== null;
-    if (cSel && cSel.value !== "cc" && (whiteState[prefix] || isOtherWhite)) {
+    // FIXED: Force cc if this parent is ANY named white variety (input match or state)
+    const currentVal = norm(document.getElementById(prefix + "VarietyInput")?.value || "");
+    const isNamedWhite = !!WHITE_VARIETY_MAP[currentVal] || !!whiteState[prefix];
+    if (cSel && cSel.value !== "cc" && isNamedWhite) {
       cSel.value = "cc";
       changed = true;
     }
@@ -1295,7 +1295,7 @@ document.addEventListener('click', function (event) {
     }
   }
 
-  // Transfer hook (unchanged)
+  // Transfer hook unchanged
   if (typeof window.transferOffspringToParent === "function" && !window._whiteTransferPatchedGenotypeAware) {
     window._whiteTransferPatchedGenotypeAware = true;
     const origTransfer = window.transferOffspringToParent;
@@ -1322,18 +1322,23 @@ document.addEventListener('click', function (event) {
 
   function applyWhiteToParent(prefix) {
     const cSel = document.getElementById(prefix + "AlleleC");
-    if (cSel && cSel.value !== "cc") return;
+    const inputVal = norm(document.getElementById(prefix + "VarietyInput")?.value || "");
+    const key = whiteState[prefix] || WHITE_VARIETY_MAP[inputVal];
+    if (cSel && cSel.value !== "cc" && key) {
+      cSel.value = "cc";
+      (prefix === "sire" ? window.updateSireGenotype : window.updateDamGenotype)?.();
+    }
     const container = document.getElementById(prefix + "ImageContainer");
     if (!container) return;
-    const key = container.dataset.whiteKey || whiteState[prefix];
-    if (!key) return;
+    const activeKey = container.dataset.whiteKey || whiteState[prefix];
+    if (!activeKey) return;
     forceApplyWhite(prefix);
   }
 
   function applyWhiteToOffspring() {
     const sireKey = whiteState.sire;
     const damKey = whiteState.dam;
-    if (!sireKey || !damKey || sireKey !== damKey) return;  // Keep same-variety check
+    if (!sireKey || !damKey || sireKey !== damKey) return;
     const data = WHITE_VARIANTS[sireKey];
     if (!data) return;
     const displayName = data.name;
