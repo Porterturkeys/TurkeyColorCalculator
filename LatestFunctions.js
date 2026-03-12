@@ -1409,16 +1409,29 @@ document.addEventListener('click', function (event) {
     if (window.maleOffspring) patchWhiteOffspringArray(window.maleOffspring);
     if (window.femaleOffspring) patchWhiteOffspringArray(window.femaleOffspring);
 
+     //////////////////////// 
+
     document.querySelectorAll("#maleOffspringResults img, #femaleOffspringResults img").forEach(img => {
-      const file = img.src.split("/").pop()?.toLowerCase() || "";
-      if (file.includes("white") || file.includes("darkbrowneyes")) {
-        if (img.closest("#maleOffspringResults")) {
-          img.src = "https://portersturkeys.github.io/Pictures/" + data.male;
-        } else {
-          img.src = "https://portersturkeys.github.io/Pictures/" + data.female;
-        }
-      }
-    });
+  const file = img.src.split("/").pop()?.toLowerCase() || "";
+  const srcLower = img.src.toLowerCase();
+
+  if (file.includes("white") || file.includes("darkbrowneyes")) {
+    const isPoult = file.startsWith("p");
+    const isMale = img.closest("#maleOffspringResults");
+
+    let targetFile;
+    if (isPoult) {
+      targetFile = data.poult;  // PBroadBreastedWhite.jpg / etc.
+    } else if (isMale) {
+      targetFile = data.male;   // MBroadBreastedWhite.jpg
+    } else {
+      targetFile = data.female; // FBroadBreastedWhite.jpg
+    }
+
+    img.src = "https://portersturkeys.github.io/Pictures/" + targetFile;
+  }
+});
+      ////////////////////////////
   }
 
   function installWhiteOffspringObserver() {
