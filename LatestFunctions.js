@@ -1189,11 +1189,11 @@ document.addEventListener('click', function (event) {
     }
 });
 /////////////////////////////////
+
 // ===========================================
-// ===========================================
-// WHITE VARIANTS OVERLAY – FIXED FOR BROAD BREASTED CROSSES
-// Forces standard "Broad Breasted White" name + image for bb cc offspring
-// Removes "(Dark Brown Eyes)" completely in Broad Breasted White × Bronze crosses
+// WHITE VARIANTS OVERLAY – FIXED & ROBUST FOR MIXED CROSSES
+// Forces cc reliably even if only one parent is white variety
+// Keeps all eye removal, standard images, and patches
 // ===========================================
 (function () {
   'use strict';
@@ -1237,9 +1237,9 @@ document.addEventListener('click', function (event) {
     return /\bbb\b/.test(g) && /\bcc\b/.test(g);
   }
 
-  // NEW: Check if both parents are Broad Breasted (bb) types – only apply aggressive fix then
+  // Check if at least one parent is Broad Breasted (bb) – for cross-specific fixes
   function isBroadBreastedCross() {
-    const sireG = window.sireGenotype || "";   // assuming global vars exist
+    const sireG = window.sireGenotype || "";
     const damG  = window.damGenotype  || "";
     return /\bbb\b/.test(sireG) && /\bbb\b/.test(damG);
   }
@@ -1256,16 +1256,21 @@ document.addEventListener('click', function (event) {
     const cId = prefix === "sire" ? "sireAlleleC" : "damAlleleC";
     const bSel = document.getElementById(bId);
     const cSel = document.getElementById(cId);
-    let changed = false;
 
+    let changed = false;
     if (bSel && bSel.value !== "bb") {
       bSel.value = "bb";
       changed = true;
     }
-    if (cSel && cSel.value !== "cc" && whiteState[prefix]) {
+
+    // FIXED: Force cc if THIS parent is white OR the other parent is white (mixed cross fix)
+    const otherPrefix = prefix === "sire" ? "dam" : "sire";
+    const isOtherWhite = whiteState[otherPrefix] !== null;
+    if (cSel && cSel.value !== "cc" && (whiteState[prefix] || isOtherWhite)) {
       cSel.value = "cc";
       changed = true;
     }
+
     if (changed) {
       (prefix === "sire" ? window.updateSireGenotype : window.updateDamGenotype)?.();
     }
@@ -1328,13 +1333,11 @@ document.addEventListener('click', function (event) {
   function applyWhiteToOffspring() {
     const sireKey = whiteState.sire;
     const damKey = whiteState.dam;
-    if (!sireKey || !damKey || sireKey !== damKey) return;
-
+    if (!sireKey || !damKey || sireKey !== damKey) return;  // Keep same-variety check
     const data = WHITE_VARIANTS[sireKey];
     if (!data) return;
     const displayName = data.name;
 
-    // Aggressive eye note removal – stronger patterns for Broad Breasted cases
     function stripEyeNotes(str) {
       if (!str) return str;
       let cleaned = str;
@@ -1346,7 +1349,6 @@ document.addEventListener('click', function (event) {
         /\s*,\s*Dark\s*Brown\s*Eyes/gi,
         /\s*\(?\s*eyes\s*\)?/gi,
         /\s*eyes/gi,
-        // Extra aggressive for Broad Breasted cross offspring
         /\s*\(Dark\s*Brown\s*Eyes\)/gi,
         /Dark\s*Brown\s*Eyes\s*$/gi
       ];
@@ -1354,55 +1356,36 @@ document.addEventListener('click', function (event) {
       return cleaned.replace(/\s*[,;()]\s*$/, '').trim();
     }
 
-    // Patch visible offspring text – force correct name + strip eyes
     document.querySelectorAll("#maleOffspringResults li, #femaleOffspringResults li").forEach(li => {
       let html = li.innerHTML;
       if (!html) return;
-
-      // If this is a Broad Breasted cross, force Broad Breasted White for bb cc cases
-      if (isBroadBreastedCross()) {
-        html = html.replace(/\bBroad\s*Breasted\s*White\s*\(Dark\s*Brown\s*Eyes\)/gi, "Broad Breasted White");
-        html = html.replace(/\bBroad\s*Breasted\s*White\s*\([^)]*\)/gi, "Broad Breasted White");
-      }
-
       html = html.replace(/\bWhite\b(?=\s*\()/gi, displayName)
                  .replace(/\bBronze\b/gi, displayName)
                  .replace(/To Be Defined/gi, displayName);
-
       html = stripEyeNotes(html);
       li.innerHTML = html.trim();
     });
 
-    // Patch summary chart – same aggressive replacement
     const summaryBody = document.querySelector("#summaryChart tbody");
     if (summaryBody) {
       summaryBody.querySelectorAll("tr").forEach(tr => {
         const phenoCell = tr.cells?.[1];
         if (!phenoCell) return;
         let text = phenoCell.textContent || "";
-
-        if (isBroadBreastedCross()) {
-          text = text.replace(/\bBroad\s*Breasted\s*White\s*\(Dark\s*Brown\s*Eyes\)/gi, "Broad Breasted White");
-          text = text.replace(/\bBroad\s*Breasted\s*White\s*\([^)]*\)/gi, "Broad Breasted White");
-        }
-
         text = text.replace(/\bWhite\b(?=\s*\()/gi, displayName)
                    .replace(/\bBronze\b/gi, displayName)
                    .replace(/to be defined/gi, displayName);
-
         text = stripEyeNotes(text);
         phenoCell.textContent = text.trim();
       });
     }
 
-    // Patch internal arrays & force correct standard images (override any dark-eye variants)
     function patchWhiteOffspringArray(arr) {
       if (!Array.isArray(arr)) return;
       arr.forEach(o => {
         if (!o) return;
         if (o.picturePath) {
           const file = o.picturePath.split("/").pop()?.toLowerCase() || "";
-          // Force standard Broad Breasted White images if it's a white variant with bad eyes
           if (file.includes("white") || file.includes("darkbrowneyes")) {
             if (file.startsWith("m")) o.picturePath = "https://portersturkeys.github.io/Pictures/" + data.male;
             if (file.startsWith("f")) o.picturePath = "https://portersturkeys.github.io/Pictures/" + data.female;
@@ -1421,7 +1404,6 @@ document.addEventListener('click', function (event) {
     if (window.maleOffspring) patchWhiteOffspringArray(window.maleOffspring);
     if (window.femaleOffspring) patchWhiteOffspringArray(window.femaleOffspring);
 
-    // Force images on DOM elements too
     document.querySelectorAll("#maleOffspringResults img, #femaleOffspringResults img").forEach(img => {
       const file = img.src.split("/").pop()?.toLowerCase() || "";
       if (file.includes("white") || file.includes("darkbrowneyes")) {
@@ -1513,7 +1495,6 @@ document.addEventListener('click', function (event) {
     }
   });
 })();
-
 
 ////////////////////////////////
 
