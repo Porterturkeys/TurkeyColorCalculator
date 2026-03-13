@@ -1289,50 +1289,69 @@ document.addEventListener('click', function (event) {
     }
   }
 
-  // FIXED TRANSFER HOOK - preserves specific named white variety on continue
-  if (typeof window.transferOffspringToParent === "function" && !window._whiteTransferPatchedGenotypeAware) {
-    window._whiteTransferPatchedGenotypeAware = true;
-    const origTransfer = window.transferOffspringToParent;
-    window.transferOffspringToParent = function(genotype, parent) {
-      const res = origTransfer.apply(this, arguments);
-      if (parent !== "sire" && parent !== "dam") return res;
+    
 
-      const container = document.getElementById(parent + "ImageContainer");
-      if (!container) return res;
+if (typeof window.transferOffspringToParent === "function" && !window._whiteTransferPatchedGenotypeAwareV2) {
+  window._whiteTransferPatchedGenotypeAwareV2 = true;
 
-      const shouldBeWhite = isWhiteGenotype(genotype);
-      if (shouldBeWhite) {
-        // FIXED: Determine specific key from genotype or current variety input
-        let key = whiteState[parent] || container.dataset.whiteKey;
-        if (!key) {
-          // Fallback: Check variety input for specific match
-          const inputVal = norm(document.getElementById(parent + "VarietyInput")?.value || "");
-          key = WHITE_VARIETY_MAP[inputVal] || 'broad';  // default to broad only if no match
-        }
+  const origTransfer = window.transferOffspringToParent;
 
-        if (key) {
-          container.dataset.whiteKey = key;
-          whiteState[parent] = key;  // preserve specific key
-          setTimeout(() => forceApplyWhite(parent), 80);
-          setTimeout(() => forceApplyWhite(parent), 300);
+  window.transferOffspringToParent = function(genotype, parent) {
+    const res = origTransfer.apply(this, arguments);
 
-          // FIXED: Set variety input to the specific named white, not always Broad Breasted
-          const varietyInput = document.getElementById(parent + "VarietyInput");
-          if (varietyInput) {
-            // Find the original name from variants
-            const originalName = Object.values(WHITE_VARIANTS).find(v => v.name.toLowerCase().includes(key))?.name || data.name;
-            varietyInput.value = originalName;
-          }
-        }
-      } else {
-        whiteState[parent] = null;
-        delete container.dataset.whiteKey;
-      }
+    if (parent !== "sire" && parent !== "dam") return res;
 
+    const container = document.getElementById(parent + "ImageContainer");
+    if (!container) return res;
+
+    const shouldBeWhite = isWhiteGenotype(genotype);
+    
+    if (!shouldBeWhite) {
+      whiteState[parent] = null;
+      delete container.dataset.whiteKey;
       return res;
-    };
-  }
+    }
 
+    // ────────────────────────────────────────────────
+    // Try to recover the most specific white variety we know about
+    // Priority: 1. already stored key  2. current input  3. broad (last resort)
+    // ────────────────────────────────────────────────
+    let key = whiteState[parent] 
+           || container.dataset.whiteKey
+           || (function() {
+                const input = document.getElementById(parent + "VarietyInput");
+                const val = norm(input?.value);
+                return val ? WHITE_VARIETY_MAP[val] : null;
+              })()
+           || 'broad';
+
+    // Preserve it aggressively
+    whiteState[parent] = key;
+    container.dataset.whiteKey = key;
+
+    // Force correct name + image + bb cc
+    setTimeout(() => forceApplyWhite(parent), 40);
+    setTimeout(() => forceApplyWhite(parent), 180);
+    setTimeout(() => forceApplyWhite(parent), 400);   // extra insurance — some UIs re-render late
+
+    // ────────────────────────────────────────────────
+    // Most important: set the variety INPUT to the proper display name
+    // ────────────────────────────────────────────────
+    const varietyInput = document.getElementById(parent + "VarietyInput");
+    if (varietyInput) {
+      const desiredName = WHITE_VARIANTS[key]?.name || "Broad Breasted White";
+      varietyInput.value = desiredName;
+
+      // Some calculators have an onChange / onInput listener → trigger it
+      varietyInput.dispatchEvent(new Event('input',  { bubbles: true }));
+      varietyInput.dispatchEvent(new Event('change', { bubbles: true }));
+    }
+
+    return res;
+  };
+}
+
+    
   function applyWhiteToParent(prefix) {
     const cSel = document.getElementById(prefix + "AlleleC");
     const inputVal = norm(document.getElementById(prefix + "VarietyInput")?.value || "");
