@@ -1190,9 +1190,8 @@ document.addEventListener('click', function (event) {
 });
 /////////////////////////////////
 // ===========================================
-// WHITE VARIANTS OVERLAY – FINAL COMPLETE VERSION WITH TRANSFER OVERRIDE
-// Preserves named whites (Beltsville, Midget, Holland) when used
-// Forces generic "White (Dark Brown Eyes)" on generic bb cc offspring transfers
+// WHITE VARIANTS OVERLAY – AGGRESSIVE GENERIC WHITE FIX WITH MUTATION OBSERVER
+// Now watches variety input for changes and forces "White (Dark Brown Eyes)" if core sets "Broad Breasted White" during generic transfers
 // ===========================================
 (function () {
   'use strict';
@@ -1243,7 +1242,7 @@ document.addEventListener('click', function (event) {
     const key = container.dataset.whiteKey || whiteState[prefix];
 
     if (forceGeneric || !key) {
-      // Force generic white display
+      // Force generic white
       const img = container.querySelector("img");
       if (img) {
         const isDam = prefix === "dam";
@@ -1259,15 +1258,12 @@ document.addEventListener('click', function (event) {
         }
         span.textContent = "White (Dark Brown Eyes)";
       }
-      // Aggressive cleanup of any lingering "Broad Breasted White" text
       const info = document.getElementById(prefix + "InfoContainer");
       if (info) {
         info.querySelectorAll("span, div, strong, p").forEach(el => {
           let t = el.textContent || "";
-          if (t.toLowerCase().includes("broad") || t.includes("breasted") || t.includes("To Be Defined")) {
-            if (!t.includes("Dark Brown Eyes")) {
-              el.textContent = "White (Dark Brown Eyes)";
-            }
+          if (/broad|breasted|white/i.test(t) && !/dark brown eyes/i.test(t)) {
+            el.textContent = "White (Dark Brown Eyes)";
           }
         });
       }
@@ -1309,13 +1305,12 @@ document.addEventListener('click', function (event) {
     }
   }
 
-  // TRANSFER HOOK – OVERRIDES INPUT VALUE AFTER CORE TRANSFER SETS "Broad Breasted White"
-  if (typeof window.transferOffspringToParent === "function" && !window._whiteTransferPatchedFinalOverride) {
-    window._whiteTransferPatchedFinalOverride = true;
+  // TRANSFER HOOK – OVERRIDE TO GENERIC IF NOT NAMED
+  if (typeof window.transferOffspringToParent === "function" && !window._whiteTransferPatchedAggressive) {
+    window._whiteTransferPatchedAggressive = true;
     const origTransfer = window.transferOffspringToParent;
     window.transferOffspringToParent = function(genotype, parent) {
       const res = origTransfer.apply(this, arguments);
-
       if (parent !== "sire" && parent !== "dam") return res;
 
       const varietyInput = document.getElementById(parent + "VarietyInput");
@@ -1329,40 +1324,59 @@ document.addEventListener('click', function (event) {
         return res;
       }
 
-      // Delay to let original transfer finish setting input value
+      // Delay to let core transfer set value
       setTimeout(() => {
         const currentVal = norm(varietyInput.value || "");
-        const isNamed = WHITE_VARIETY_MAP[currentVal] && !currentVal.includes("dark brown eyes");
+        const isGeneric = currentVal.includes("dark brown eyes") || currentVal === "white" || !WHITE_VARIETY_MAP[currentVal];
 
-        // If clearly a named variety was already there (from parent before offspring), preserve it
-        if (isNamed && whiteState[parent]) {
-          const key = whiteState[parent];
-          varietyInput.value = WHITE_VARIANTS[key]?.name || currentVal;
-          forceApplyWhite(parent, false);
-        } else {
-          // Override to generic white - this counters the core setting "Broad Breasted White"
+        if (isGeneric) {
+          // Force generic
           varietyInput.value = "White (Dark Brown Eyes)";
           whiteState[parent] = null;
           delete container.dataset.whiteKey;
           forceApplyWhite(parent, true);
+        } else {
+          // Preserve named if explicitly set
+          const key = WHITE_VARIETY_MAP[currentVal];
+          if (key) {
+            whiteState[parent] = key;
+            container.dataset.whiteKey = key;
+            forceApplyWhite(parent, false);
+          }
         }
 
-        // Force immediate phenotype/image rebuild
-        if (parent === "sire" && typeof window.updateSireGenotype === "function") {
-          window.updateSireGenotype();
-        }
-        if (parent === "dam" && typeof window.updateDamGenotype === "function") {
-          window.updateDamGenotype();
-        }
+        // Force rebuild
+        const updateFn = parent === "sire" ? window.updateSireGenotype : window.updateDamGenotype;
+        updateFn?.();
+        setTimeout(() => forceApplyWhite(parent, isGeneric), 300);
 
-        // Extra delay for any late DOM or async updates
-        setTimeout(() => forceApplyWhite(parent, true), 400);
-
-      }, 200);  // 200ms delay – enough to override core transfer but still feel responsive
+      }, 200);
 
       return res;
     };
   }
+
+  // NEW: MUTATION OBSERVER TO WATCH VARIETY INPUT AND FORCE GENERIC IF "BROAD BREASTED WHITE" APPEARS DURING TRANSFER
+  function installVarietyInputObserver(prefix) {
+    const input = document.getElementById(prefix + "VarietyInput");
+    if (!input) return;
+
+    const obs = new MutationObserver(() => {
+      const val = norm(input.value);
+      if (val === "broad breasted white" || val === "broad-breasted white") {
+        input.value = "White (Dark Brown Eyes)";
+        whiteState[prefix] = null;
+        const container = document.getElementById(prefix + "ImageContainer");
+        if (container) delete container.dataset.whiteKey;
+        forceApplyWhite(prefix, true);
+        const updateFn = prefix === "sire" ? window.updateSireGenotype : window.updateDamGenotype;
+        updateFn?.();
+      }
+    });
+    obs.observe(input, { attributes: true, childList: true, subtree: true, characterData: true });
+  }
+
+  // Your other functions (applyWhiteToParent, applyWhiteToOffspring, installWhiteOffspringObserver, wrapVarietyFn) as before
 
   function applyWhiteToParent(prefix) {
     const cSel = document.getElementById(prefix + "AlleleC");
@@ -1505,6 +1519,12 @@ document.addEventListener('click', function (event) {
       return res;
     };
   }
+
+  // Install observers on variety inputs to catch and correct "Broad Breasted White" during transfer
+  window.addEventListener("load", () => {
+    installVarietyInputObserver("sire");
+    installVarietyInputObserver("dam");
+  });
 
   window.addEventListener("load", () => {
     wrapVarietyFn("applyVarietyToSire", "sire");
