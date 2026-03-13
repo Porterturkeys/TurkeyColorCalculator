@@ -1291,8 +1291,12 @@ document.addEventListener('click', function (event) {
 
     
 
-if (typeof window.transferOffspringToParent === "function" && !window._whiteTransferPatchedGenotypeAwareV2) {
-  window._whiteTransferPatchedGenotypeAwareV2 = true;
+// ============================================================================
+// WHITE VARIANTS – IMPROVED TRANSFER HOOK v3
+// Aggressively preserves Midget White / Beltsville Small White / White Holland
+// ============================================================================
+if (typeof window.transferOffspringToParent === "function" && !window._whiteTransferPatchedV3) {
+  window._whiteTransferPatchedV3 = true;
 
   const origTransfer = window.transferOffspringToParent;
 
@@ -1305,46 +1309,66 @@ if (typeof window.transferOffspringToParent === "function" && !window._whiteTran
     if (!container) return res;
 
     const shouldBeWhite = isWhiteGenotype(genotype);
-    
     if (!shouldBeWhite) {
       whiteState[parent] = null;
       delete container.dataset.whiteKey;
       return res;
     }
 
-    // ────────────────────────────────────────────────
-    // Try to recover the most specific white variety we know about
-    // Priority: 1. already stored key  2. current input  3. broad (last resort)
-    // ────────────────────────────────────────────────
+    // ───────────────────────────────────────
+    // 1. Recover best known specific variety
+    // ───────────────────────────────────────
     let key = whiteState[parent] 
            || container.dataset.whiteKey
            || (function() {
-                const input = document.getElementById(parent + "VarietyInput");
-                const val = norm(input?.value);
-                return val ? WHITE_VARIETY_MAP[val] : null;
+                const v = document.getElementById(parent + "VarietyInput")?.value?.trim().toLowerCase() || "";
+                return WHITE_VARIETY_MAP[v] || null;
               })()
            || 'broad';
 
-    // Preserve it aggressively
+    const desiredName = WHITE_VARIANTS[key]?.name || "Broad Breasted White";
+
+    // Preserve immediately
     whiteState[parent] = key;
     container.dataset.whiteKey = key;
 
-    // Force correct name + image + bb cc
-    setTimeout(() => forceApplyWhite(parent), 40);
-    setTimeout(() => forceApplyWhite(parent), 180);
-    setTimeout(() => forceApplyWhite(parent), 400);   // extra insurance — some UIs re-render late
-
-    // ────────────────────────────────────────────────
-    // Most important: set the variety INPUT to the proper display name
-    // ────────────────────────────────────────────────
     const varietyInput = document.getElementById(parent + "VarietyInput");
-    if (varietyInput) {
-      const desiredName = WHITE_VARIANTS[key]?.name || "Broad Breasted White";
-      varietyInput.value = desiredName;
 
-      // Some calculators have an onChange / onInput listener → trigger it
-      varietyInput.dispatchEvent(new Event('input',  { bubbles: true }));
-      varietyInput.dispatchEvent(new Event('change', { bubbles: true }));
+    // ───────────────────────────────────────
+    // 2. Force name + image + alleles (multiple attempts)
+    // ───────────────────────────────────────
+    const reapply = () => {
+      forceApplyWhite(parent);
+      if (varietyInput) {
+        varietyInput.value = desiredName;
+        varietyInput.dispatchEvent(new Event('input',  { bubbles: true }));
+        varietyInput.dispatchEvent(new Event('change', { bubbles: true }));
+      }
+    };
+
+    [30, 120, 350, 800, 1400].forEach(delay => setTimeout(reapply, delay));
+
+    // ───────────────────────────────────────
+    // 3. Last resort: watch the input for 2 seconds and re-force if changed
+    // ───────────────────────────────────────
+    if (varietyInput) {
+      let protectCount = 0;
+      const maxProtect = 8; // ~2 sec at 250ms interval
+
+      const interval = setInterval(() => {
+        protectCount++;
+        if (varietyInput.value.trim() !== desiredName) {
+          varietyInput.value = desiredName;
+          varietyInput.dispatchEvent(new Event('change', { bubbles: true }));
+          reapply(); // also re-apply image etc.
+        }
+        if (protectCount >= maxProtect) {
+          clearInterval(interval);
+        }
+      }, 250);
+
+      // safety cleanup
+      setTimeout(() => clearInterval(interval), 2200);
     }
 
     return res;
