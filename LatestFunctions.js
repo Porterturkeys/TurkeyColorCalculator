@@ -1522,9 +1522,280 @@ document.addEventListener('click', function (event) {
 
 ////////////////////////////////////////
 
+// ===========================================
+// BROAD BREASTED BRONZE + WHITE OVERLAY – FIXED VERSION
+// No longer forces "Broad Breasted White" on generic bb cc or crossed-named-white offspring
+// Only applies BB White name if input explicitly indicates broad white variety
+// ===========================================
+(function () {
+  'use strict';
 
+  const BRONZE = {
+    name: "Broad Breasted Bronze",
+    male: "MBroadBreastedBronze.jpg",
+    female: "FBroadBreastedBronze.jpg",
+    poult: "PBroadBreastedBronze.jpg"
+  };
 
+  const BROAD_WHITE = {   // renamed for clarity – only used when explicitly broad
+    name: "Broad Breasted White",
+    male: "MBroadBreastedWhite.jpg",
+    female: "FBroadBreastedWhite.jpg",
+    poult: "PBroadBreastedWhite.jpg"
+  };
 
+  const BRONZE_MAP = {
+    "broad breasted bronze": true, "broad-breasted bronze": true,
+    "mammoth bronze": true, "orlopp bronze": true,
+    "breasted bronze": true, "bronze breasted": true, "large bronze": true
+  };
+
+  const BROAD_WHITE_MAP = {
+    "broad breasted white": true, "broad-breasted white": true,
+    "giant white": true, "commercial white": true,
+    "large white": true, "broad white": true, "breasted white": true
+  };
+
+  const state = { sire: null, dam: null }; // "bronze" or "broad-white" or null
+
+  function norm(str) {
+    return (str || "").trim().toLowerCase();
+  }
+
+  function detectType(prefix) {
+    const input = document.getElementById(prefix + "VarietyInput");
+    const val = norm(input?.value || "");
+    let type = null;
+
+    if (BRONZE_MAP[val] || val.includes("bronze")) {
+      type = "bronze";
+    } else if (BROAD_WHITE_MAP[val]) {
+      type = "broad-white";
+    }
+
+    state[prefix] = type;
+    const container = document.getElementById(prefix + "ImageContainer");
+    if (container) {
+      if (type) container.dataset.bbType = type;
+      else delete container.dataset.bbType;
+    }
+    return type;
+  }
+
+  function forceApply(prefix) {
+    const container = document.getElementById(prefix + "ImageContainer");
+    if (!container) return;
+
+    const type = state[prefix];
+    if (!type) return;
+
+    const data = type === "bronze" ? BRONZE : BROAD_WHITE;
+
+    const bId = prefix === "sire" ? "sireAlleleb" : "damAlleleb";
+    const cId = prefix === "sire" ? "sireAlleleC" : "damAlleleC";
+    const bSel = document.getElementById(bId);
+    const cSel = document.getElementById(cId);
+
+    // Always ensure bb (both bronze and white need bb)
+    if (bSel && bSel.value !== "bb") {
+      bSel.value = "bb";
+    }
+
+    // Only force cc for explicit broad-white type
+    if (type === "broad-white" && cSel && cSel.value !== "cc") {
+      cSel.value = "cc";
+    }
+
+    // Update genotype display
+    if (prefix === "sire" && typeof updateSireGenotype === "function") updateSireGenotype();
+    if (prefix === "dam" && typeof updateDamGenotype === "function") updateDamGenotype();
+
+    // Image
+    const img = container.querySelector("img");
+    if (img) {
+      img.src = "https://portersturkeys.github.io/Pictures/" + (prefix === "dam" ? data.female : data.male);
+    }
+
+    // Name – only set if we have explicit broad-white type
+    const strong = container.querySelector("strong");
+    if (strong && type === "broad-white") {
+      let span = strong.querySelector("span");
+      if (!span) {
+        span = document.createElement("span");
+        strong.innerHTML = '';
+        strong.appendChild(span);
+      }
+      span.textContent = data.name;
+    }
+
+    // Cleanup – only replace if we are forcing broad-white
+    const info = document.getElementById(prefix + "InfoContainer");
+    if (info && type === "broad-white") {
+      info.querySelectorAll("span, div, strong").forEach(el => {
+        if (/bronze|white.*eyes|to be defined/i.test(el.textContent || "")) {
+          el.textContent = data.name;
+        }
+      });
+    }
+  }
+
+  function applyToOffspring() {
+    if (!state.sire || !state.dam) return;
+
+    // Only patch if both parents are same explicit type (bronze or broad-white)
+    if (state.sire !== state.dam) return;
+
+    const type = state.sire;
+    const data = type === "bronze" ? BRONZE : BROAD_WHITE;
+    const displayName = data.name;
+
+    // Patch arrays, text, images only for matching explicit type
+    function patchArray(arr) {
+      if (!Array.isArray(arr)) return;
+      arr.forEach(o => {
+        if (!o) return;
+        if (o.phenotype) {
+          o.phenotype = o.phenotype
+            .replace(/\bBronze\b/gi, displayName)
+            .replace(/\bWhite\b/gi, displayName)
+            .replace(/To Be Defined/gi, displayName);
+        }
+        if (o.picturePath) {
+          const f = o.picturePath.split("/").pop()?.toLowerCase() || "";
+          if (f === "mbronze.jpg") o.picturePath = "https://portersturkeys.github.io/Pictures/" + data.male;
+          if (f === "fbronze.jpg") o.picturePath = "https://portersturkeys.github.io/Pictures/" + data.female;
+          if (f === "pbronze.jpg") o.picturePath = "https://portersturkeys.github.io/Pictures/" + data.poult;
+        }
+        // poultImagePath similar...
+      });
+    }
+
+    if (window.maleOffspring) patchArray(window.maleOffspring);
+    if (window.femaleOffspring) patchArray(window.femaleOffspring);
+
+    // Patch visible text & images only when both parents match explicit type
+    // (generic whites from named crosses are left alone)
+    document.querySelectorAll("#maleOffspringResults li, #femaleOffspringResults li").forEach(li => {
+      let html = li.innerHTML;
+      if (html.includes(displayName)) return;
+      html = html.replace(/\bBronze\b/gi, displayName)
+                 .replace(/\bWhite\b/gi, displayName)
+                 .replace(/To Be Defined/gi, displayName);
+      li.innerHTML = html.trim();
+    });
+
+    // Summary chart similar (optional – skip if you want to leave generic)
+
+    // Images – only replace bronze files, leave generic white images untouched
+    document.querySelectorAll("#maleOffspringResults img, #femaleOffspringResults img").forEach(img => {
+      const file = img.src.split("/").pop()?.toLowerCase() || "";
+      if (file === "mbronze.jpg") img.src = "https://portersturkeys.github.io/Pictures/" + BRONZE.male;
+      if (file === "fbronze.jpg") img.src = "https://portersturkeys.github.io/Pictures/" + BRONZE.female;
+      if (file === "pbronze.jpg") img.src = "https://portersturkeys.github.io/Pictures/" + BRONZE.poult;
+      // Do NOT force generic white images here – let them stay as-is
+    });
+  }
+
+  function wrapVarietyFn(fnName, prefix) {
+    const orig = window[fnName];
+    if (typeof orig !== "function" || orig._bbWrapped) return;
+    window[fnName] = function (...args) {
+      const res = orig.apply(this, args);
+      if (detectType(prefix)) {
+        setTimeout(() => forceApply(prefix), 100);
+        setTimeout(() => forceApply(prefix), 400);
+      }
+      return res;
+    };
+    window[fnName]._bbWrapped = true;
+  }
+
+  window.addEventListener("load", () => {
+    wrapVarietyFn("applyVarietyToSire", "sire");
+    wrapVarietyFn("applyVarietyToDam", "dam");
+
+    if (typeof window.resetCalculator === "function") {
+      const orig = window.resetCalculator;
+      window.resetCalculator = function (...args) {
+        const res = orig.apply(this, args);
+        state.sire = state.dam = null;
+        ["sire", "dam"].forEach(p => {
+          const c = document.getElementById(p + "ImageContainer");
+          if (c) delete c.dataset.bbType;
+        });
+        return res;
+      };
+    }
+
+    // TRANSFER – only force name if blank/to be defined AND genotype clearly bronze (not cc)
+    if (typeof window.transferOffspringToParent === "function" && !window._bbTransferPatchedSafe) {
+      window._bbTransferPatchedSafe = true;
+      const orig = window.transferOffspringToParent;
+      window.transferOffspringToParent = function (genotype, parent) {
+        const res = orig.apply(this, arguments);
+        if (parent !== "sire" && parent !== "dam") return res;
+
+        const varietyInput = document.getElementById(parent + "VarietyInput");
+        const container = document.getElementById(parent + "ImageContainer");
+        if (!varietyInput || !container) return res;
+
+        state[parent] = null;
+        delete container.dataset.bbType;
+
+        let val = norm(varietyInput.value || "");
+        let type = null;
+
+        if (BRONZE_MAP[val] || val.includes("bronze")) {
+          type = "bronze";
+        } else if (BROAD_WHITE_MAP[val]) {
+          type = "broad-white";
+        }
+
+        // Genotype fallback – only bronze if NOT cc
+        if (!type) {
+          const geno = String(genotype || "");
+          const hasBB = /\bbb\b/.test(geno);
+          const hascc = /\bcc\b/.test(geno);
+          if (hasBB && !hascc) type = "bronze";
+          // Do NOT auto-set "broad-white" here – let generic cc stay generic
+        }
+
+        if (type) {
+          state[parent] = type;
+          container.dataset.bbType = type;
+          setTimeout(() => forceApply(parent), 50);
+          setTimeout(() => forceApply(parent), 150);
+          setTimeout(() => forceApply(parent), 300);
+
+          // Only set input name if blank or "to be defined"
+          const targetName = type === "broad-white" ? BROAD_WHITE.name : BRONZE.name;
+          if (!varietyInput.value.trim() || varietyInput.value.trim().toLowerCase().includes("to be defined")) {
+            varietyInput.value = targetName;
+          }
+        }
+
+        return res;
+      };
+    }
+
+    if (typeof window.calculateOffspringWrapper === "function" && !window._bbCalcPatchedSafe) {
+      window._bbCalcPatchedSafe = true;
+      const orig = window.calculateOffspringWrapper;
+      window.calculateOffspringWrapper = function (...args) {
+        const res = orig.apply(this, args);
+        setTimeout(() => {
+          ["sire", "dam"].forEach(prefix => {
+            if (state[prefix]) forceApply(prefix);
+          });
+          applyToOffspring();
+        }, 200);
+        return res;
+      };
+    }
+  });
+})();
+
+////////////////////////////////
 
 
 // =====================================================
