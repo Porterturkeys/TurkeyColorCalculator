@@ -1290,8 +1290,12 @@ document.addEventListener('click', function (event) {
   }
 
     
-if (typeof window.transferOffspringToParent === "function" && !window._whiteTransferPatchedV4) {
-  window._whiteTransferPatchedV4 = true;
+// ============================================================================
+// WHITE VARIANTS – TRANSFER HOOK v5 (FORCE GENERIC WHITE ON TRANSFER)
+// Stops reversion to Broad Breasted White; sets "White (Dark Brown Eyes)"
+// ============================================================================
+if (typeof window.transferOffspringToParent === "function" && !window._whiteTransferPatchedV5) {
+  window._whiteTransferPatchedV5 = true;
 
   const origTransfer = window.transferOffspringToParent;
 
@@ -1310,42 +1314,53 @@ if (typeof window.transferOffspringToParent === "function" && !window._whiteTran
       return res;
     }
 
-    // For white offspring: ALWAYS force generic unless pure same-variety line
-    let key = 'broad'; // default images/alleles
-    let displayName = "White (Dark Brown Eyes)";
+    // Force generic for transferred white offspring (mixed or not)
+    const genericName = "White (Dark Brown Eyes)";
+    const key = 'broad'; // Use broad for images/alleles (generic white pics)
 
-    // Optional: preserve only if parents were identical named whites
-    if (whiteState.sire && whiteState.dam && whiteState.sire === whiteState.dam) {
-      key = whiteState.sire;
-      displayName = WHITE_VARIANTS[key]?.name || displayName;
-    }
-
-    whiteState[parent] = key; // still track for images/alleles
+    whiteState[parent] = key;
     container.dataset.whiteKey = key;
 
     const varietyInput = document.getElementById(parent + "VarietyInput");
+
     const forceGeneric = () => {
-      forceApplyWhite(parent); // images, labels, bb/cc
+      // Re-apply bb cc + images + labels
+      forceApplyWhite(parent);
+
       if (varietyInput) {
-        varietyInput.value = displayName;
+        varietyInput.value = genericName;
+
+        // Trigger any listeners aggressively
         varietyInput.dispatchEvent(new Event('input', { bubbles: true }));
         varietyInput.dispatchEvent(new Event('change', { bubbles: true }));
+        varietyInput.dispatchEvent(new Event('blur', { bubbles: true })); // Some UIs use blur to commit
+
+        // If it's a <select> dropdown, try to match option text
+        Array.from(varietyInput.options || []).forEach(opt => {
+          if (opt.text.trim().toLowerCase().includes('white') && opt.text.trim().toLowerCase().includes('dark')) {
+            varietyInput.value = opt.value;
+          }
+        });
       }
     };
 
-    // Hammer it home with escalating delays
-    [50, 200, 500, 1000, 1800].forEach(d => setTimeout(forceGeneric, d));
+    // Multiple attempts with longer delays to outlast calculator resets
+    [100, 400, 900, 1600, 2500, 4000].forEach(delay => setTimeout(forceGeneric, delay));
 
-    // Watchdog interval if calculator fights back
+    // Persistent watcher (every 400ms for 5 seconds)
     if (varietyInput) {
       const watcher = setInterval(() => {
-        if (varietyInput.value.trim() !== displayName) {
-          varietyInput.value = displayName;
+        const currentVal = varietyInput.value?.trim() || '';
+        if (currentVal !== genericName && !currentVal.toLowerCase().includes('dark brown eyes')) {
+          varietyInput.value = genericName;
           varietyInput.dispatchEvent(new Event('change', { bubbles: true }));
+          varietyInput.dispatchEvent(new Event('input', { bubbles: true }));
           forceGeneric();
         }
-      }, 300);
-      setTimeout(() => clearInterval(watcher), 3000); // stop after ~3s
+      }, 400);
+
+      // Stop watcher after 5-6 seconds
+      setTimeout(() => clearInterval(watcher), 6000);
     }
 
     return res;
