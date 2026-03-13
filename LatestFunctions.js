@@ -1440,6 +1440,8 @@ document.addEventListener('click', function (event) {
   }
 });
 
+  }
+
   function installWhiteOffspringObserver() {
     let patching = false;
     const targets = [
