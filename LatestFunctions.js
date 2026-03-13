@@ -2902,9 +2902,106 @@ window.addEventListener("load", () => {
     console.log("[Auto-Reset] Sire & Dam variety inputs now auto-clear genotypes on empty/change (with wild bb fix)");
 })();
 
+///////////////////////////////////////
 
+// ================================================
+// PARENT DISPLAY OVERRIDE: FORCE GENERIC WHITE WHEN BB CC
+// Hooks updateSireGenotype / updateDamGenotype to prevent "Broad Breasted White" on generic white parents
+// ================================================
+(function () {
+  'use strict';
 
+  // Helper: Check if current alleles = bb cc (generic white)
+  function isGenericWhite(prefix) {
+    const bId = prefix + "Alleleb";
+    const cId = prefix + "AlleleC";
+    const bVal = document.getElementById(bId)?.value?.trim().toLowerCase() || "";
+    const cVal = document.getElementById(cId)?.value?.trim().toLowerCase() || "";
+    return bVal === "bb" && cVal === "cc";
+  }
 
+  // Force generic white display (same as in white overlay)
+  function forceGenericWhiteDisplay(prefix) {
+    const container = document.getElementById(prefix + "ImageContainer");
+    if (!container) return;
+
+    const img = container.querySelector("img");
+    if (img) {
+      const isDam = prefix === "dam";
+      img.src = "https://portersturkeys.github.io/Pictures/" + (isDam ? "FBroadBreastedWhite.jpg" : "MBroadBreastedWhite.jpg");
+    }
+
+    const strong = container.querySelector("strong");
+    if (strong) {
+      let span = strong.querySelector("span");
+      if (!span) {
+        span = document.createElement("span");
+        strong.innerHTML = '';
+        strong.appendChild(span);
+      }
+      span.textContent = "White (Dark Brown Eyes)";
+    }
+
+    // Clear any Broad text in info container
+    const info = document.getElementById(prefix + "InfoContainer");
+    if (info) {
+      info.querySelectorAll("span, div, strong, p").forEach(el => {
+        let t = el.textContent || "";
+        if (/broad|breasted/i.test(t.toLowerCase()) && !/dark brown eyes/i.test(t)) {
+          el.textContent = "White (Dark Brown Eyes)";
+        }
+      });
+    }
+
+    // Also force variety input to generic
+    const input = document.getElementById(prefix + "VarietyInput");
+    if (input && norm(input.value) !== "white (dark brown eyes)") {
+      input.value = "White (Dark Brown Eyes)";
+    }
+  }
+
+  // Hook update functions
+  function hookUpdate(prefix) {
+    const fnName = prefix === "sire" ? "updateSireGenotype" : "updateDamGenotype";
+    if (typeof window[fnName] !== "function") return;
+
+    const original = window[fnName];
+    window[fnName] = function () {
+      const result = original.apply(this, arguments);
+
+      // After original update, check if bb cc → force generic
+      if (isGenericWhite(prefix)) {
+        console.log(`[FORCE GENERIC] Detected bb cc in ${prefix} - overriding display`);
+        forceGenericWhiteDisplay(prefix);
+      }
+
+      return result;
+    };
+  }
+
+  window.addEventListener("load", () => {
+    hookUpdate("sire");
+    hookUpdate("dam");
+
+    // Also run once on page load / reset in case stale state
+    if (isGenericWhite("sire")) forceGenericWhiteDisplay("sire");
+    if (isGenericWhite("dam")) forceGenericWhiteDisplay("dam");
+  });
+
+  // Extra safety: if setGenotypeImage exists, hook it too
+  if (typeof window.setGenotypeImage === "function") {
+    const origSetImage = window.setGenotypeImage;
+    window.setGenotypeImage = function (...args) {
+      const result = origSetImage.apply(this, args);
+      // Check both parents after any image set
+      if (isGenericWhite("sire")) forceGenericWhiteDisplay("sire");
+      if (isGenericWhite("dam")) forceGenericWhiteDisplay("dam");
+      return result;
+    };
+  }
+
+  console.log("[GENERIC WHITE OVERRIDE] Hooks installed on updateSireGenotype, updateDamGenotype, setGenotypeImage");
+})();
 
 
 
