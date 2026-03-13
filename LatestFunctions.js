@@ -1422,17 +1422,23 @@ document.addEventListener('click', function (event) {
     if (window.maleOffspring) patchWhiteOffspringArray(window.maleOffspring);
     if (window.femaleOffspring) patchWhiteOffspringArray(window.femaleOffspring);
 
-    document.querySelectorAll("#maleOffspringResults img, #femaleOffspringResults img").forEach(img => {
-      const file = img.src.split("/").pop()?.toLowerCase() || "";
-      if (file.includes("white") || file.includes("darkbrowneyes")) {
-        if (img.closest("#maleOffspringResults")) {
-          img.src = "https://portersturkeys.github.io/Pictures/" + data.male;
-        } else {
-          img.src = "https://portersturkeys.github.io/Pictures/" + data.female;
-        }
-      }
-    });
+   document.querySelectorAll("#maleOffspringResults img, #femaleOffspringResults img").forEach(img => {
+  const file = img.src.split("/").pop()?.toLowerCase() || "";
+  const srcLower = img.src.toLowerCase();
+
+  if (file.includes("white") || file.includes("darkbrowneyes")) {
+    const isPoult = file.startsWith("p");
+    const isMale = img.closest("#maleOffspringResults");
+
+    if (isPoult) {
+      img.src = "https://portersturkeys.github.io/Pictures/" + data.poult;
+    } else if (isMale) {
+      img.src = "https://portersturkeys.github.io/Pictures/" + data.male;
+    } else {
+      img.src = "https://portersturkeys.github.io/Pictures/" + data.female;
+    }
   }
+});
 
   function installWhiteOffspringObserver() {
     let patching = false;
