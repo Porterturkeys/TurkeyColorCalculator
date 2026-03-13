@@ -1191,11 +1191,8 @@ document.addEventListener('click', function (event) {
 /////////////////////////////////
 
 // ===========================================
-// WHITE VARIANTS OVERLAY – IMPROVED TRANSFER LOGIC (DEBUG VERSION)
-// Goal:
-// - Preserve NAMED white varieties (Beltsville, Midget, Holland) when they appear
-// - Keep generic "White (Dark Brown Eyes)" when offspring is generic bb cc white
-// - Do NOT force Broad Breasted White on generic white offspring during transfer
+// WHITE VARIANTS OVERLAY – FINAL FIX FOR GENERIC WHITE TRANSFER
+// Forces "White (Dark Brown Eyes)" in input + display even if core transfer sets "Broad Breasted White"
 // ===========================================
 (function () {
   'use strict';
@@ -1221,19 +1218,6 @@ document.addEventListener('click', function (event) {
     return (str || "").trim().toLowerCase();
   }
 
-  function detectWhiteFromVariety(prefix) {
-    const input = document.getElementById(prefix + "VarietyInput");
-    const val = norm(input?.value);
-    const key = WHITE_VARIETY_MAP[val] || null;
-    whiteState[prefix] = key;
-    const container = document.getElementById(prefix + "ImageContainer");
-    if (container) {
-      if (key) container.dataset.whiteKey = key;
-      else delete container.dataset.whiteKey;
-    }
-    return key;
-  }
-
   function isWhiteGenotype(genotype) {
     const g = String(genotype || "");
     return /\bbb\b/.test(g) && /\bcc\b/.test(g);
@@ -1244,10 +1228,9 @@ document.addEventListener('click', function (event) {
     if (!container) return;
 
     const key = container.dataset.whiteKey || whiteState[prefix];
-    let data;
 
     if (forceGeneric || !key) {
-      // Generic white display
+      // Force generic
       const img = container.querySelector("img");
       if (img) {
         const isDam = prefix === "dam";
@@ -1256,19 +1239,19 @@ document.addEventListener('click', function (event) {
       const strong = container.querySelector("strong");
       if (strong) {
         let span = strong.querySelector("span");
-        if (!span) { 
-          span = document.createElement("span"); 
-          strong.innerHTML = ''; 
-          strong.appendChild(span); 
+        if (!span) {
+          span = document.createElement("span");
+          strong.innerHTML = '';
+          strong.appendChild(span);
         }
         span.textContent = "White (Dark Brown Eyes)";
       }
-      // Also clean any leftover text in info container
+      // Clean any Broad text in info
       const info = document.getElementById(prefix + "InfoContainer");
       if (info) {
         info.querySelectorAll("span, div, strong").forEach(el => {
           let t = el.textContent || "";
-          if (/broad breasted white|to be defined/i.test(t)) {
+          if (t.toLowerCase().includes("broad breasted white") || t.includes("To Be Defined")) {
             el.textContent = "White (Dark Brown Eyes)";
           }
         });
@@ -1276,10 +1259,9 @@ document.addEventListener('click', function (event) {
       return;
     }
 
-    // Named variety
-    data = WHITE_VARIANTS[key];
+    // Named variety forcing (unchanged from your original)
+    const data = WHITE_VARIANTS[key];
     if (!data) return;
-
     const bId = prefix === "sire" ? "sireAlleleb" : "damAlleleb";
     const cId = prefix === "sire" ? "sireAlleleC" : "damAlleleC";
     const bSel = document.getElementById(bId);
@@ -1290,17 +1272,14 @@ document.addEventListener('click', function (event) {
     if (changed) {
       (prefix === "sire" ? window.updateSireGenotype : window.updateDamGenotype)?.();
     }
-
     const img = container.querySelector("img");
     if (img) img.src = "https://portersturkeys.github.io/Pictures/" + (prefix === "dam" ? data.female : data.male);
-
     const strong = container.querySelector("strong");
     if (strong) {
       let span = strong.querySelector("span");
       if (!span) { span = document.createElement("span"); strong.innerHTML = ''; strong.appendChild(span); }
       span.textContent = data.name;
     }
-
     const info = document.getElementById(prefix + "InfoContainer");
     if (info) {
       info.querySelectorAll("span, div, strong").forEach(el => {
@@ -1311,64 +1290,65 @@ document.addEventListener('click', function (event) {
     }
   }
 
-  // ────────────────────────────────────────────────
-  // IMPROVED TRANSFER HOOK WITH DEBUG LOGS
-  // ────────────────────────────────────────────────
-  if (typeof window.transferOffspringToParent === "function" && !window._whiteTransferPatchedDebug) {
-    window._whiteTransferPatchedDebug = true;
+  // TRANSFER HOOK – OVERRIDE INPUT VALUE AFTER ORIGINAL TRANSFER
+  if (typeof window.transferOffspringToParent === "function" && !window._whiteTransferPatchedOverrideInput) {
+    window._whiteTransferPatchedOverrideInput = true;
     const origTransfer = window.transferOffspringToParent;
     window.transferOffspringToParent = function(genotype, parent) {
-      console.log("White transfer hook running for parent:", parent, "genotype:", genotype);
       const res = origTransfer.apply(this, arguments);
+
       if (parent !== "sire" && parent !== "dam") return res;
 
-      const container = document.getElementById(parent + "ImageContainer");
       const varietyInput = document.getElementById(parent + "VarietyInput");
-      if (!container || !varietyInput) return res;
-
-      console.log("After origTransfer, varietyInput.value:", varietyInput.value);
+      const container = document.getElementById(parent + "ImageContainer");
+      if (!varietyInput || !container) return res;
 
       const shouldBeWhite = isWhiteGenotype(genotype);
       if (!shouldBeWhite) {
-        console.log("Not white genotype - clearing state");
         whiteState[parent] = null;
         delete container.dataset.whiteKey;
         return res;
       }
 
-      // Decide: named variety or generic white?
-      const currentVal = norm(varietyInput.value || "");
-      const looksNamed = !!WHITE_VARIETY_MAP[currentVal];
-      const hasStoredKey = !!(whiteState[parent] || container.dataset.whiteKey);
+      // Wait briefly (original transfer may set "Broad Breasted White" async or in DOM update)
+      setTimeout(() => {
+        // Force generic white if not clearly a named variety from before
+        const currentVal = norm(varietyInput.value || "");
+        const isLikelyNamed = WHITE_VARIETY_MAP[currentVal] && !currentVal.includes("dark brown eyes");
 
-      console.log("currentVal (norm):", currentVal);
-      console.log("looksNamed:", looksNamed);
-      console.log("hasStoredKey:", hasStoredKey);
-
-      if (looksNamed || hasStoredKey) {
-        let key = whiteState[parent] || container.dataset.whiteKey || WHITE_VARIETY_MAP[currentVal];
-        console.log("Applying named white:", key, "for", parent);
-        if (key && WHITE_VARIANTS[key]) {
-          container.dataset.whiteKey = key;
-          whiteState[parent] = key;
-          setTimeout(() => forceApplyWhite(parent, false), 100);
-          setTimeout(() => forceApplyWhite(parent, false), 350);
-          varietyInput.value = WHITE_VARIANTS[key].name;
+        if (isLikelyNamed && whiteState[parent]) {
+          // Rare case: preserve named if we had one stored
+          const key = whiteState[parent];
+          varietyInput.value = WHITE_VARIANTS[key]?.name || currentVal;
+          forceApplyWhite(parent, false);
+        } else {
+          // Default to generic - this overrides the Broad Breasted White set by core transfer
+          varietyInput.value = "White (Dark Brown Eyes)";
+          whiteState[parent] = null;
+          delete container.dataset.whiteKey;
+          forceApplyWhite(parent, true);
         }
-      } else {
-        console.log("Applying generic white for", parent);
-        whiteState[parent] = null;
-        delete container.dataset.whiteKey;
-        setTimeout(() => forceApplyWhite(parent, true), 100);
-        setTimeout(() => forceApplyWhite(parent, true), 350);
-        varietyInput.value = "White (Dark Brown Eyes)";
-      }
 
-      console.log("Final varietyInput.value after hook:", varietyInput.value);
+        // Force phenotype/image rebuild
+        if (parent === "sire" && typeof window.updateSireGenotype === "function") {
+          window.updateSireGenotype();
+        }
+        if (parent === "dam" && typeof window.updateDamGenotype === "function") {
+          window.updateDamGenotype();
+        }
+
+        // Extra safety delay for any late UI updates
+        setTimeout(() => forceApplyWhite(parent, true), 300);
+
+      }, 150);  // Increased delay to beat core transfer's value set
 
       return res;
     };
   }
+
+  
+
+    
 
   function applyWhiteToParent(prefix) {
     const cSel = document.getElementById(prefix + "AlleleC");
