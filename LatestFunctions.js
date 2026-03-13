@@ -1290,13 +1290,8 @@ document.addEventListener('click', function (event) {
   }
 
     
-
-// ============================================================================
-// WHITE VARIANTS – IMPROVED TRANSFER HOOK v3
-// Aggressively preserves Midget White / Beltsville Small White / White Holland
-// ============================================================================
-if (typeof window.transferOffspringToParent === "function" && !window._whiteTransferPatchedV3) {
-  window._whiteTransferPatchedV3 = true;
+if (typeof window.transferOffspringToParent === "function" && !window._whiteTransferPatchedV4) {
+  window._whiteTransferPatchedV4 = true;
 
   const origTransfer = window.transferOffspringToParent;
 
@@ -1308,67 +1303,49 @@ if (typeof window.transferOffspringToParent === "function" && !window._whiteTran
     const container = document.getElementById(parent + "ImageContainer");
     if (!container) return res;
 
-    const shouldBeWhite = isWhiteGenotype(genotype);
-    if (!shouldBeWhite) {
+    const isWhite = isWhiteGenotype(genotype);
+    if (!isWhite) {
       whiteState[parent] = null;
       delete container.dataset.whiteKey;
       return res;
     }
 
-    // ───────────────────────────────────────
-    // 1. Recover best known specific variety
-    // ───────────────────────────────────────
-    let key = whiteState[parent] 
-           || container.dataset.whiteKey
-           || (function() {
-                const v = document.getElementById(parent + "VarietyInput")?.value?.trim().toLowerCase() || "";
-                return WHITE_VARIETY_MAP[v] || null;
-              })()
-           || 'broad';
+    // For white offspring: ALWAYS force generic unless pure same-variety line
+    let key = 'broad'; // default images/alleles
+    let displayName = "White (Dark Brown Eyes)";
 
-    const desiredName = WHITE_VARIANTS[key]?.name || "Broad Breasted White";
+    // Optional: preserve only if parents were identical named whites
+    if (whiteState.sire && whiteState.dam && whiteState.sire === whiteState.dam) {
+      key = whiteState.sire;
+      displayName = WHITE_VARIANTS[key]?.name || displayName;
+    }
 
-    // Preserve immediately
-    whiteState[parent] = key;
+    whiteState[parent] = key; // still track for images/alleles
     container.dataset.whiteKey = key;
 
     const varietyInput = document.getElementById(parent + "VarietyInput");
-
-    // ───────────────────────────────────────
-    // 2. Force name + image + alleles (multiple attempts)
-    // ───────────────────────────────────────
-    const reapply = () => {
-      forceApplyWhite(parent);
+    const forceGeneric = () => {
+      forceApplyWhite(parent); // images, labels, bb/cc
       if (varietyInput) {
-        varietyInput.value = desiredName;
-        varietyInput.dispatchEvent(new Event('input',  { bubbles: true }));
+        varietyInput.value = displayName;
+        varietyInput.dispatchEvent(new Event('input', { bubbles: true }));
         varietyInput.dispatchEvent(new Event('change', { bubbles: true }));
       }
     };
 
-    [30, 120, 350, 800, 1400].forEach(delay => setTimeout(reapply, delay));
+    // Hammer it home with escalating delays
+    [50, 200, 500, 1000, 1800].forEach(d => setTimeout(forceGeneric, d));
 
-    // ───────────────────────────────────────
-    // 3. Last resort: watch the input for 2 seconds and re-force if changed
-    // ───────────────────────────────────────
+    // Watchdog interval if calculator fights back
     if (varietyInput) {
-      let protectCount = 0;
-      const maxProtect = 8; // ~2 sec at 250ms interval
-
-      const interval = setInterval(() => {
-        protectCount++;
-        if (varietyInput.value.trim() !== desiredName) {
-          varietyInput.value = desiredName;
+      const watcher = setInterval(() => {
+        if (varietyInput.value.trim() !== displayName) {
+          varietyInput.value = displayName;
           varietyInput.dispatchEvent(new Event('change', { bubbles: true }));
-          reapply(); // also re-apply image etc.
+          forceGeneric();
         }
-        if (protectCount >= maxProtect) {
-          clearInterval(interval);
-        }
-      }, 250);
-
-      // safety cleanup
-      setTimeout(() => clearInterval(interval), 2200);
+      }, 300);
+      setTimeout(() => clearInterval(watcher), 3000); // stop after ~3s
     }
 
     return res;
