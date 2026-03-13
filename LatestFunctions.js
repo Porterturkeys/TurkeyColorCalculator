@@ -1191,7 +1191,7 @@ document.addEventListener('click', function (event) {
 /////////////////////////////////
 
 // ===========================================
-// WHITE VARIANTS OVERLAY – IMPROVED TRANSFER LOGIC (2025)
+// WHITE VARIANTS OVERLAY – IMPROVED TRANSFER LOGIC (DEBUG VERSION)
 // Goal:
 // - Preserve NAMED white varieties (Beltsville, Midget, Holland) when they appear
 // - Keep generic "White (Dark Brown Eyes)" when offspring is generic bb cc white
@@ -1312,12 +1312,13 @@ document.addEventListener('click', function (event) {
   }
 
   // ────────────────────────────────────────────────
-  // IMPROVED TRANSFER HOOK – main fix location
+  // IMPROVED TRANSFER HOOK WITH DEBUG LOGS
   // ────────────────────────────────────────────────
-  if (typeof window.transferOffspringToParent === "function" && !window._whiteTransferPatchedFinal) {
-    window._whiteTransferPatchedFinal = true;
+  if (typeof window.transferOffspringToParent === "function" && !window._whiteTransferPatchedDebug) {
+    window._whiteTransferPatchedDebug = true;
     const origTransfer = window.transferOffspringToParent;
     window.transferOffspringToParent = function(genotype, parent) {
+      console.log("White transfer hook running for parent:", parent, "genotype:", genotype);
       const res = origTransfer.apply(this, arguments);
       if (parent !== "sire" && parent !== "dam") return res;
 
@@ -1325,8 +1326,11 @@ document.addEventListener('click', function (event) {
       const varietyInput = document.getElementById(parent + "VarietyInput");
       if (!container || !varietyInput) return res;
 
+      console.log("After origTransfer, varietyInput.value:", varietyInput.value);
+
       const shouldBeWhite = isWhiteGenotype(genotype);
       if (!shouldBeWhite) {
+        console.log("Not white genotype - clearing state");
         whiteState[parent] = null;
         delete container.dataset.whiteKey;
         return res;
@@ -1334,12 +1338,16 @@ document.addEventListener('click', function (event) {
 
       // Decide: named variety or generic white?
       const currentVal = norm(varietyInput.value || "");
-      const looksNamed = currentVal && WHITE_VARIETY_MAP[currentVal];
+      const looksNamed = !!WHITE_VARIETY_MAP[currentVal];
       const hasStoredKey = !!(whiteState[parent] || container.dataset.whiteKey);
 
+      console.log("currentVal (norm):", currentVal);
+      console.log("looksNamed:", looksNamed);
+      console.log("hasStoredKey:", hasStoredKey);
+
       if (looksNamed || hasStoredKey) {
-        // Preserve named white variety
         let key = whiteState[parent] || container.dataset.whiteKey || WHITE_VARIETY_MAP[currentVal];
+        console.log("Applying named white:", key, "for", parent);
         if (key && WHITE_VARIANTS[key]) {
           container.dataset.whiteKey = key;
           whiteState[parent] = key;
@@ -1348,13 +1356,15 @@ document.addEventListener('click', function (event) {
           varietyInput.value = WHITE_VARIANTS[key].name;
         }
       } else {
-        // Generic white → enforce "White (Dark Brown Eyes)"
+        console.log("Applying generic white for", parent);
         whiteState[parent] = null;
         delete container.dataset.whiteKey;
         setTimeout(() => forceApplyWhite(parent, true), 100);
         setTimeout(() => forceApplyWhite(parent, true), 350);
         varietyInput.value = "White (Dark Brown Eyes)";
       }
+
+      console.log("Final varietyInput.value after hook:", varietyInput.value);
 
       return res;
     };
