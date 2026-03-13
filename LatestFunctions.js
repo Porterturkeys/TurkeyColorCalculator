@@ -1556,8 +1556,16 @@ if (typeof window.transferOffspringToParent === "function" && !window._whiteTran
 
 ////////////////////////////////
 
-// ===========================================
-// BROAD BREASTED BRONZE + WHITE OVERLAY – FIXED VERSION 2025
+// ==UserScript==
+// @name         Porter's Turkey Color Calculator - BB Bronze/White Overlay (Safe Generic White Fix)
+// @namespace    http://tampermonkey.net/
+// @version      1.1
+// @description  Preserves generic "White (Dark Brown Eyes)" only on heritage white transfers; full BB protection
+// @author       You
+// @match        https://porterturkeys.com/*
+// @match        https://portersturkeys.github.io/*
+// @grant        none
+// ==/UserScript==
 
 (function () {
   'use strict';
@@ -1577,23 +1585,13 @@ if (typeof window.transferOffspringToParent === "function" && !window._whiteTran
   };
 
   const BRONZE_MAP = {
-    "broad breasted bronze": true,
-    "broad-breasted bronze": true,
-    "mammoth bronze": true,
-    "orlopp bronze": true,
-    "breasted bronze": true,
-    "bronze breasted": true,
-    "large bronze": true
+    "broad breasted bronze": true, "broad-breasted bronze": true, "mammoth bronze": true,
+    "orlopp bronze": true, "breasted bronze": true, "bronze breasted": true, "large bronze": true
   };
 
   const WHITE_MAP = {
-    "broad breasted white": true,
-    "broad-breasted white": true,
-    "giant white": true,
-    "commercial white": true,
-    "large white": true,
-    "broad white": true,
-    "breasted white": true
+    "broad breasted white": true, "broad-breasted white": true, "giant white": true,
+    "commercial white": true, "large white": true, "broad white": true, "breasted white": true
   };
 
   const state = { sire: null, dam: null };
@@ -1614,6 +1612,14 @@ if (typeof window.transferOffspringToParent === "function" && !window._whiteTran
            val === "white";
   }
 
+  function isBBWhiteContext() {
+    // Check if current parents are clearly BB-named
+    const sireVal = norm(document.getElementById("sireVarietyInput")?.value || "");
+    const damVal = norm(document.getElementById("damVarietyInput")?.value || "");
+    return (WHITE_MAP[sireVal] || sireVal.includes("broad breasted white")) ||
+           (WHITE_MAP[damVal] || damVal.includes("broad breasted white"));
+  }
+
   function forceApply(prefix) {
     const container = document.getElementById(prefix + "ImageContainer");
     if (!container) return;
@@ -1629,33 +1635,26 @@ if (typeof window.transferOffspringToParent === "function" && !window._whiteTran
     const cSel = document.getElementById(cId);
     let changed = false;
 
-    if (bSel && bSel.value !== "bb") {
-      bSel.value = "bb";
-      changed = true;
-    }
-
-    if (type === "white" && cSel && cSel.value !== "cc") {
-      cSel.value = "cc";
-      changed = true;
-    }
+    if (bSel && bSel.value !== "bb") { bSel.value = "bb"; changed = true; }
+    if (type === "white" && cSel && cSel.value !== "cc") { cSel.value = "cc"; changed = true; }
 
     if (changed) {
       (prefix === "sire" ? window.updateSireGenotype : window.updateDamGenotype)?.();
     }
 
-    if (type === "white" && isGenericOrHeritageWhite(prefix)) return;
+    // For white: skip visual force ONLY if generic/heritage AND not in BB context
+    if (type === "white" && isGenericOrHeritageWhite(prefix) && !isBBWhiteContext()) {
+      return;
+    }
 
     const img = container.querySelector("img");
     if (img) img.src = "https://portersturkeys.github.io/Pictures/" + (prefix === "dam" ? data.female : data.male);
 
     const strong = container.querySelector("strong");
     if (strong) {
-      let span = strong.querySelector("span");
-      if (!span) {
-        span = document.createElement("span");
-        strong.innerHTML = '';
-        strong.appendChild(span);
-      }
+      let span = strong.querySelector("span") || document.createElement("span");
+      strong.innerHTML = '';
+      strong.appendChild(span);
       span.textContent = data.name;
     }
 
@@ -1676,8 +1675,6 @@ if (typeof window.transferOffspringToParent === "function" && !window._whiteTran
       document.getElementById("damVarietyInput")
     ].filter(Boolean);
 
-    if (inputs.length === 0) return;
-
     inputs.forEach(input => {
       const obs = new MutationObserver(() => checkAndRevert(input));
       obs.observe(input, { attributes: true, childList: true, characterData: true, subtree: true });
@@ -1686,22 +1683,24 @@ if (typeof window.transferOffspringToParent === "function" && !window._whiteTran
       const interval = setInterval(() => {
         count++;
         checkAndRevert(input);
-        if (count > 20) clearInterval(interval);
-      }, 500);
+        if (count > 25) clearInterval(interval);
+      }, 400);
 
       setTimeout(() => {
         obs.disconnect();
         clearInterval(interval);
-      }, 15000);
+      }, 12000);
     });
   }
 
   function checkAndRevert(input) {
     if (!pendingGenericWhiteTransfer) return;
+    if (isBBWhiteContext()) return; // safety: never override BB context
 
     const current = input.value.trim();
 
-    if (current === WHITE.name || current.toLowerCase().includes("broad breasted white") || current === "" || current.includes("Broad Breasted White")) {
+    if (current === WHITE.name || current.toLowerCase().includes("broad breasted white") ||
+        current === "" || current === "White" || current.includes("Broad Breasted White")) {
       input.value = "White (Dark Brown Eyes)";
       input.dispatchEvent(new Event('input', { bubbles: true }));
       input.dispatchEvent(new Event('change', { bubbles: true }));
@@ -1714,7 +1713,7 @@ if (typeof window.transferOffspringToParent === "function" && !window._whiteTran
     const val = norm(input?.value);
     let type = null;
     if (BRONZE_MAP[val] || val.includes("bronze")) type = "bronze";
-    else if (WHITE_MAP[val] || val.includes("white")) type = "white";
+    else if (WHITE_MAP[val] || val.includes("broad breasted white") || val.includes("white")) type = "white";
     state[prefix] = type;
     const container = document.getElementById(prefix + "ImageContainer");
     if (container) {
@@ -1755,7 +1754,6 @@ if (typeof window.transferOffspringToParent === "function" && !window._whiteTran
 
     document.querySelectorAll("#maleOffspringResults li, #femaleOffspringResults li").forEach(li => {
       let html = li.innerHTML || '';
-      if (!html.includes("Broad Breasted") && !html.includes("Bronze")) return;
       html = html.replace(/\bBronze\b/gi, BRONZE.name)
                  .replace(/\bWhite\b/gi, WHITE.name)
                  .replace(/To Be Defined/gi, BRONZE.name);
@@ -1766,13 +1764,13 @@ if (typeof window.transferOffspringToParent === "function" && !window._whiteTran
     if (summaryBody) {
       summaryBody.querySelectorAll("tr").forEach(tr => {
         const cell = tr.cells?.[1];
-        if (!cell) return;
-        let text = cell.textContent || "";
-        if (!text.includes("Broad Breasted") && !text.includes("Bronze")) return;
-        text = text.replace(/\bBronze\b/gi, BRONZE.name)
-                   .replace(/\bWhite\b/gi, WHITE.name)
-                   .replace(/to be defined/gi, BRONZE.name);
-        cell.textContent = text.trim();
+        if (cell) {
+          let text = cell.textContent || "";
+          text = text.replace(/\bBronze\b/gi, BRONZE.name)
+                     .replace(/\bWhite\b/gi, WHITE.name)
+                     .replace(/to be defined/gi, BRONZE.name);
+          cell.textContent = text.trim();
+        }
       });
     }
 
@@ -1784,29 +1782,31 @@ if (typeof window.transferOffspringToParent === "function" && !window._whiteTran
     });
   }
 
-  function wrapVarietyFn(fnName, prefix) {
-    const original = window[fnName];
-    if (typeof original !== "function" || original._bbWrapped) return;
-    window[fnName] = function () {
-      const res = original.apply(this, arguments);
-      const type = detectType(prefix);
-      if (type) {
-        setTimeout(() => forceApply(prefix), 100);
-        setTimeout(() => forceApply(prefix), 400);
-      }
-      return res;
-    };
-    window[fnName]._bbWrapped = true;
-  }
-
   window.addEventListener("load", () => {
+    // Variety wrappers
+    const wrapVarietyFn = (fnName, prefix) => {
+      const original = window[fnName];
+      if (typeof original !== "function" || original._bbWrapped) return;
+      window[fnName] = function () {
+        const res = original.apply(this, arguments);
+        detectType(prefix);
+        if (state[prefix]) {
+          setTimeout(() => forceApply(prefix), 100);
+          setTimeout(() => forceApply(prefix), 400);
+        }
+        return res;
+      };
+      window[fnName]._bbWrapped = true;
+    };
+
     wrapVarietyFn("applyVarietyToSire", "sire");
     wrapVarietyFn("applyVarietyToDam", "dam");
 
+    // Reset
     if (typeof window.resetCalculator === "function") {
       const orig = window.resetCalculator;
-      window.resetCalculator = function (...args) {
-        const res = orig.apply(this, args);
+      window.resetCalculator = function () {
+        const res = orig.apply(this, arguments);
         state.sire = state.dam = null;
         ["sire", "dam"].forEach(p => {
           const c = document.getElementById(p + "ImageContainer");
@@ -1816,8 +1816,9 @@ if (typeof window.transferOffspringToParent === "function" && !window._whiteTran
       };
     }
 
-    if (typeof window.transferOffspringToParent === "function" && !window._bbTransferPatchedFinal) {
-      window._bbTransferPatchedFinal = true;
+    // Transfer hook
+    if (typeof window.transferOffspringToParent === "function" && !window._bbTransferPatchedSafeV3) {
+      window._bbTransferPatchedSafeV3 = true;
       const orig = window.transferOffspringToParent;
       window.transferOffspringToParent = function (genotype, parent) {
         const res = orig.apply(this, arguments);
@@ -1851,11 +1852,15 @@ if (typeof window.transferOffspringToParent === "function" && !window._whiteTran
           state[parent] = type;
           container.dataset.bbType = type;
 
-          if (type === "white" && isGenericOrHeritageWhite(parent)) {
+          const isGeneric = isGenericOrHeritageWhite(parent);
+          const bbContext = isBBWhiteContext();
+
+          if (type === "white" && isGeneric && !bbContext) {
             pendingGenericWhiteTransfer = true;
             startVarietyWatcher();
             setTimeout(() => { pendingGenericWhiteTransfer = false; }, 12000);
 
+            // Minimal allele force
             const cId = parent === "sire" ? "sireAlleleC" : "damAlleleC";
             const cSel = document.getElementById(cId);
             if (cSel && cSel.value !== "cc") {
@@ -1870,8 +1875,7 @@ if (typeof window.transferOffspringToParent === "function" && !window._whiteTran
 
           const targetName = type === "white" ? WHITE.name : BRONZE.name;
           const current = varietyInput.value?.trim() || "";
-          if ((!current || current.toLowerCase().includes("to be defined")) &&
-              !isGenericOrHeritageWhite(parent)) {
+          if ((!current || current.toLowerCase().includes("to be defined")) && !isGeneric) {
             varietyInput.value = targetName;
             varietyInput.dispatchEvent(new Event('change', { bubbles: true }));
           }
@@ -1881,8 +1885,9 @@ if (typeof window.transferOffspringToParent === "function" && !window._whiteTran
       };
     }
 
-    if (typeof window.calculateOffspringWrapper === "function" && !window._bbCalcPatchedFinal) {
-      window._bbCalcPatchedFinal = true;
+    // Calc wrapper
+    if (typeof window.calculateOffspringWrapper === "function" && !window._bbCalcPatchedV3) {
+      window._bbCalcPatchedV3 = true;
       const orig = window.calculateOffspringWrapper;
       window.calculateOffspringWrapper = function () {
         const res = orig.apply(this, arguments);
@@ -1895,17 +1900,7 @@ if (typeof window.transferOffspringToParent === "function" && !window._whiteTran
         return res;
       };
     }
-
-    // Extra trigger on calculate/save buttons if they exist
-    document.querySelectorAll('button, input[type="button"]').forEach(btn => {
-      if (btn.textContent.toLowerCase().includes("calculate") || btn.textContent.toLowerCase().includes("save") || btn.value.toLowerCase().includes("save")) {
-        btn.addEventListener('click', () => {
-          setTimeout(startVarietyWatcher, 800);
-        });
-      }
-    });
   });
-
 })();
 
 ////////////////////////////////
