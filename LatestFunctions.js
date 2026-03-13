@@ -1189,10 +1189,10 @@ document.addEventListener('click', function (event) {
     }
 });
 /////////////////////////////////
-
 // ===========================================
-// WHITE VARIANTS OVERLAY – FINAL FIX FOR GENERIC WHITE TRANSFER
-// Forces "White (Dark Brown Eyes)" in input + display even if core transfer sets "Broad Breasted White"
+// WHITE VARIANTS OVERLAY – FINAL COMPLETE VERSION WITH TRANSFER OVERRIDE
+// Preserves named whites (Beltsville, Midget, Holland) when used
+// Forces generic "White (Dark Brown Eyes)" on generic bb cc offspring transfers
 // ===========================================
 (function () {
   'use strict';
@@ -1218,6 +1218,19 @@ document.addEventListener('click', function (event) {
     return (str || "").trim().toLowerCase();
   }
 
+  function detectWhiteFromVariety(prefix) {
+    const input = document.getElementById(prefix + "VarietyInput");
+    const val = norm(input?.value);
+    const key = WHITE_VARIETY_MAP[val] || null;
+    whiteState[prefix] = key;
+    const container = document.getElementById(prefix + "ImageContainer");
+    if (container) {
+      if (key) container.dataset.whiteKey = key;
+      else delete container.dataset.whiteKey;
+    }
+    return key;
+  }
+
   function isWhiteGenotype(genotype) {
     const g = String(genotype || "");
     return /\bbb\b/.test(g) && /\bcc\b/.test(g);
@@ -1230,7 +1243,7 @@ document.addEventListener('click', function (event) {
     const key = container.dataset.whiteKey || whiteState[prefix];
 
     if (forceGeneric || !key) {
-      // Force generic
+      // Force generic white display
       const img = container.querySelector("img");
       if (img) {
         const isDam = prefix === "dam";
@@ -1246,22 +1259,25 @@ document.addEventListener('click', function (event) {
         }
         span.textContent = "White (Dark Brown Eyes)";
       }
-      // Clean any Broad text in info
+      // Aggressive cleanup of any lingering "Broad Breasted White" text
       const info = document.getElementById(prefix + "InfoContainer");
       if (info) {
-        info.querySelectorAll("span, div, strong").forEach(el => {
+        info.querySelectorAll("span, div, strong, p").forEach(el => {
           let t = el.textContent || "";
-          if (t.toLowerCase().includes("broad breasted white") || t.includes("To Be Defined")) {
-            el.textContent = "White (Dark Brown Eyes)";
+          if (t.toLowerCase().includes("broad") || t.includes("breasted") || t.includes("To Be Defined")) {
+            if (!t.includes("Dark Brown Eyes")) {
+              el.textContent = "White (Dark Brown Eyes)";
+            }
           }
         });
       }
       return;
     }
 
-    // Named variety forcing (unchanged from your original)
+    // Named variety
     const data = WHITE_VARIANTS[key];
     if (!data) return;
+
     const bId = prefix === "sire" ? "sireAlleleb" : "damAlleleb";
     const cId = prefix === "sire" ? "sireAlleleC" : "damAlleleC";
     const bSel = document.getElementById(bId);
@@ -1272,14 +1288,17 @@ document.addEventListener('click', function (event) {
     if (changed) {
       (prefix === "sire" ? window.updateSireGenotype : window.updateDamGenotype)?.();
     }
+
     const img = container.querySelector("img");
     if (img) img.src = "https://portersturkeys.github.io/Pictures/" + (prefix === "dam" ? data.female : data.male);
+
     const strong = container.querySelector("strong");
     if (strong) {
       let span = strong.querySelector("span");
       if (!span) { span = document.createElement("span"); strong.innerHTML = ''; strong.appendChild(span); }
       span.textContent = data.name;
     }
+
     const info = document.getElementById(prefix + "InfoContainer");
     if (info) {
       info.querySelectorAll("span, div, strong").forEach(el => {
@@ -1290,9 +1309,9 @@ document.addEventListener('click', function (event) {
     }
   }
 
-  // TRANSFER HOOK – OVERRIDE INPUT VALUE AFTER ORIGINAL TRANSFER
-  if (typeof window.transferOffspringToParent === "function" && !window._whiteTransferPatchedOverrideInput) {
-    window._whiteTransferPatchedOverrideInput = true;
+  // TRANSFER HOOK – OVERRIDES INPUT VALUE AFTER CORE TRANSFER SETS "Broad Breasted White"
+  if (typeof window.transferOffspringToParent === "function" && !window._whiteTransferPatchedFinalOverride) {
+    window._whiteTransferPatchedFinalOverride = true;
     const origTransfer = window.transferOffspringToParent;
     window.transferOffspringToParent = function(genotype, parent) {
       const res = origTransfer.apply(this, arguments);
@@ -1310,26 +1329,25 @@ document.addEventListener('click', function (event) {
         return res;
       }
 
-      // Wait briefly (original transfer may set "Broad Breasted White" async or in DOM update)
+      // Delay to let original transfer finish setting input value
       setTimeout(() => {
-        // Force generic white if not clearly a named variety from before
         const currentVal = norm(varietyInput.value || "");
-        const isLikelyNamed = WHITE_VARIETY_MAP[currentVal] && !currentVal.includes("dark brown eyes");
+        const isNamed = WHITE_VARIETY_MAP[currentVal] && !currentVal.includes("dark brown eyes");
 
-        if (isLikelyNamed && whiteState[parent]) {
-          // Rare case: preserve named if we had one stored
+        // If clearly a named variety was already there (from parent before offspring), preserve it
+        if (isNamed && whiteState[parent]) {
           const key = whiteState[parent];
           varietyInput.value = WHITE_VARIANTS[key]?.name || currentVal;
           forceApplyWhite(parent, false);
         } else {
-          // Default to generic - this overrides the Broad Breasted White set by core transfer
+          // Override to generic white - this counters the core setting "Broad Breasted White"
           varietyInput.value = "White (Dark Brown Eyes)";
           whiteState[parent] = null;
           delete container.dataset.whiteKey;
           forceApplyWhite(parent, true);
         }
 
-        // Force phenotype/image rebuild
+        // Force immediate phenotype/image rebuild
         if (parent === "sire" && typeof window.updateSireGenotype === "function") {
           window.updateSireGenotype();
         }
@@ -1337,18 +1355,14 @@ document.addEventListener('click', function (event) {
           window.updateDamGenotype();
         }
 
-        // Extra safety delay for any late UI updates
-        setTimeout(() => forceApplyWhite(parent, true), 300);
+        // Extra delay for any late DOM or async updates
+        setTimeout(() => forceApplyWhite(parent, true), 400);
 
-      }, 150);  // Increased delay to beat core transfer's value set
+      }, 200);  // 200ms delay – enough to override core transfer but still feel responsive
 
       return res;
     };
   }
-
-  
-
-    
 
   function applyWhiteToParent(prefix) {
     const cSel = document.getElementById(prefix + "AlleleC");
