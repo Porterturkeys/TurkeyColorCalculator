@@ -1759,9 +1759,9 @@ if (summaryBody) {
       };
     }
 
-   // TRANSFER - safe version: no auto-white forcing on cc (only if explicit broad-white input)
-if (typeof window.transferOffspringToParent === "function" && !window._bbTransferPatchedSafeV2) {
-  window._bbTransferPatchedSafeV2 = true;
+
+if (typeof window.transferOffspringToParent === "function" && !window._bbTransferPatchedSafe) {
+  window._bbTransferPatchedSafe = true;
   const orig = window.transferOffspringToParent;
   window.transferOffspringToParent = function (genotype, parent) {
     const res = orig.apply(this, arguments);
@@ -1771,26 +1771,25 @@ if (typeof window.transferOffspringToParent === "function" && !window._bbTransfe
     const container = document.getElementById(parent + "ImageContainer");
     if (!varietyInput || !container) return res;
 
+    // Clear any stale BB state
     state[parent] = null;
     delete container.dataset.bbType;
 
+    // Normalize input
     let val = norm(varietyInput.value || "");
     let type = null;
 
-    // Only set bronze if explicit bronze match or genotype bb + not cc
-    if (BRONZE_MAP[val] || val.includes("broad breasted bronze") || val.includes("broad bronze") || val.includes("mammoth bronze") || val.includes("orlopp bronze") || val.includes("large bronze")) {
-      type = "bronze";
-    } else if (WHITE_MAP[val] || val.includes("broad breasted white") || val.includes("broad white") || val.includes("giant white") || val.includes("large white") || val.includes("commercial white")) {
-      type = "white";  // only explicit broad-white input
-    }
+    // Explicit name match only
+    if (BRONZE_MAP[val]) type = "bronze";
+    else if (WHITE_MAP[val]) type = "white";
 
-    // Genotype fallback: bronze ONLY if NOT cc (never auto-white)
+    // Genotype fallback – bronze only if bb + NOT cc (no auto BB on white offspring)
     if (!type) {
       const geno = String(genotype || "");
       const hasBB = /\bbb\b/.test(geno);
       const hascc = /\bcc\b/.test(geno);
       if (hasBB && !hascc) type = "bronze";
-      // NO auto "white" here — generic cc stays null / generic
+      // NO auto "white" or BB forcing on cc
     }
 
     if (type) {
@@ -1800,10 +1799,12 @@ if (typeof window.transferOffspringToParent === "function" && !window._bbTransfe
       setTimeout(() => forceApply(parent), 150);
       setTimeout(() => forceApply(parent), 300);
 
+      // Only set name if blank/to be defined AND type is bronze (skip white to preserve generic)
       const targetName = type === "white" ? WHITE.name : BRONZE.name;
-      // Only set input if truly blank or "to be defined" — but skip for generic cc
-      if ((!varietyInput.value.trim() || varietyInput.value.trim().toLowerCase().includes("to be defined")) && type !== "white") {
-        varietyInput.value = targetName;
+      if (!varietyInput.value.trim() || varietyInput.value.trim().toLowerCase().includes("to be defined")) {
+        if (type !== "white") {  // ← prevents Broad Breasted on white offspring
+          varietyInput.value = targetName;
+        }
       }
     } else {
       state[parent] = null;
@@ -1814,6 +1815,7 @@ if (typeof window.transferOffspringToParent === "function" && !window._bbTransfe
   };
 }
 
+      
       
     if (typeof window.calculateOffspringWrapper === "function" && !window._bbCalcPatched) {
       window._bbCalcPatched = true;
