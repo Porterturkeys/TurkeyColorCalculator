@@ -1680,31 +1680,22 @@ document.addEventListener('click', function (event) {
       li.innerHTML = html.trim();
     });
 
-    // Patch summary chart – duplication fixed: single-pass, non-overlapping replacements
-    const summaryBody = document.querySelector("#summaryChart tbody");
-    if (summaryBody) {
-      summaryBody.querySelectorAll("tr").forEach(tr => {
-        const cell = tr.cells?.[1];  // phenotype column – adjust index if needed (inspect table)
-        if (!cell) return;
-        let text = cell.textContent || "";
-
-        // Skip if already full name
-        if (text.includes(displayName)) return;
-
-        // Replace short/partial "Bronze" first (only once)
-        text = text.replace(/\bBronze\b/gi, displayName);
-
-        // Normalize any full but mismatched versions (won't re-match "Broad Breasted")
-        text = text.replace(/Broad\s*Breasted\s*Bronze/gi, displayName);
-
-        // Catch any remaining short forms or edge cases
-        text = text.replace(/Bronze/gi, displayName)
-                   .replace(/\bWhite\b/gi, displayName)
-                   .replace(/To Be Defined/gi, displayName);
-
-        cell.textContent = text.trim();
-      });
-    }
+   // Patch summary chart
+const summaryBody = document.querySelector("#summaryChart tbody");
+if (summaryBody) {
+summaryBody.querySelectorAll("tr").forEach(tr => {
+const cell = tr.cells?.[1];
+if (!cell) return;
+let text = cell.textContent || "";
+const fullBronze = BRONZE.name;
+const fullWhite = WHITE.name;
+if (text.includes(fullBronze) || text.includes(fullWhite)) return;
+text = text.replace(/\bBronze\b/gi, fullBronze)
+.replace(/\bWhite\b/gi, fullWhite)
+.replace(/to be defined/gi, fullBronze);
+cell.textContent = text.trim();
+});
+}
 
     // Patch images (only bronze placeholders)
     document.querySelectorAll("#maleOffspringResults img, #femaleOffspringResults img").forEach(img => {
