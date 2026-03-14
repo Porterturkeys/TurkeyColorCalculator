@@ -1521,13 +1521,11 @@ document.addEventListener('click', function (event) {
 
 
 ////////////////////////////////////////
-
 // ===========================================
-// BROAD BREASTED BRONZE + WHITE OVERLAY – FINAL BALANCED FIX
-// - Explicit "Broad Breasted Bronze" entry shows full name + image
-// - Mixed Bronze × White offspring show "Broad Breasted Bronze" (bronze dominant)
-// - Generic bb cc (from named white crosses) stay "White (Dark Brown Eyes)"
-// - No unwanted "Broad Breasted White" forcing on generics
+// BROAD BREASTED BRONZE + WHITE OVERLAY – FULLY RESTORED & FIXED
+// - Explicit "Broad Breasted Bronze" shows full name + image
+// - Mixed Bronze × White offspring show "Broad Breasted Bronze" in lists AND summary chart
+// - Generic bb cc offspring stay untouched (no forced Broad White)
 // ===========================================
 (function () {
   'use strict';
@@ -1629,7 +1627,7 @@ document.addEventListener('click', function (event) {
   function applyToOffspring() {
     if (!state.sire && !state.dam) return;
 
-    // Determine dominant name for offspring
+    // Dominant name: bronze wins in mixed crosses
     let dominantType = null;
     let dominantData = null;
 
@@ -1671,6 +1669,7 @@ document.addEventListener('click', function (event) {
     if (window.maleOffspring) patchArray(window.maleOffspring);
     if (window.femaleOffspring) patchArray(window.femaleOffspring);
 
+    // Patch visible offspring lists
     document.querySelectorAll("#maleOffspringResults li, #femaleOffspringResults li").forEach(li => {
       let html = li.innerHTML;
       if (html.includes(displayName)) return;
@@ -1680,7 +1679,26 @@ document.addEventListener('click', function (event) {
       li.innerHTML = html.trim();
     });
 
-    // Images: replace bronze placeholders, leave generic whites untouched
+    // Patch summary chart – full restoration + aggressive replacement
+    const summaryBody = document.querySelector("#summaryChart tbody");
+    if (summaryBody) {
+      summaryBody.querySelectorAll("tr").forEach(tr => {
+        const cell = tr.cells?.[1];  // phenotype column – change to [0] or [2] if wrong
+        if (!cell) return;
+        let text = cell.textContent || "";
+        if (text.includes(displayName)) return;
+        text = text
+          .replace(/\bBronze\b/gi, displayName)                    // short "Bronze"
+          .replace(/Broad\s*Bronze/gi, displayName)                // partial
+          .replace(/Bronze/gi, displayName)                        // aggressive catch
+          .replace(/\bWhite\b/gi, displayName)
+          .replace(/To Be Defined/gi, displayName)
+          .replace(/Broad\s*Breasted\s*Bronze/gi, displayName);    // normalize full
+        cell.textContent = text.trim();
+      });
+    }
+
+    // Patch images (only bronze placeholders)
     document.querySelectorAll("#maleOffspringResults img, #femaleOffspringResults img").forEach(img => {
       const file = img.src.split("/").pop()?.toLowerCase() || "";
       if (file === "mbronze.jpg") img.src = "https://portersturkeys.github.io/Pictures/" + BRONZE.male;
