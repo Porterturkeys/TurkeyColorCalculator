@@ -1674,27 +1674,25 @@ document.addEventListener('click', function (event) {
     });
 
 
-// Patch summary chart – NO DUPLICATION, single-pass replacement
+// FIXED SUMMARY CHART PATCH – NO DUPLICATION EVER
 const summaryBody = document.querySelector("#summaryChart tbody");
 if (summaryBody) {
   summaryBody.querySelectorAll("tr").forEach(tr => {
-    const cell = tr.cells?.[1];  // phenotype column
+    const cell = tr.cells?.[1];
     if (!cell) return;
     let text = cell.textContent || "";
 
-    // Skip if already full name (prevents re-processing)
+    // Skip if already contains full name
     if (text.includes(BRONZE.name) || text.includes(WHITE.name)) return;
 
-    // Replace only short forms FIRST (before any full name exists)
-    text = text.replace(/\bBronze\b/gi, BRONZE.name)
-               .replace(/Bronze/gi, BRONZE.name);  // catch any remaining short
+    // Replace ONLY short forms – do NOT touch anything with "Broad Breasted"
+    const shortBronzeRegex = /\b(?!Broad\s*Breasted\s*)Bronze\b/gi;
+    const shortWhiteRegex = /\b(?!Broad\s*Breasted\s*)White\b/gi;
 
-    // Then normalize any partial full names (won't match the new full name)
-    text = text.replace(/Broad\s*Breasted\s*Bronze/gi, BRONZE.name);
-
-    // Do white and other cases
-    text = text.replace(/\bWhite\b/gi, WHITE.name)
-               .replace(/To Be Defined/gi, BRONZE.name);
+    text = text
+      .replace(shortBronzeRegex, BRONZE.name)
+      .replace(shortWhiteRegex, WHITE.name)
+      .replace(/To Be Defined/gi, BRONZE.name);
 
     cell.textContent = text.trim();
   });
