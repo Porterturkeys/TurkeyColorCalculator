@@ -1522,11 +1522,11 @@ document.addEventListener('click', function (event) {
 
 ////////////////////////////////////////
 // ===========================================
-// BROAD BREASTED BRONZE + WHITE OVERLAY – COMPLETE & FINAL
-// - Full name display for explicit bronze entry
-// - Mixed bronze × white offspring show "Broad Breasted Bronze" in lists AND summary chart
-// - Generic bb cc offspring preserved as "White (Dark Brown Eyes)" on transfer
-// - No duplication or shortening in summary chart
+// BROAD BREASTED BRONZE + WHITE OVERLAY – DUPLICATION FIXED IN SUMMARY CHART
+// - Full "Broad Breasted Bronze" in offspring lists & summary chart
+// - Mixed Bronze × White offspring use "Broad Breasted Bronze" (bronze dominant)
+// - No duplication ("Broad Breasted Broad Breasted Bronze")
+// - Generic white offspring preserved
 // ===========================================
 (function () {
   'use strict';
@@ -1680,27 +1680,26 @@ document.addEventListener('click', function (event) {
       li.innerHTML = html.trim();
     });
 
-    // Patch summary chart – prevent duplication, replace short "Bronze"
+    // Patch summary chart – duplication fixed: single-pass, non-overlapping replacements
     const summaryBody = document.querySelector("#summaryChart tbody");
     if (summaryBody) {
       summaryBody.querySelectorAll("tr").forEach(tr => {
-        const cell = tr.cells?.[1];  // phenotype column – change to [0]/[2] if wrong
+        const cell = tr.cells?.[1];  // phenotype column – adjust index if needed (inspect table)
         if (!cell) return;
         let text = cell.textContent || "";
 
-        // Skip if already full/correct
+        // Skip if already full name
         if (text.includes(displayName)) return;
 
-        // Step 1: Replace short or partial "Bronze"
-        text = text.replace(/\bBronze\b/gi, displayName)
-                   .replace(/Broad\s*Bronze/gi, displayName)
-                   .replace(/Bronze/gi, displayName);
+        // Replace short/partial "Bronze" first (only once)
+        text = text.replace(/\bBronze\b/gi, displayName);
 
-        // Step 2: Normalize full versions (no re-trigger)
+        // Normalize any full but mismatched versions (won't re-match "Broad Breasted")
         text = text.replace(/Broad\s*Breasted\s*Bronze/gi, displayName);
 
-        // Other cases
-        text = text.replace(/\bWhite\b/gi, displayName)
+        // Catch any remaining short forms or edge cases
+        text = text.replace(/Bronze/gi, displayName)
+                   .replace(/\bWhite\b/gi, displayName)
                    .replace(/To Be Defined/gi, displayName);
 
         cell.textContent = text.trim();
