@@ -1759,7 +1759,7 @@ if (summaryBody) {
       };
     }
 
-
+// Transfer offspring to parent
 if (typeof window.transferOffspringToParent === "function" && !window._bbTransferPatchedSafe) {
   window._bbTransferPatchedSafe = true;
   const orig = window.transferOffspringToParent;
