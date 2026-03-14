@@ -1673,33 +1673,33 @@ document.addEventListener('click', function (event) {
       li.innerHTML = html.trim();
     });
 
-    // Patch summary chart – FIXED: no duplication, always full name
-    const summaryBody = document.querySelector("#summaryChart tbody");
-    if (summaryBody) {
-      summaryBody.querySelectorAll("tr").forEach(tr => {
-        const cell = tr.cells?.[1];
-        if (!cell) return;
-        let text = cell.textContent || "";
 
-        // Skip if already full name
-        if (text.includes(BRONZE.name) || text.includes(WHITE.name)) return;
+// Patch summary chart – NO DUPLICATION, single-pass replacement
+const summaryBody = document.querySelector("#summaryChart tbody");
+if (summaryBody) {
+  summaryBody.querySelectorAll("tr").forEach(tr => {
+    const cell = tr.cells?.[1];  // phenotype column
+    if (!cell) return;
+    let text = cell.textContent || "";
 
-        // Replace short "Bronze" or "White" first
-        text = text.replace(/\bBronze\b/gi, BRONZE.name)
-                   .replace(/\bWhite\b/gi, WHITE.name);
+    // Skip if already full name (prevents re-processing)
+    if (text.includes(BRONZE.name) || text.includes(WHITE.name)) return;
 
-        // Normalize any partial full names (prevents duplication)
-        text = text.replace(/Broad\s*Breasted\s*Bronze/gi, BRONZE.name)
-                   .replace(/Broad\s*Breasted\s*White/gi, WHITE.name);
+    // Replace only short forms FIRST (before any full name exists)
+    text = text.replace(/\bBronze\b/gi, BRONZE.name)
+               .replace(/Bronze/gi, BRONZE.name);  // catch any remaining short
 
-        // Final catch-all for any remaining short forms
-        text = text.replace(/Bronze/gi, BRONZE.name)
-                   .replace(/White/gi, WHITE.name)
-                   .replace(/To Be Defined/gi, BRONZE.name);
+    // Then normalize any partial full names (won't match the new full name)
+    text = text.replace(/Broad\s*Breasted\s*Bronze/gi, BRONZE.name);
 
-        cell.textContent = text.trim();
-      });
-    }
+    // Do white and other cases
+    text = text.replace(/\bWhite\b/gi, WHITE.name)
+               .replace(/To Be Defined/gi, BRONZE.name);
+
+    cell.textContent = text.trim();
+  });
+}
+      
 
     // Patch visible images
     document.querySelectorAll("#maleOffspringResults img, #femaleOffspringResults img").forEach(img => {
