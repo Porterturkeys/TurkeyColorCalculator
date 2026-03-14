@@ -1522,10 +1522,11 @@ document.addEventListener('click', function (event) {
 
 ////////////////////////////////////////
 // ===========================================
-// BROAD BREASTED BRONZE + WHITE OVERLAY – FULLY RESTORED & FIXED
-// - Explicit "Broad Breasted Bronze" shows full name + image
-// - Mixed Bronze × White offspring show "Broad Breasted Bronze" in lists AND summary chart
-// - Generic bb cc offspring stay untouched (no forced Broad White)
+// BROAD BREASTED BRONZE + WHITE OVERLAY – COMPLETE & FINAL
+// - Full name display for explicit bronze entry
+// - Mixed bronze × white offspring show "Broad Breasted Bronze" in lists AND summary chart
+// - Generic bb cc offspring preserved as "White (Dark Brown Eyes)" on transfer
+// - No duplication or shortening in summary chart
 // ===========================================
 (function () {
   'use strict';
@@ -1639,7 +1640,7 @@ document.addEventListener('click', function (event) {
       dominantData = BROAD_WHITE;
     }
 
-    if (!dominantData) return;  // no explicit BB parents → leave generics alone
+    if (!dominantData) return;
 
     const displayName = dominantData.name;
 
@@ -1679,21 +1680,29 @@ document.addEventListener('click', function (event) {
       li.innerHTML = html.trim();
     });
 
-    // Patch summary chart – full restoration + aggressive replacement
+    // Patch summary chart – prevent duplication, replace short "Bronze"
     const summaryBody = document.querySelector("#summaryChart tbody");
     if (summaryBody) {
       summaryBody.querySelectorAll("tr").forEach(tr => {
-        const cell = tr.cells?.[1];  // phenotype column – change to [0] or [2] if wrong
+        const cell = tr.cells?.[1];  // phenotype column – change to [0]/[2] if wrong
         if (!cell) return;
         let text = cell.textContent || "";
+
+        // Skip if already full/correct
         if (text.includes(displayName)) return;
-        text = text
-          .replace(/\bBronze\b/gi, displayName)                    // short "Bronze"
-          .replace(/Broad\s*Bronze/gi, displayName)                // partial
-          .replace(/Bronze/gi, displayName)                        // aggressive catch
-          .replace(/\bWhite\b/gi, displayName)
-          .replace(/To Be Defined/gi, displayName)
-          .replace(/Broad\s*Breasted\s*Bronze/gi, displayName);    // normalize full
+
+        // Step 1: Replace short or partial "Bronze"
+        text = text.replace(/\bBronze\b/gi, displayName)
+                   .replace(/Broad\s*Bronze/gi, displayName)
+                   .replace(/Bronze/gi, displayName);
+
+        // Step 2: Normalize full versions (no re-trigger)
+        text = text.replace(/Broad\s*Breasted\s*Bronze/gi, displayName);
+
+        // Other cases
+        text = text.replace(/\bWhite\b/gi, displayName)
+                   .replace(/To Be Defined/gi, displayName);
+
         cell.textContent = text.trim();
       });
     }
