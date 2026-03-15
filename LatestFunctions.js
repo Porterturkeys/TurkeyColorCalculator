@@ -1835,6 +1835,41 @@ if (typeof window.transferOffspringToParent === "function" && !window._bbTransfe
 })();
 ////////////////////////////////
 
+// ===========================================
+// FIX: Preserve regular Bronze on offspring transfer
+// ===========================================
+(function() {
+  if (!window.transferOffspringToParent) return;
+
+  const origTransfer = window.transferOffspringToParent;
+  window.transferOffspringToParent = function(genotype, parent) {
+    const result = origTransfer.apply(this, arguments);
+
+    if (parent !== "sire" && parent !== "dam") return result;
+
+    const input = document.getElementById(parent + "VarietyInput");
+    const container = document.getElementById(parent + "ImageContainer");
+    if (!input || !container) return result;
+
+    // Detect if offspring is plain Bronze (bb but NOT cc)
+    const geno = String(genotype || "");
+    const isPlainBronze = /\bbb\b/.test(geno) && !/\bcc\b/.test(geno);
+
+    // Only override if it's plain Bronze
+    if (isPlainBronze) {
+      container.dataset.bbType = "bronze";  // mark as bronze, not Broad Breasted
+      input.value = "Bronze";               // keep the input simple as Bronze
+      const img = container.querySelector("img");
+      if (img) img.src = "https://portersturkeys.github.io/Pictures/Bronze.jpg"; // adjust poult/adult as needed
+      const strong = container.querySelector("strong span");
+      if (strong) strong.textContent = "Bronze";
+    }
+
+    return result;
+  };
+})();
+
+////////////////////////////////////
 
 // =====================================================
 // SUMMARY CHART / Dam (shows ONLY after calculate)
