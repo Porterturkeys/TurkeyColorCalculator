@@ -1836,37 +1836,44 @@ if (typeof window.transferOffspringToParent === "function" && !window._bbTransfe
 ////////////////////////////////
 
 // ===========================================
-// FIX: Preserve regular Bronze on offspring transfer
+// FIX: Prevent Bronze offspring from reverting to Broad Breasted Bronze
 // ===========================================
-(function() {
-  if (!window.transferOffspringToParent) return;
+(function(){
 
-  const origTransfer = window.transferOffspringToParent;
-  window.transferOffspringToParent = function(genotype, parent) {
-    const result = origTransfer.apply(this, arguments);
+if (!window.transferOffspringToParent || window._bronzeTransferFix) return;
+window._bronzeTransferFix = true;
+
+const original = window.transferOffspringToParent;
+
+window.transferOffspringToParent = function(genotype, parent){
+
+    const result = original.apply(this, arguments);
 
     if (parent !== "sire" && parent !== "dam") return result;
 
-    const input = document.getElementById(parent + "VarietyInput");
+    const varietyInput = document.getElementById(parent + "VarietyInput");
     const container = document.getElementById(parent + "ImageContainer");
-    if (!input || !container) return result;
 
-    // Detect if offspring is plain Bronze (bb but NOT cc)
-    const geno = String(genotype || "");
-    const isPlainBronze = /\bbb\b/.test(geno) && !/\bcc\b/.test(geno);
+    if (!varietyInput || !container) return result;
 
-    // Only override if it's plain Bronze
-    if (isPlainBronze) {
-      container.dataset.bbType = "bronze";  // mark as bronze, not Broad Breasted
-      input.value = "Bronze";               // keep the input simple as Bronze
-      const img = container.querySelector("img");
-      if (img) img.src = "https://portersturkeys.github.io/Pictures/Bronze.jpg"; // adjust poult/adult as needed
-      const strong = container.querySelector("strong span");
-      if (strong) strong.textContent = "Bronze";
+    const g = String(genotype || "");
+
+    // Detect plain Bronze (bb but not cc)
+    if (/\bbb\b/.test(g) && !/\bcc\b/.test(g)) {
+
+        // Remove Broad Breasted state so forceApply() can't trigger
+        if (window.state) window.state[parent] = null;
+        delete container.dataset.bbType;
+
+        // Keep the transferred name as Bronze
+        if (/broad\s*breasted\s*bronze/i.test(varietyInput.value)) {
+            varietyInput.value = "Bronze";
+        }
     }
 
     return result;
-  };
+};
+
 })();
 
 ////////////////////////////////////
