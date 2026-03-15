@@ -1777,11 +1777,11 @@ if (container && state.sire && state.dam &&
   state[parent] = type;
   container.dataset.bbType = type;
 
-
+}
 
  //////////////////////////////////////////     
     if (parent !== "sire" && parent !== "dam") return res;
-
+  }
     const varietyInput = document.getElementById(parent + "VarietyInput");
     const container = document.getElementById(parent + "ImageContainer");
     if (!varietyInput || !container) return res;
