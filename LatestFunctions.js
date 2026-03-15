@@ -1760,37 +1760,18 @@ if (summaryBody) {
     }
 
 
-// TRANSFER - safe version: no auto-white forcing on cc (only if explicit broad-white input)
+
+ // TRANSFER - safe version: no auto-white forcing on cc (only if explicit broad-white input)
 if (typeof window.transferOffspringToParent === "function" && !window._bbTransferPatchedSafeV2) {
   window._bbTransferPatchedSafeV2 = true;
   const orig = window.transferOffspringToParent;
   window.transferOffspringToParent = function (genotype, parent) {
-
     const res = orig.apply(this, arguments);
-
     if (parent !== "sire" && parent !== "dam") return res;
 
     const varietyInput = document.getElementById(parent + "VarietyInput");
     const container = document.getElementById(parent + "ImageContainer");
     if (!varietyInput || !container) return res;
-
-    // ===== Broad Breasted preservation (NEW but safe) =====
-    if (state && state.sire && state.dam) {
-
-      const sireBB = state.sire === "bronze" || state.sire === "white";
-      const damBB  = state.dam === "bronze" || state.dam === "white";
-
-      // Only apply if BOTH parents were Broad Breasted types
-      if (sireBB && damBB) {
-
-        const isWhite = /\bcc\b/.test(String(genotype || ""));
-        const type = isWhite ? "white" : "bronze";
-
-        state[parent] = type;
-        container.dataset.bbType = type;
-
-    return res;
- 
 
       
 
