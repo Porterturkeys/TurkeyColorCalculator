@@ -2863,9 +2863,45 @@ window.addEventListener("load", () => {
     console.log("[Auto-Reset] Sire & Dam variety inputs now auto-clear genotypes on empty/change (with wild bb fix)");
 })()
 
+////////////////////////////////
 
+// ===== Broad Breasted transfer correction (safe external fix) =====
+document.addEventListener("click", function(e){
 
+  const el = e.target;
+  if (!el) return;
 
+  if (!el.closest(".offspring")) return;
+
+  setTimeout(function(){
+
+    if (!window.state) return;
+
+    const sireBB = state.sire === "bronze" || state.sire === "white";
+    const damBB  = state.dam === "bronze" || state.dam === "white";
+
+    if (!(sireBB && damBB)) return;
+
+    ["sire","dam"].forEach(function(parent){
+
+      const container = document.getElementById(parent + "ImageContainer");
+      if (!container) return;
+
+      const genotypeInput = document.getElementById(parent + "GenotypeInput");
+      if (!genotypeInput) return;
+
+      const g = genotypeInput.value || "";
+
+      const type = /\bcc\b/.test(g) ? "white" : "bronze";
+
+      state[parent] = type;
+      container.dataset.bbType = type;
+
+    });
+
+  },50);
+
+});
 
 
 
