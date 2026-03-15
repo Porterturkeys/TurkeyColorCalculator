@@ -1783,13 +1783,7 @@ if (typeof window.transferOffspringToParent === "function" && !window._bbTransfe
     if (BRONZE_MAP[val]) type = "bronze";
     else if (WHITE_MAP[val]) type = "white";
 
-    // Genotype fallback – bronze only if bb + NOT cc (no auto BB on white offspring)
-    if (!type) {
-      const geno = String(genotype || "");
-      const hasBB = /\bbb\b/.test(geno);
-      const hascc = /\bcc\b/.test(geno);
-      if (hasBB && !hascc) type = "bronze";
-      // NO auto "white" or BB forcing on cc
+    //////////////////
     }
 
     if (type) {
@@ -1833,37 +1827,7 @@ if (typeof window.transferOffspringToParent === "function" && !window._bbTransfe
     }
   });
 })();
-////////////////////////////////
 
-// ===========================================
-// FINAL FIX: Stop regular Bronze from becoming Broad Breasted Bronze on transfer
-// ===========================================
-(function(){
-
-if (window._bronzeForcePatch) return;
-window._bronzeForcePatch = true;
-
-const originalForceApply = window.forceApply;
-
-if (typeof originalForceApply !== "function") return;
-
-window.forceApply = function(prefix){
-
-  const input = document.getElementById(prefix + "VarietyInput");
-
-  if (input) {
-    const val = (input.value || "").trim().toLowerCase();
-
-    // If the bird is simply Bronze, do NOT apply Broad Breasted overlay
-    if (val === "bronze") return;
-  }
-
-  return originalForceApply.apply(this, arguments);
-};
-
-})();
-
-////////////////////////////////////
 
 // =====================================================
 // SUMMARY CHART / Dam (shows ONLY after calculate)
