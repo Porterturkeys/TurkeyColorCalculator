@@ -1836,42 +1836,29 @@ if (typeof window.transferOffspringToParent === "function" && !window._bbTransfe
 ////////////////////////////////
 
 // ===========================================
-// FIX: Prevent Bronze offspring from reverting to Broad Breasted Bronze
+// FINAL FIX: Stop regular Bronze from becoming Broad Breasted Bronze on transfer
 // ===========================================
 (function(){
 
-if (!window.transferOffspringToParent || window._bronzeTransferFix) return;
-window._bronzeTransferFix = true;
+if (window._bronzeForcePatch) return;
+window._bronzeForcePatch = true;
 
-const original = window.transferOffspringToParent;
+const originalForceApply = window.forceApply;
 
-window.transferOffspringToParent = function(genotype, parent){
+if (typeof originalForceApply !== "function") return;
 
-    const result = original.apply(this, arguments);
+window.forceApply = function(prefix){
 
-    if (parent !== "sire" && parent !== "dam") return result;
+  const input = document.getElementById(prefix + "VarietyInput");
 
-    const varietyInput = document.getElementById(parent + "VarietyInput");
-    const container = document.getElementById(parent + "ImageContainer");
+  if (input) {
+    const val = (input.value || "").trim().toLowerCase();
 
-    if (!varietyInput || !container) return result;
+    // If the bird is simply Bronze, do NOT apply Broad Breasted overlay
+    if (val === "bronze") return;
+  }
 
-    const g = String(genotype || "");
-
-    // Detect plain Bronze (bb but not cc)
-    if (/\bbb\b/.test(g) && !/\bcc\b/.test(g)) {
-
-        // Remove Broad Breasted state so forceApply() can't trigger
-        if (window.state) window.state[parent] = null;
-        delete container.dataset.bbType;
-
-        // Keep the transferred name as Bronze
-        if (/broad\s*breasted\s*bronze/i.test(varietyInput.value)) {
-            varietyInput.value = "Bronze";
-        }
-    }
-
-    return result;
+  return originalForceApply.apply(this, arguments);
 };
 
 })();
