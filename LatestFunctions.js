@@ -1788,17 +1788,24 @@ state[parent] = null;
     else if (WHITE_MAP[val]) type = "white";
 //////////////////////////////////////////////////////////////////////////////////
 /////////////////////      
-   // Genotype fallback – ONLY if the parent was already Broad Breasted
+  // Genotype fallback – ONLY if the parent was already Broad Breasted
 if (!type) {
-  const geno = String(genotype || "");
-  const hasBB = /\bbb\b/.test(geno);
-  const hascc = /\bcc\b/.test(geno);
+    const geno = String(genotype || "");
+    const hasBB = /\bbb\b/.test(geno);
+    const hascc = /\bcc\b/.test(geno);
+    const hasCc = /\bCc\b/.test(geno);
+    const hasCC = /\bCC\b/.test(geno);
 
-  const container = document.getElementById(parent + "ImageContainer");
-  const wasBB = previousBB === "bronze" || previousBB === "white";
+    const container = document.getElementById(parent + "ImageContainer");
+    const wasBB = previousBB === "bronze" || previousBB === "white";
 
-  if (wasBB && hasBB && !hascc) type = "bronze";
+    if (wasBB && hasBB) {
+        if (hascc) type = "bronze";
+        else if (hasCc || hasCC) type = "white";
+        else type = "bronze"; // fallback if somehow neither CC/Cc/cc present
+    }
 }
+      
  //////////////////////   
 ///////////////////////////////////////////////////////////////////////////////////////
     if (type) {
