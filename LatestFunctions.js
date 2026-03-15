@@ -1760,42 +1760,17 @@ if (summaryBody) {
     }
 
 
-// ================================
-// Safe wrapper for transferOffspringToParent – preserves BB correctly
-// ================================
-if (typeof window.transferOffspringToParent === "function" && !window._bbTransferWrapperApplied) {
-  window._bbTransferWrapperApplied = true;
-  const origTransfer = window.transferOffspringToParent;
-  window.transferOffspringToParent = function(genotype, parent) {
-    // Call the original function first — keeps suggestions, inputs, images intact
-    const res = origTransfer.apply(this, arguments);
+ // TRANSFER - safe version: no auto-white forcing on cc (only if explicit broad-white input)
+if (typeof window.transferOffspringToParent === "function" && !window._bbTransferPatchedSafeV2) {
+  window._bbTransferPatchedSafeV2 = true;
+  const orig = window.transferOffspringToParent;
+  window.transferOffspringToParent = function (genotype, parent) {
+    const res = orig.apply(this, arguments);
+    if (parent !== "sire" && parent !== "dam") return res;
 
-    // Then safely update BB state
+    const varietyInput = document.getElementById(parent + "VarietyInput");
     const container = document.getElementById(parent + "ImageContainer");
-    if (!container) return res;
-
-    if (state.sire && state.dam) {
-      const bothBB = (state.sire === "bronze" || state.sire === "white") &&
-                     (state.dam === "bronze" || state.dam === "white");
-
-      if (bothBB) {
-        const type = /\bcc\b/.test(String(genotype || "")) ? "white" : "bronze";
-        state[parent] = type;
-        container.dataset.bbType = type;
-      }
-      else {
-        const hasBB = /\bbb\b/.test(String(genotype || ""));
-        const hasCC = /\bcc\b/.test(String(genotype || ""));
-        if (hasBB && !hasCC) state[parent] = "bronze";
-        if (hasCC) state[parent] = "white";
-        delete container.dataset.bbType;
-      }
-    }
-
-    return res; // let the original function finish
-  };
-}
-
+    if (!varietyInput || !container) return res;
 
 
       
