@@ -1782,7 +1782,7 @@ if (container && state.sire && state.dam) {
     state[parent] = type;
     container.dataset.bbType = type;
   }
-}
+
 
 
  //////////////////////////////////////////     
