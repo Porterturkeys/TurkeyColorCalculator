@@ -1768,21 +1768,15 @@ if (typeof window.transferOffspringToParent === "function" && !window._bbTransfe
 
 ////////////////////////////////////
 
-// Preserve Broad Breasted state if both parents were BB
+// Preserve Broad Breasted state if BOTH parents were BB
 const container = document.getElementById(parent + "ImageContainer");
-
-if (container && state.sire && state.dam) {
-  const sireBB = state.sire === "bronze" || state.sire === "white";
-  const damBB = state.dam === "bronze" || state.dam === "white";
-
-  if (sireBB && damBB) {
-    const isWhite = /\bcc\b/.test(String(genotype || ""));
-    const type = isWhite ? "white" : "bronze";
-
-    state[parent] = type;
-    container.dataset.bbType = type;
-  }
-
+if (container && state.sire && state.dam &&
+    (state.sire === "bronze" || state.sire === "white") &&
+    (state.dam === "bronze" || state.dam === "white")) {
+  const type = /\bcc\b/.test(String(genotype || "")) ? "white" : "bronze";
+  state[parent] = type;
+  container.dataset.bbType = type;
+}
 
 
  //////////////////////////////////////////     
