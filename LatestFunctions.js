@@ -1760,40 +1760,41 @@ if (summaryBody) {
     }
 
 
-
-// Transfer offspring to parent – fully patched, safe version
-if (typeof window.transferOffspringToParent === "function" && !window._bbTransferPatchedSafe) {
-  window._bbTransferPatchedSafe = true;
-  const orig = window.transferOffspringToParent;
+// ================================
+// Safe wrapper for transferOffspringToParent – preserves BB correctly
+// ================================
+if (typeof window.transferOffspringToParent === "function" && !window._bbTransferWrapperApplied) {
+  window._bbTransferWrapperApplied = true;
+  const origTransfer = window.transferOffspringToParent;
   window.transferOffspringToParent = function(genotype, parent) {
-    // Run the original function first
-    const res = orig.apply(this, arguments);
+    // Call the original function first — keeps suggestions, inputs, images intact
+    const res = origTransfer.apply(this, arguments);
 
-    // ===== Preserve Broad Breasted state if BOTH parents were BB =====
+    // Then safely update BB state
     const container = document.getElementById(parent + "ImageContainer");
-    if (container && state.sire && state.dam &&
-        (state.sire === "bronze" || state.sire === "white") &&
-        (state.dam === "bronze" || state.dam === "white")) {
+    if (!container) return res;
 
-      const type = /\bcc\b/.test(String(genotype || "")) ? "white" : "bronze";
-      state[parent] = type;
-      container.dataset.bbType = type;
+    if (state.sire && state.dam) {
+      const bothBB = (state.sire === "bronze" || state.sire === "white") &&
+                     (state.dam === "bronze" || state.dam === "white");
+
+      if (bothBB) {
+        const type = /\bcc\b/.test(String(genotype || "")) ? "white" : "bronze";
+        state[parent] = type;
+        container.dataset.bbType = type;
+      }
+      else {
+        const hasBB = /\bbb\b/.test(String(genotype || ""));
+        const hasCC = /\bcc\b/.test(String(genotype || ""));
+        if (hasBB && !hasCC) state[parent] = "bronze";
+        if (hasCC) state[parent] = "white";
+        delete container.dataset.bbType;
+      }
     }
 
-    // ===== Fallback for non-BB parents =====
-    else if (container) {
-      const hasBB = /\bbb\b/.test(String(genotype || ""));
-      const hasCC = /\bcc\b/.test(String(genotype || ""));
-      if (hasBB && !hasCC) state[parent] = "bronze";
-      if (hasCC) state[parent] = "white";
-      delete container.dataset.bbType;
-    }
-
-    // Return result at the end — keeps original suggestions, input, and everything else working
-    return res;
+    return res; // let the original function finish
   };
 }
-
 
 
 
