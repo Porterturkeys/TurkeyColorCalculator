@@ -1776,7 +1776,7 @@ if (container && state.sire && state.dam &&
   const type = /\bcc\b/.test(String(genotype || "")) ? "white" : "bronze";
   state[parent] = type;
   container.dataset.bbType = type;
-}
+
 
 
  //////////////////////////////////////////     
