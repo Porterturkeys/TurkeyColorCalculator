@@ -1759,45 +1759,45 @@ if (summaryBody) {
       };
     }
 
-// Transfer offspring to parent – fully fixed
+
+
+// Transfer offspring to parent – fully patched, safe version
 if (typeof window.transferOffspringToParent === "function" && !window._bbTransferPatchedSafe) {
   window._bbTransferPatchedSafe = true;
   const orig = window.transferOffspringToParent;
   window.transferOffspringToParent = function(genotype, parent) {
+    // Run the original function first
     const res = orig.apply(this, arguments);
 
-    // Grab elements once
-    const container = document.getElementById(parent + "ImageContainer");
-    const varietyInput = document.getElementById(parent + "VarietyInput");
-    if (!container || !varietyInput) return res;
-
     // ===== Preserve Broad Breasted state if BOTH parents were BB =====
-    if (state.sire && state.dam &&
+    const container = document.getElementById(parent + "ImageContainer");
+    if (container && state.sire && state.dam &&
         (state.sire === "bronze" || state.sire === "white") &&
         (state.dam === "bronze" || state.dam === "white")) {
 
       const type = /\bcc\b/.test(String(genotype || "")) ? "white" : "bronze";
       state[parent] = type;
       container.dataset.bbType = type;
-
-      // Only fill input if blank or To Be Defined
-      if (!varietyInput.value.trim() || /to be defined/i.test(varietyInput.value)) {
-        varietyInput.value = type === "white" ? "Broad Breasted White" : "Broad Breasted Bronze";
-      }
     }
 
-    // ===== Fallback for non-BB parents (regular Bronze or White) =====
-    else {
+    // ===== Fallback for non-BB parents =====
+    else if (container) {
       const hasBB = /\bbb\b/.test(String(genotype || ""));
       const hasCC = /\bcc\b/.test(String(genotype || ""));
-      if (hasBB && !hasCC) state[parent] = "bronze";  // plain Bronze
-      if (hasCC) state[parent] = "white";             // plain White
+      if (hasBB && !hasCC) state[parent] = "bronze";
+      if (hasCC) state[parent] = "white";
       delete container.dataset.bbType;
     }
 
-    return res; // keeps the original function flow intact
+    // Return result at the end — keeps original suggestions, input, and everything else working
+    return res;
   };
 }
+
+
+
+
+      
 
     // Clear any stale BB state
     state[parent] = null;
