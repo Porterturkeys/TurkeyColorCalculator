@@ -1782,10 +1782,21 @@ if (typeof window.transferOffspringToParent === "function" && !window._bbTransfe
     // Explicit name match only
     if (BRONZE_MAP[val]) type = "bronze";
     else if (WHITE_MAP[val]) type = "white";
+//////////////////////////////////////////////////////////////////////////////////
+/////////////////////      
+   // Genotype fallback – ONLY if the parent was already Broad Breasted
+if (!type) {
+  const geno = String(genotype || "");
+  const hasBB = /\bbb\b/.test(geno);
+  const hascc = /\bcc\b/.test(geno);
 
-    //////////////////
-    
+  const container = document.getElementById(parent + "ImageContainer");
+  const wasBB = container?.dataset?.bbType === "bronze" || container?.dataset?.bbType === "white";
 
+  if (wasBB && hasBB && !hascc) type = "bronze";
+}
+ //////////////////////   
+///////////////////////////////////////////////////////////////////////////////////////
     if (type) {
       state[parent] = type;
       container.dataset.bbType = type;
