@@ -1789,14 +1789,8 @@ if (typeof window.transferOffspringToParent === "function" && !window._bbTransfe
         state[parent] = type;
         container.dataset.bbType = type;
 
-      }
-
-    }
-
     return res;
-  };
-};
-
+ 
 
       
 
