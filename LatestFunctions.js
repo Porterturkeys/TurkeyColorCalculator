@@ -2865,43 +2865,43 @@ window.addEventListener("load", () => {
 
 ////////////////////////////////
 
-// ===== Broad Breasted transfer correction (safe external fix) =====
-document.addEventListener("click", function(e){
+// ===========================================
+// Broad Breasted transfer state fixer
+// ===========================================
+(function(){
 
-  const el = e.target;
-  if (!el) return;
+  if (typeof window.transferOffspringToParent !== "function") return;
 
-  if (!el.closest(".offspring")) return;
+  const orig = window.transferOffspringToParent;
 
-  setTimeout(function(){
+  window.transferOffspringToParent = function(genotype,parent){
 
-    if (!window.state) return;
+    const res = orig.apply(this,arguments);
 
-    const sireBB = state.sire === "bronze" || state.sire === "white";
-    const damBB  = state.dam === "bronze" || state.dam === "white";
+    setTimeout(function(){
 
-    if (!(sireBB && damBB)) return;
+      if (!window.state) return;
 
-    ["sire","dam"].forEach(function(parent){
+      const sireBB = state.sire === "bronze" || state.sire === "white";
+      const damBB  = state.dam === "bronze" || state.dam === "white";
 
-      const container = document.getElementById(parent + "ImageContainer");
+      if (!(sireBB && damBB)) return;
+
+      const container = document.getElementById(parent+"ImageContainer");
       if (!container) return;
 
-      const genotypeInput = document.getElementById(parent + "GenotypeInput");
-      if (!genotypeInput) return;
-
-      const g = genotypeInput.value || "";
-
-      const type = /\bcc\b/.test(g) ? "white" : "bronze";
+      const type = /\bcc\b/.test(String(genotype||"")) ? "white" : "bronze";
 
       state[parent] = type;
       container.dataset.bbType = type;
 
-    });
+    },0);
 
-  },50);
+    return res;
 
-});
+  };
+
+})();
 
 
 
