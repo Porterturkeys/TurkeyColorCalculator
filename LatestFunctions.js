@@ -1759,32 +1759,45 @@ if (summaryBody) {
       };
     }
 
-// Transfer offspring to parent
+// Transfer offspring to parent – fully fixed
 if (typeof window.transferOffspringToParent === "function" && !window._bbTransferPatchedSafe) {
   window._bbTransferPatchedSafe = true;
   const orig = window.transferOffspringToParent;
-  window.transferOffspringToParent = function (genotype, parent) {
+  window.transferOffspringToParent = function(genotype, parent) {
     const res = orig.apply(this, arguments);
 
-////////////////////////////////////
-
-// Preserve Broad Breasted state if BOTH parents were BB
-const container = document.getElementById(parent + "ImageContainer");
-if (container && state.sire && state.dam &&
-    (state.sire === "bronze" || state.sire === "white") &&
-    (state.dam === "bronze" || state.dam === "white")) {
-  const type = /\bcc\b/.test(String(genotype || "")) ? "white" : "bronze";
-  state[parent] = type;
-  container.dataset.bbType = type;
-
-}
-
- //////////////////////////////////////////     
-    if (parent !== "sire" && parent !== "dam") return res;
-  }
-    const varietyInput = document.getElementById(parent + "VarietyInput");
+    // Grab elements once
     const container = document.getElementById(parent + "ImageContainer");
-    if (!varietyInput || !container) return res;
+    const varietyInput = document.getElementById(parent + "VarietyInput");
+    if (!container || !varietyInput) return res;
+
+    // ===== Preserve Broad Breasted state if BOTH parents were BB =====
+    if (state.sire && state.dam &&
+        (state.sire === "bronze" || state.sire === "white") &&
+        (state.dam === "bronze" || state.dam === "white")) {
+
+      const type = /\bcc\b/.test(String(genotype || "")) ? "white" : "bronze";
+      state[parent] = type;
+      container.dataset.bbType = type;
+
+      // Only fill input if blank or To Be Defined
+      if (!varietyInput.value.trim() || /to be defined/i.test(varietyInput.value)) {
+        varietyInput.value = type === "white" ? "Broad Breasted White" : "Broad Breasted Bronze";
+      }
+    }
+
+    // ===== Fallback for non-BB parents (regular Bronze or White) =====
+    else {
+      const hasBB = /\bbb\b/.test(String(genotype || ""));
+      const hasCC = /\bcc\b/.test(String(genotype || ""));
+      if (hasBB && !hasCC) state[parent] = "bronze";  // plain Bronze
+      if (hasCC) state[parent] = "white";             // plain White
+      delete container.dataset.bbType;
+    }
+
+    return res; // keeps the original function flow intact
+  };
+}
 
     // Clear any stale BB state
     state[parent] = null;
