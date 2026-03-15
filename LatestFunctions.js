@@ -1784,7 +1784,7 @@ if (typeof window.transferOffspringToParent === "function" && !window._bbTransfe
     else if (WHITE_MAP[val]) type = "white";
 
     //////////////////
-    }
+    
 
     if (type) {
       state[parent] = type;
