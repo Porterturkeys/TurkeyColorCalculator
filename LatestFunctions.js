@@ -1775,9 +1775,9 @@ if (typeof window.transferOffspringToParent === "function" && !window._bbTransfe
 
       
 
-    // Clear any stale BB state
-    state[parent] = null;
-    delete container.dataset.bbType;
+    // Preserve previous BB state for fallback detection
+const previousBB = container.dataset.bbType || null;
+state[parent] = null;
 
     // Normalize input
     let val = norm(varietyInput.value || "");
@@ -1795,7 +1795,7 @@ if (!type) {
   const hascc = /\bcc\b/.test(geno);
 
   const container = document.getElementById(parent + "ImageContainer");
-  const wasBB = container?.dataset?.bbType === "bronze" || container?.dataset?.bbType === "white";
+  const wasBB = previousBB === "bronze" || previousBB === "white";
 
   if (wasBB && hasBB && !hascc) type = "bronze";
 }
@@ -2862,47 +2862,6 @@ window.addEventListener("load", () => {
         });
     console.log("[Auto-Reset] Sire & Dam variety inputs now auto-clear genotypes on empty/change (with wild bb fix)");
 })()
-
-////////////////////////////////
-
-// ===========================================
-// Broad Breasted transfer state fixer
-// ===========================================
-(function(){
-
-  if (typeof window.transferOffspringToParent !== "function") return;
-
-  const orig = window.transferOffspringToParent;
-
-  window.transferOffspringToParent = function(genotype,parent){
-
-    const res = orig.apply(this,arguments);
-
-    setTimeout(function(){
-
-      if (!window.state) return;
-
-      const sireBB = state.sire === "bronze" || state.sire === "white";
-      const damBB  = state.dam === "bronze" || state.dam === "white";
-
-      if (!(sireBB && damBB)) return;
-
-      const container = document.getElementById(parent+"ImageContainer");
-      if (!container) return;
-
-      const type = /\bcc\b/.test(String(genotype||"")) ? "white" : "bronze";
-
-      state[parent] = type;
-      container.dataset.bbType = type;
-
-    },0);
-
-    return res;
-
-  };
-
-})();
-
 
 
 
