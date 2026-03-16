@@ -1107,25 +1107,48 @@ if (KEEP_QUALIFIERS_IN_SUMMARY && typeof cleanSummaryPhenotypesOnce === "functio
 
     installWildOffspringObserver();
 
-    // TRANSFER FIX - keep state and force apply immediately after transfer
-    if (typeof window.transferOffspringToParent === "function" && !window._wildTransferPatched) {
-      window._wildTransferPatched = true;
-      const originalTransfer = window.transferOffspringToParent;
-      window.transferOffspringToParent = function(genotype, parent) {
-        const res = originalTransfer.apply(this, arguments);
-        if (parent === "sire" || parent === "dam") {
-          if (wildState[parent]) {
-            const container = document.getElementById(parent + "ImageContainer");
-            if (container) {
-              container.dataset.wildKey = wildState[parent];
-              setTimeout(() => forceApplyWild(parent), 150);
-              setTimeout(() => forceApplyWild(parent), 400);
-            }
-          }
-        }
-        return res;
-      };
+
+
+// TRANSFER FIX - preserve and propagate wild subspecies correctly
+if (typeof window.transferOffspringToParent === "function" && !window._wildTransferPatched) {
+  window._wildTransferPatched = true;
+  const originalTransfer = window.transferOffspringToParent;
+
+  window.transferOffspringToParent = function(genotype, parent) {
+    const res = originalTransfer.apply(this, arguments);
+
+    if (parent === "sire" || parent === "dam") {
+
+      const container = document.getElementById(parent + "ImageContainer");
+      if (!container) return res;
+
+      const sireWild = wildState.sire;
+      const damWild = wildState.dam;
+
+      // If both parents were wild, offspring must also be wild
+      if (sireWild && damWild) {
+
+        const newKey = (sireWild === damWild) ? sireWild : "hybrid";
+        wildState[parent] = newKey;
+
+        container.dataset.wildKey = newKey;
+
+        setTimeout(() => forceApplyWild(parent), 150);
+        setTimeout(() => forceApplyWild(parent), 350);
+
+      } else {
+
+        // If not both wild, clear wild state so domestic varieties can replace
+        wildState[parent] = null;
+        delete container.dataset.wildKey;
+
+      }
     }
+
+    return res;
+  };
+}
+      
 
     if (typeof window.handleDropdownChange === "function" && !window._wildFavoritesPatched) {
       window._wildFavoritesPatched = true;
@@ -1689,10 +1712,11 @@ if (summaryBody) {
     const shortBronzeRegex = /\b(?!Broad\s*Breasted\s*)Bronze\b/gi;
     const shortWhiteRegex = /\b(?!Broad\s*Breasted\s*)White\b/gi;
 
-    text = text
-      .replace(shortBronzeRegex, BRONZE.name)
-      .replace(shortWhiteRegex, WHITE.name)
-      .replace(/To Be Defined/gi, BRONZE.name);
+   text = text
+  .replace("Broad Breasted White (Dark Brown Eyes)", "Broad Breasted White")
+  .replace(shortBronzeRegex, BRONZE.name)
+  .replace(shortWhiteRegex, WHITE.name)
+  .replace(/To Be Defined/gi, BRONZE.name);
 
     cell.textContent = text.trim();
   });
@@ -2865,7 +2889,6 @@ window.addEventListener("load", () => {
         });
     console.log("[Auto-Reset] Sire & Dam variety inputs now auto-clear genotypes on empty/change (with wild bb fix)");
 })()
-
 
 
 
