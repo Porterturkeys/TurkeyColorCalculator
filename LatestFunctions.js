@@ -1961,16 +1961,15 @@ window.addEventListener("load", () => {
 
     const sireG = shortGeno(sireInfo);
     const damG  = shortGeno(damInfo);
+////////////////////////////////////////////
+      
+  // Try UI names first; if blank, infer from genotype; else fall back to Sire/Dam
+const sireName = (getVarietyName("sire") || inferVarietyFromShortGeno(sireG) || "Sire")
+  .replace(/\s*\(Dark\s*Brown\s*Eyes\)\s*/i, '');
 
-   // Try UI names first; if blank, infer from genotype; else fall back to Sire/Dam
-let sireName = getVarietyName("sire") || inferVarietyFromShortGeno(sireG) || "Sire";
-let damName  = getVarietyName("dam")  || inferVarietyFromShortGeno(damG)  || "Dam";
+const damName  = (getVarietyName("dam")  || inferVarietyFromShortGeno(damG)  || "Dam")
+  .replace(/\s*\(Dark\s*Brown\s*Eyes\)\s*/i, '');
 
-// Remove "(Dark Brown Eyes)" if it exists
-sireName = sireName.replace(/\s*\(Dark\s*Brown\s*Eyes\)\s*/i, '');
-damName  = damName.replace(/\s*\(Dark\s*Brown\s*Eyes\)\s*/i, '');
-
-// Build the summary chart label
 label.innerHTML = `
   <div class="breed-line">
     <span class="breed-role sire">Sire:</span>
@@ -1984,8 +1983,9 @@ label.innerHTML = `
     <strong class="breed-name">${damName}</strong>
     (<span class="breed-geno">${damG}</span>)
   </div>
-`;
-
+`;    
+  
+/////////////////////////////////////////////////////    
       
     label.style.display = "block";
   }
