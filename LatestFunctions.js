@@ -1392,7 +1392,7 @@ document.addEventListener('click', function (event) {
         .replace(/\s*eyes\s*,?/gi, '')
         .replace(/\s*[,;()]\s*$/, '')
         .trim();
-    }
+    
 
     // Clean the SUMMARY CHART
     const summaryBody = document.querySelector("#summaryChart tbody");
@@ -1419,9 +1419,7 @@ document.addEventListener('click', function (event) {
         }
 
         phenoCell.textContent = text.trim();
-      });
-    }
-
+ 
 
       /////////////////////////
 
