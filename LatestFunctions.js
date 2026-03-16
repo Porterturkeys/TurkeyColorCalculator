@@ -1379,29 +1379,45 @@ document.addEventListener('click', function (event) {
     if (!data) return;
     const displayName = data.name;
 ///////////////////////////////
-           // Minimal summary chart eye-note cleaner - no extra functions or complexity
+       function stripEyeNotes(str) {
+      if (!str) return str;
+      let cleaned = str;
+      const patterns = [
+        /\s*\(?\s*Dark\s*Brown\s*Eyes\s*\)?/gi,
+        /\s*Dark\s*Brown\s*Eyes/gi,
+        /\s*\(?\s*Dark\s*Brown\s*Eyes\s*\)?/gi,
+        /\s*Dark\s*Brown\s*Eyes\s*,?/gi,
+        /\s*,\s*Dark\s*Brown\s*Eyes/gi,
+        /\s*\(?\s*eyes\s*\)?/gi,
+        /\s*eyes/gi,
+        /\s*\(Dark\s*Brown\s*Eyes\)/gi,
+        /Dark\s*Brown\s*Eyes\s*$/gi
+      ];
+      patterns.forEach(regex => cleaned = cleaned.replace(regex, ''));
+      return cleaned.replace(/\s*[,;()]\s*$/, '').trim();
+    }
+
+    document.querySelectorAll("#maleOffspringResults li, #femaleOffspringResults li").forEach(li => {
+      let html = li.innerHTML;
+      if (!html) return;
+      html = html.replace(/\bWhite\b(?=\s*\()/gi, displayName)
+                 .replace(/\bBronze\b/gi, displayName)
+                 .replace(/To Be Defined/gi, displayName);
+      html = stripEyeNotes(html);
+      li.innerHTML = html.trim();
+    });
+
     const summaryBody = document.querySelector("#summaryChart tbody");
     if (summaryBody) {
-      summaryBody.querySelectorAll("tr").forEach(function(tr) {
-        let phenoCell = tr.cells && tr.cells[1];
-        if (!phenoCell || !phenoCell.textContent.trim()) {
-          phenoCell = tr.cells && tr.cells[2];
-        }
+      summaryBody.querySelectorAll("tr").forEach(tr => {
+        const phenoCell = tr.cells?.[1];
         if (!phenoCell) return;
-
         let text = phenoCell.textContent || "";
-        text = text
-          .replace(/\(Dark\s*Brown\s*Eyes\)/gi, '')
-          .replace(/Dark\s*Brown\s*Eyes/gi, '')
-          .replace(/\s*\(?\s*eyes\s*\)?/gi, '')
-          .replace(/\s*[,;()]\s*$/, '')
-          .trim();
-
-        if (text.includes("White") && !text.includes("Broad Breasted White")) {
-          text = text.replace(/\bWhite\b/gi, "Broad Breasted White");
-        }
-
-        phenoCell.textContent = text;
+        text = text.replace(/\bWhite\b(?=\s*\()/gi, displayName)
+                   .replace(/\bBronze\b/gi, displayName)
+                   .replace(/to be defined/gi, displayName);
+        text = stripEyeNotes(text);
+        phenoCell.textContent = text.trim();
       });
     }
 
