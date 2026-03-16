@@ -2086,6 +2086,22 @@ window.addEventListener("load", () => {
 /////////////////////////
 
 
+ // page link to calculators below the title
+
+const creditLine = document.createElement("div");
+creditLine.textContent = "porterturkeys.com/TurkeyColorCalculators";
+creditLine.style.fontSize = "0.90em";          // Slightly larger
+creditLine.style.color = "blue";
+creditLine.style.marginTop = "4px";
+creditLine.style.textAlign = "center";
+creditLine.style.fontStyle = "normal";        
+
+wrap.appendChild(creditLine);  // append to wrap instead of title
+
+///////////////////////////
+
+
+
 // LIVE TYPE-TO-APPLY (STRICT exact match only) + AUTO-RESET when match breaks
 
 
