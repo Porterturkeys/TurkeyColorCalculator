@@ -1378,8 +1378,8 @@ document.addEventListener('click', function (event) {
     const data = WHITE_VARIANTS[sireKey];
     if (!data) return;
     const displayName = data.name;
-///////////////////////////////
-       function stripEyeNotes(str) {
+
+    function stripEyeNotes(str) {
       if (!str) return str;
       let cleaned = str;
       const patterns = [
@@ -1414,32 +1414,6 @@ document.addEventListener('click', function (event) {
         if (!phenoCell) return;
         let text = phenoCell.textContent || "";
         text = text.replace(/\bWhite\b(?=\s*\()/gi, displayName)
-                   .replace(/\bBronze\b/gi, displayName)
-                   .replace(/to be defined/gi, displayName);
-        text = stripEyeNotes(text);
-        phenoCell.textContent = text.trim();
-      });
-    }
-
-      /////////////////////////
-
-    document.querySelectorAll("#maleOffspringResults li, #femaleOffspringResults li").forEach(li => {
-      let html = li.innerHTML;
-      if (!html) return;
-      html = html.replace(/\bWhite\s*\(Dark\s*Brown\s*Eyes\)/gi, displayName)
-                 .replace(/\bBronze\b/gi, displayName)
-                 .replace(/To Be Defined/gi, displayName);
-      html = stripEyeNotes(html);
-      li.innerHTML = html.trim();
-    });
-
-    const summaryBody = document.querySelector("#summaryChart tbody");
-    if (summaryBody) {
-      summaryBody.querySelectorAll("tr").forEach(tr => {
-        const phenoCell = tr.cells?.[1];
-        if (!phenoCell) return;
-        let text = phenoCell.textContent || "";
-        text = text.replace(/\bWhite\s*\(Dark\s*Brown\s*Eyes\)/gi, displayName)
                    .replace(/\bBronze\b/gi, displayName)
                    .replace(/to be defined/gi, displayName);
         text = stripEyeNotes(text);
@@ -1739,6 +1713,7 @@ if (summaryBody) {
     const shortWhiteRegex = /\b(?!Broad\s*Breasted\s*)White\b/gi;
 
    text = text
+  .replace("Broad Breasted White (Dark Brown Eyes)", "Broad Breasted White")
   .replace(shortBronzeRegex, BRONZE.name)
   .replace(shortWhiteRegex, WHITE.name)
   .replace(/To Be Defined/gi, BRONZE.name);
@@ -1987,32 +1962,26 @@ window.addEventListener("load", () => {
 
     const sireG = shortGeno(sireInfo);
     const damG  = shortGeno(damInfo);
-////////////////////////////////////////////
-      
-  // Try UI names first; if blank, infer from genotype; else fall back to Sire/Dam
-const sireName = (getVarietyName("sire") || inferVarietyFromShortGeno(sireG) || "Sire")
-  .replace(/\s*\(Dark\s*Brown\s*Eyes\)\s*/i, '');
 
-const damName  = (getVarietyName("dam")  || inferVarietyFromShortGeno(damG)  || "Dam")
-  .replace(/\s*\(Dark\s*Brown\s*Eyes\)\s*/i, '');
+    // Try UI names first; if blank, infer from genotype; else fall back to Sire/Dam
+    const sireName = getVarietyName("sire") || inferVarietyFromShortGeno(sireG) || "Sire";
+    const damName  = getVarietyName("dam")  || inferVarietyFromShortGeno(damG)  || "Dam";
 
-label.innerHTML = `
-  <div class="breed-line">
-    <span class="breed-role sire">Sire:</span>
-    <strong class="breed-name">${sireName}</strong>
-    (<span class="breed-geno">${sireG}</span>)
-  </div>
-  <div class="breed-x">&times;</div>
+    label.innerHTML = `
+      <div class="breed-line">
+        <span class="breed-role sire">Sire:</span>
+        <strong class="breed-name">${sireName}</strong>
+        (<span class="breed-geno">${sireG}</span>)
+      </div>
+      <div class="breed-x">&times;</div>
 
-  <div class="breed-line">
-    <span class="breed-role dam">Dam:</span>
-    <strong class="breed-name">${damName}</strong>
-    (<span class="breed-geno">${damG}</span>)
-  </div>
-`;    
-  
-/////////////////////////////////////////////////////    
-      
+
+      <div class="breed-line">
+        <span class="breed-role dam">Dam:</span>
+        <strong class="breed-name">${damName}</strong>
+        (<span class="breed-geno">${damG}</span>)
+      </div>
+    `;
     label.style.display = "block";
   }
 
@@ -2920,3 +2889,11 @@ window.addEventListener("load", () => {
         });
     console.log("[Auto-Reset] Sire & Dam variety inputs now auto-clear genotypes on empty/change (with wild bb fix)");
 })()
+
+
+
+
+
+
+
+
