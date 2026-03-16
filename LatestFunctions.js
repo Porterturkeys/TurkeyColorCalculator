@@ -1713,7 +1713,6 @@ if (summaryBody) {
     const shortWhiteRegex = /\b(?!Broad\s*Breasted\s*)White\b/gi;
 
    text = text
-  .replace("Broad Breasted White (Dark Brown Eyes)", "Broad Breasted White")
   .replace(shortBronzeRegex, BRONZE.name)
   .replace(shortWhiteRegex, WHITE.name)
   .replace(/To Be Defined/gi, BRONZE.name);
@@ -1963,25 +1962,31 @@ window.addEventListener("load", () => {
     const sireG = shortGeno(sireInfo);
     const damG  = shortGeno(damInfo);
 
-    // Try UI names first; if blank, infer from genotype; else fall back to Sire/Dam
-    const sireName = getVarietyName("sire") || inferVarietyFromShortGeno(sireG) || "Sire";
-    const damName  = getVarietyName("dam")  || inferVarietyFromShortGeno(damG)  || "Dam";
+   // Try UI names first; if blank, infer from genotype; else fall back to Sire/Dam
+let sireName = getVarietyName("sire") || inferVarietyFromShortGeno(sireG) || "Sire";
+let damName  = getVarietyName("dam")  || inferVarietyFromShortGeno(damG)  || "Dam";
 
-    label.innerHTML = `
-      <div class="breed-line">
-        <span class="breed-role sire">Sire:</span>
-        <strong class="breed-name">${sireName}</strong>
-        (<span class="breed-geno">${sireG}</span>)
-      </div>
-      <div class="breed-x">&times;</div>
+// Remove "(Dark Brown Eyes)" if it exists
+sireName = sireName.replace(/\s*\(Dark\s*Brown\s*Eyes\)\s*/i, '');
+damName  = damName.replace(/\s*\(Dark\s*Brown\s*Eyes\)\s*/i, '');
 
+// Build the summary chart label
+label.innerHTML = `
+  <div class="breed-line">
+    <span class="breed-role sire">Sire:</span>
+    <strong class="breed-name">${sireName}</strong>
+    (<span class="breed-geno">${sireG}</span>)
+  </div>
+  <div class="breed-x">&times;</div>
 
-      <div class="breed-line">
-        <span class="breed-role dam">Dam:</span>
-        <strong class="breed-name">${damName}</strong>
-        (<span class="breed-geno">${damG}</span>)
-      </div>
-    `;
+  <div class="breed-line">
+    <span class="breed-role dam">Dam:</span>
+    <strong class="breed-name">${damName}</strong>
+    (<span class="breed-geno">${damG}</span>)
+  </div>
+`;
+
+      
     label.style.display = "block";
   }
 
