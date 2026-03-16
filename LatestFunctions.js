@@ -1109,7 +1109,7 @@ if (KEEP_QUALIFIERS_IN_SUMMARY && typeof cleanSummaryPhenotypesOnce === "functio
 
 
 
-// TRANSFER FIX - only preserve wild if the variety is still wild
+// TRANSFER FIX - preserve wild when offspring is wild
 if (typeof window.transferOffspringToParent === "function" && !window._wildTransferPatched) {
   window._wildTransferPatched = true;
   const originalTransfer = window.transferOffspringToParent;
@@ -1118,18 +1118,20 @@ if (typeof window.transferOffspringToParent === "function" && !window._wildTrans
     const res = originalTransfer.apply(this, arguments);
 
     if (parent === "sire" || parent === "dam") {
-      const varietyInput = document.getElementById(parent + "VarietyInput");
       const container = document.getElementById(parent + "ImageContainer");
+      const varietyInput = document.getElementById(parent + "VarietyInput");
 
-      const val = (varietyInput?.value || "").toLowerCase();
+      const previousWild = wildState[parent];
 
-      if (WILD_VARIETY_MAP[val]) {
-        const key = WILD_VARIETY_MAP[val];
-        wildState[parent] = key;
+      // Detect if transferred genotype is wild (bb without domestic modifiers)
+      const geno = String(genotype || "");
+      const isWildGenotype = /\bbb\b/.test(geno) && !/cc/i.test(geno);
 
+      if (isWildGenotype && previousWild) {
         if (container) {
-          container.dataset.wildKey = key;
+          container.dataset.wildKey = previousWild;
           setTimeout(() => forceApplyWild(parent), 150);
+          setTimeout(() => forceApplyWild(parent), 350);
         }
       } else {
         wildState[parent] = null;
@@ -1140,7 +1142,6 @@ if (typeof window.transferOffspringToParent === "function" && !window._wildTrans
     return res;
   };
 }
-
 
       
 
