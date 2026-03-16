@@ -1123,6 +1123,8 @@ if (typeof window.transferOffspringToParent === "function" && !window._wildTrans
 
       const previousWild = wildState[parent];
 
+    }
+
        const container = document.getElementById(parent + "ImageContainer");
 const strong = container?.querySelector("strong span, strong");
 const pheno = (strong?.textContent || "").toLowerCase();
