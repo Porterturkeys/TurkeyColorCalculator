@@ -1788,17 +1788,19 @@ state[parent] = null;
     else if (WHITE_MAP[val]) type = "white";
 //////////////////////////////////////////////////////////////////////////////////
 
-// Genotype fallback – ONLY if the parent was already Broad Breasted
+// Genotype fallback – ONLY if BOTH parents were Broad Breasted
 if (!type) {
     const geno = String(genotype || "");
     const hasBB = /\bbb\b/.test(geno);
     const hascc = /\bcc\b/.test(geno);
 
     const wasBB = previousBB === "bronze" || previousBB === "white";
+    const otherParent = parent === "sire" ? state.dam : state.sire;
+    const bothBB = wasBB && (otherParent === "bronze" || otherParent === "white");
 
-    if (wasBB && hasBB) {
-        if (hascc) type = "white";   // bb cc -> Broad Breasted White
-        else type = "bronze";        // bb CC or bb Cc -> Broad Breasted Bronze
+    if (bothBB && hasBB) {
+        if (hascc) type = "white";
+        else type = "bronze";
     }
 }
       
