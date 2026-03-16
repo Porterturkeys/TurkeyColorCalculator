@@ -1378,48 +1378,32 @@ document.addEventListener('click', function (event) {
     const data = WHITE_VARIANTS[sireKey];
     if (!data) return;
     const displayName = data.name;
-
-       // Clean eye notes from any string (used for both summary and offspring lists)
-    function stripEyeNotes(str) {
-      if (!str) return str;
-      return str
-        .replace(/Broad\s*Breasted\s*White\s*\(Dark\s*Brown\s*Eyes\)/gi, "Broad Breasted White")
-        .replace(/\s*\(?\s*Dark\s*Brown\s*Eyes\s*\)?/gi, '')
-        .replace(/Dark\s*Brown\s*Eyes/gi, '')
-        .replace(/\s*\(?\s*[Dd]ark\s*[Bb]rown\s*[Ee]yes\s*\)?/gi, '')
-        .replace(/\s*\(?\s*eyes\s*\)?/gi, '')
-        .replace(/\s*,\s*eyes/gi, '')
-        .replace(/\s*eyes\s*,?/gi, '')
-        .replace(/\s*[,;()]\s*$/, '')
-        .trim();
-    
-
-    // Clean the SUMMARY CHART
+///////////////////////////////
+           // Minimal summary chart eye-note cleaner - no extra functions or complexity
     const summaryBody = document.querySelector("#summaryChart tbody");
     if (summaryBody) {
-      summaryBody.querySelectorAll("tr").forEach(tr => {
-        // Try column 1 first (0-based index)
-        let phenoCell = tr.cells?.[1];
-        
-        // Fallback: try column 2 if column 1 is empty or missing text
+      summaryBody.querySelectorAll("tr").forEach(function(tr) {
+        let phenoCell = tr.cells && tr.cells[1];
         if (!phenoCell || !phenoCell.textContent.trim()) {
-          phenoCell = tr.cells?.[2];
+          phenoCell = tr.cells && tr.cells[2];
         }
-        
         if (!phenoCell) return;
 
         let text = phenoCell.textContent || "";
+        text = text
+          .replace(/\(Dark\s*Brown\s*Eyes\)/gi, '')
+          .replace(/Dark\s*Brown\s*Eyes/gi, '')
+          .replace(/\s*\(?\s*eyes\s*\)?/gi, '')
+          .replace(/\s*[,;()]\s*$/, '')
+          .trim();
 
-        // Clean eye notes
-        text = stripEyeNotes(text);
-
-        // Expand short "White" → full name if needed
         if (text.includes("White") && !text.includes("Broad Breasted White")) {
           text = text.replace(/\bWhite\b/gi, "Broad Breasted White");
         }
 
-        phenoCell.textContent = text.trim();
- 
+        phenoCell.textContent = text;
+      });
+    }
 
       /////////////////////////
 
