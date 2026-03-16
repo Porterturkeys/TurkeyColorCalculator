@@ -2100,7 +2100,7 @@ wrap.appendChild(creditLine);  // append to wrap instead of title
 
 ///////////////////////////
 
-
+}
 
 // LIVE TYPE-TO-APPLY (STRICT exact match only) + AUTO-RESET when match breaks
 
