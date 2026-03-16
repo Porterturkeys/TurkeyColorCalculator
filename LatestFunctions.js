@@ -1382,7 +1382,8 @@ document.addEventListener('click', function (event) {
     function stripEyeNotes(str) {
       if (!str) return str;
       let cleaned = str;
-      const patterns = [
+      cleaned = cleaned.replace(/Broad\s*Breasted\s*White\s*\(Dark\s*Brown\s*Eyes\)/gi, "Broad Breasted White");
+        const patterns = [
         /\s*\(?\s*Dark\s*Brown\s*Eyes\s*\)?/gi,
         /\s*Dark\s*Brown\s*Eyes/gi,
         /\s*\(?\s*Dark\s*Brown\s*Eyes\s*\)?/gi,
