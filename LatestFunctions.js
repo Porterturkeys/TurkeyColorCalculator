@@ -2888,6 +2888,25 @@ window.addEventListener("load", () => {
         });
     console.log("[Auto-Reset] Sire & Dam variety inputs now auto-clear genotypes on empty/change (with wild bb fix)");
 })()
+/////////////////////////
 
+// CLEAN SUMMARY NAME - remove "(Dark Brown Eyes)" from Broad Breasted White
+(function(){
+  const origSummary = window.updateSummaryChart;
+  if (!origSummary) return;
 
+  window.updateSummaryChart = function() {
+    origSummary.apply(this, arguments);
 
+    const cells = document.querySelectorAll("#offspringSummaryChart td");
+
+    cells.forEach(td => {
+      if (td.textContent.includes("Broad Breasted White (Dark Brown Eyes)")) {
+        td.textContent = td.textContent.replace(
+          "Broad Breasted White (Dark Brown Eyes)",
+          "Broad Breasted White"
+        );
+      }
+    });
+  };
+})();
