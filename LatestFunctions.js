@@ -1380,23 +1380,41 @@ document.addEventListener('click', function (event) {
     const displayName = data.name;
 
     function stripEyeNotes(str) {
-      if (!str) return str;
-      let cleaned = str;
-      cleaned = cleaned.replace(/Broad\s*Breasted\s*White\s*\(Dark\s*Brown\s*Eyes\)/gi, "Broad Breasted White");
-        const patterns = [
-        /\s*\(?\s*Dark\s*Brown\s*Eyes\s*\)?/gi,
-        /\s*Dark\s*Brown\s*Eyes/gi,
-        /\s*\(?\s*Dark\s*Brown\s*Eyes\s*\)?/gi,
-        /\s*Dark\s*Brown\s*Eyes\s*,?/gi,
-        /\s*,\s*Dark\s*Brown\s*Eyes/gi,
-        /\s*\(?\s*eyes\s*\)?/gi,
-        /\s*eyes/gi,
-        /\s*\(Dark\s*Brown\s*Eyes\)/gi,
-        /Dark\s*Brown\s*Eyes\s*$/gi
-      ];
-      patterns.forEach(regex => cleaned = cleaned.replace(regex, ''));
-      return cleaned.replace(/\s*[,;()]\s*$/, '').trim();
+  if (!str) return str;
+  return str
+    .replace(/Broad\s*Breasted\s*White\s*\(Dark\s*Brown\s*Eyes\)/gi, "Broad Breasted White")  // exact targeted replace first
+    .replace(/\s*\(?\s*Dark\s*Brown\s*Eyes\s*\)?/gi, '')           // most common form
+    .replace(/Dark\s*Brown\s*Eyes/gi, '')                          // without parens
+    .replace(/\s*\(?\s*[Dd]ark\s*[Bb]rown\s*[Ee]yes\s*\)?/gi, '')  // case insensitive extra
+    .replace(/\s*\(?\s*eyes\s*\)?/gi, '')                          // any "eyes"
+    .replace(/\s*,\s*eyes/gi, '')                                  // trailing ", eyes"
+    .replace(/\s*eyes\s*,?/gi, '')                                 // any leftover eyes
+    .replace(/\s*[,;()]\s*$/, '')                                  // trailing punctuation
+    .trim();
+}
+////////////////////
+
+const summaryBody = document.querySelector("#summaryChart tbody");
+if (summaryBody) {
+  summaryBody.querySelectorAll("tr").forEach(tr => {
+    const phenoCell = tr.cells?.[1];  // usually column 1 or 2 is phenotype — adjust if needed
+    if (!phenoCell) return;
+    let text = phenoCell.textContent || "";
+    
+    // Apply the strong cleaning
+    text = stripEyeNotes(text);
+    
+    // Also force full name if short "White" appears (optional but helps consistency)
+    if (text.includes("White") && !text.includes("Broad Breasted White")) {
+      text = text.replace(/\bWhite\b/gi, "Broad Breasted White");
     }
+    
+    phenoCell.textContent = text.trim();
+  });
+}
+
+
+      /////////////////////////
 
     document.querySelectorAll("#maleOffspringResults li, #femaleOffspringResults li").forEach(li => {
       let html = li.innerHTML;
