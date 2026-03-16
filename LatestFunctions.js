@@ -1109,7 +1109,7 @@ if (KEEP_QUALIFIERS_IN_SUMMARY && typeof cleanSummaryPhenotypesOnce === "functio
 
 
 
-// TRANSFER FIX - preserve wild when offspring is wild
+// TRANSFER FIX - preserve and propagate wild subspecies correctly
 if (typeof window.transferOffspringToParent === "function" && !window._wildTransferPatched) {
   window._wildTransferPatched = true;
   const originalTransfer = window.transferOffspringToParent;
@@ -1118,41 +1118,36 @@ if (typeof window.transferOffspringToParent === "function" && !window._wildTrans
     const res = originalTransfer.apply(this, arguments);
 
     if (parent === "sire" || parent === "dam") {
+
       const container = document.getElementById(parent + "ImageContainer");
-      const varietyInput = document.getElementById(parent + "VarietyInput");
+      if (!container) return res;
 
-      const previousWild = wildState[parent];
+      const sireWild = wildState.sire;
+      const damWild = wildState.dam;
 
-    }
+      // If both parents were wild, offspring must also be wild
+      if (sireWild && damWild) {
 
-       const container = document.getElementById(parent + "ImageContainer");
-const strong = container?.querySelector("strong span, strong");
-const pheno = (strong?.textContent || "").toLowerCase();
+        const newKey = (sireWild === damWild) ? sireWild : "hybrid";
+        wildState[parent] = newKey;
 
-if (pheno.includes("hybrid wild")) {
-  wildState[parent] = "hybrid";
+        container.dataset.wildKey = newKey;
 
+        setTimeout(() => forceApplyWild(parent), 150);
+        setTimeout(() => forceApplyWild(parent), 350);
 
-      // Detect if transferred genotype is wild (bb without domestic modifiers)
-      const geno = String(genotype || "");
-      const isWildGenotype = /\bbb\b/.test(geno) && !/cc/i.test(geno);
-
-      if (isWildGenotype && previousWild) {
-        if (container) {
-          container.dataset.wildKey = previousWild;
-          setTimeout(() => forceApplyWild(parent), 150);
-          setTimeout(() => forceApplyWild(parent), 350);
-        }
       } else {
+
+        // If not both wild, clear wild state so domestic varieties can replace
         wildState[parent] = null;
-        if (container) delete container.dataset.wildKey;
+        delete container.dataset.wildKey;
+
       }
     }
 
     return res;
   };
 }
-
       
 
     if (typeof window.handleDropdownChange === "function" && !window._wildFavoritesPatched) {
