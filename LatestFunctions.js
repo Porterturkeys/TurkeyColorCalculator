@@ -1400,7 +1400,7 @@ document.addEventListener('click', function (event) {
     document.querySelectorAll("#maleOffspringResults li, #femaleOffspringResults li").forEach(li => {
       let html = li.innerHTML;
       if (!html) return;
-      html = html.replace(/\bWhite\b(?=\s*\()/gi, displayName)
+      html = html.replace(/\bWhite\s*\(Dark\s*Brown\s*Eyes\)/gi, displayName)
                  .replace(/\bBronze\b/gi, displayName)
                  .replace(/To Be Defined/gi, displayName);
       html = stripEyeNotes(html);
