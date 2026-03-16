@@ -1794,17 +1794,13 @@ if (!type) {
     const hasBB = /\bbb\b/.test(geno);
     const hascc = /\bcc\b/.test(geno);
 
-    const container = document.getElementById(parent + "ImageContainer");
     const wasBB = previousBB === "bronze" || previousBB === "white";
 
     if (wasBB && hasBB) {
-        // Preserve BB Whites vs BB Bronzes correctly
-        if (hascc) type = "bronze";     // bb cc -> bronze
-        else type = "bronze";            // bb Cc -> bronze
-        // bb CC is handled explicitly elsewhere as white
+        if (hascc) type = "white";   // bb cc -> Broad Breasted White
+        else type = "bronze";        // bb CC or bb Cc -> Broad Breasted Bronze
     }
 }
-
       
   /////////////////////////////////////////////////////////////////////
     if (type) {
