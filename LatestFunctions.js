@@ -1773,7 +1773,10 @@ if (typeof window.transferOffspringToParent === "function" && !window._bbTransfe
     const container = document.getElementById(parent + "ImageContainer");
     if (!varietyInput || !container) return res;
 
-      
+    /* Fix: prevent Wild (or other locked names) from persisting */
+if (varietyInput.value && varietyInput.value.toLowerCase().includes("wild")) {
+    varietyInput.value = "";
+}  
 
     // Preserve previous BB state for fallback detection
 const previousBB = container.dataset.bbType || null;
