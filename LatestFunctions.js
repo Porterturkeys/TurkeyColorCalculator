@@ -1379,39 +1379,48 @@ document.addEventListener('click', function (event) {
     if (!data) return;
     const displayName = data.name;
 
+       // Clean eye notes from any string (used for both summary and offspring lists)
     function stripEyeNotes(str) {
-  if (!str) return str;
-  return str
-    .replace(/Broad\s*Breasted\s*White\s*\(Dark\s*Brown\s*Eyes\)/gi, "Broad Breasted White")  // exact targeted replace first
-    .replace(/\s*\(?\s*Dark\s*Brown\s*Eyes\s*\)?/gi, '')           // most common form
-    .replace(/Dark\s*Brown\s*Eyes/gi, '')                          // without parens
-    .replace(/\s*\(?\s*[Dd]ark\s*[Bb]rown\s*[Ee]yes\s*\)?/gi, '')  // case insensitive extra
-    .replace(/\s*\(?\s*eyes\s*\)?/gi, '')                          // any "eyes"
-    .replace(/\s*,\s*eyes/gi, '')                                  // trailing ", eyes"
-    .replace(/\s*eyes\s*,?/gi, '')                                 // any leftover eyes
-    .replace(/\s*[,;()]\s*$/, '')                                  // trailing punctuation
-    .trim();
-}
-////////////////////
-
-const summaryBody = document.querySelector("#summaryChart tbody");
-if (summaryBody) {
-  summaryBody.querySelectorAll("tr").forEach(tr => {
-    const phenoCell = tr.cells?.[1];  // usually column 1 or 2 is phenotype — adjust if needed
-    if (!phenoCell) return;
-    let text = phenoCell.textContent || "";
-    
-    // Apply the strong cleaning
-    text = stripEyeNotes(text);
-    
-    // Also force full name if short "White" appears (optional but helps consistency)
-    if (text.includes("White") && !text.includes("Broad Breasted White")) {
-      text = text.replace(/\bWhite\b/gi, "Broad Breasted White");
+      if (!str) return str;
+      return str
+        .replace(/Broad\s*Breasted\s*White\s*\(Dark\s*Brown\s*Eyes\)/gi, "Broad Breasted White")
+        .replace(/\s*\(?\s*Dark\s*Brown\s*Eyes\s*\)?/gi, '')
+        .replace(/Dark\s*Brown\s*Eyes/gi, '')
+        .replace(/\s*\(?\s*[Dd]ark\s*[Bb]rown\s*[Ee]yes\s*\)?/gi, '')
+        .replace(/\s*\(?\s*eyes\s*\)?/gi, '')
+        .replace(/\s*,\s*eyes/gi, '')
+        .replace(/\s*eyes\s*,?/gi, '')
+        .replace(/\s*[,;()]\s*$/, '')
+        .trim();
     }
-    
-    phenoCell.textContent = text.trim();
-  });
-}
+
+    // Clean the SUMMARY CHART
+    const summaryBody = document.querySelector("#summaryChart tbody");
+    if (summaryBody) {
+      summaryBody.querySelectorAll("tr").forEach(tr => {
+        // Try column 1 first (0-based index)
+        let phenoCell = tr.cells?.[1];
+        
+        // Fallback: try column 2 if column 1 is empty or missing text
+        if (!phenoCell || !phenoCell.textContent.trim()) {
+          phenoCell = tr.cells?.[2];
+        }
+        
+        if (!phenoCell) return;
+
+        let text = phenoCell.textContent || "";
+
+        // Clean eye notes
+        text = stripEyeNotes(text);
+
+        // Expand short "White" → full name if needed
+        if (text.includes("White") && !text.includes("Broad Breasted White")) {
+          text = text.replace(/\bWhite\b/gi, "Broad Breasted White");
+        }
+
+        phenoCell.textContent = text.trim();
+      });
+    }
 
 
       /////////////////////////
