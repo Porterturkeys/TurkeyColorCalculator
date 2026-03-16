@@ -1773,30 +1773,7 @@ if (typeof window.transferOffspringToParent === "function" && !window._bbTransfe
     const container = document.getElementById(parent + "ImageContainer");
     if (!varietyInput || !container) return res;
 
-  // Inside your patched transferOffspringToParent
-if (parent === "sire" || parent === "dam") {
-  const varietyInput = document.getElementById(parent + "VarietyInput");
-  const container = document.getElementById(parent + "ImageContainer");
-  if (varietyInput && container) {
-    // Override any stubborn parent names like Wild
-    const geno = String(genotype || "");
-    let type = null;
-
-    if (/\bbb\b/.test(geno)) type = "bronze";
-    else if (/\bWW\b/.test(geno)) type = "white"; // example, adjust to your white check
-
-    if (type) {
-      // Always set the dataset and state
-      container.dataset.bbType = type;
-      state[parent] = type;
-
-      // Force the name/image update, even for Wild
-      varietyInput.value = type === "white" ? WHITE.name : BRONZE.name;
-      forceApply(parent); // your existing function
-    }
-  }
-}
-
+ 
     // Preserve previous BB state for fallback detection
 const previousBB = container.dataset.bbType || null;
 state[parent] = null;
