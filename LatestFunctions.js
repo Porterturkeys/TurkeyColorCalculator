@@ -1123,6 +1123,14 @@ if (typeof window.transferOffspringToParent === "function" && !window._wildTrans
 
       const previousWild = wildState[parent];
 
+       const container = document.getElementById(parent + "ImageContainer");
+const strong = container?.querySelector("strong span, strong");
+const pheno = (strong?.textContent || "").toLowerCase();
+
+if (pheno.includes("hybrid wild")) {
+  wildState[parent] = "hybrid";
+} 
+
       // Detect if transferred genotype is wild (bb without domestic modifiers)
       const geno = String(genotype || "");
       const isWildGenotype = /\bbb\b/.test(geno) && !/cc/i.test(geno);
