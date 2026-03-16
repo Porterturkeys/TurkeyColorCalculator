@@ -1407,20 +1407,19 @@ document.addEventListener('click', function (event) {
       li.innerHTML = html.trim();
     });
 
-    // Apply only for Broad Breasted White in summary chart
-document.querySelectorAll("#summaryChart tbody tr").forEach(tr => {
-    const phenoCell = tr.cells?.[1];
-    if (!phenoCell) return;
-
-    let text = phenoCell.textContent || "";
-    // Check if it contains Broad Breasted White
-    if (/Broad Breasted White/i.test(text)) {
-        // Remove any eye notes for Broad Breasted White only
-        text = text.replace(/\s*\(Dark\s*Brown\s*Eyes\)/i, '');
+    const summaryBody = document.querySelector("#summaryChart tbody");
+    if (summaryBody) {
+      summaryBody.querySelectorAll("tr").forEach(tr => {
+        const phenoCell = tr.cells?.[1];
+        if (!phenoCell) return;
+        let text = phenoCell.textContent || "";
+        text = text.replace(/\bWhite\b(?=\s*\()/gi, displayName)
+                   .replace(/\bBronze\b/gi, displayName)
+                   .replace(/to be defined/gi, displayName);
+        text = stripEyeNotes(text);
+        phenoCell.textContent = text.trim();
+      });
     }
-
-    phenoCell.textContent = text.trim();
-});
 
     function patchWhiteOffspringArray(arr) {
       if (!Array.isArray(arr)) return;
