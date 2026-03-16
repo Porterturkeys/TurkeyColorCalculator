@@ -1413,7 +1413,7 @@ document.addEventListener('click', function (event) {
         const phenoCell = tr.cells?.[1];
         if (!phenoCell) return;
         let text = phenoCell.textContent || "";
-        text = text.replace(/\bWhite\b(?=\s*\()/gi, displayName)
+        text = text.replace(/\bWhite\s*\(Dark\s*Brown\s*Eyes\)/gi, displayName)
                    .replace(/\bBronze\b/gi, displayName)
                    .replace(/to be defined/gi, displayName);
         text = stripEyeNotes(text);
