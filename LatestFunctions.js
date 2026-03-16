@@ -1107,25 +1107,42 @@ if (KEEP_QUALIFIERS_IN_SUMMARY && typeof cleanSummaryPhenotypesOnce === "functio
 
     installWildOffspringObserver();
 
-    // TRANSFER FIX - keep state and force apply immediately after transfer
-    if (typeof window.transferOffspringToParent === "function" && !window._wildTransferPatched) {
-      window._wildTransferPatched = true;
-      const originalTransfer = window.transferOffspringToParent;
-      window.transferOffspringToParent = function(genotype, parent) {
-        const res = originalTransfer.apply(this, arguments);
-        if (parent === "sire" || parent === "dam") {
-          if (wildState[parent]) {
-            const container = document.getElementById(parent + "ImageContainer");
-            if (container) {
-              container.dataset.wildKey = wildState[parent];
-              setTimeout(() => forceApplyWild(parent), 150);
-              setTimeout(() => forceApplyWild(parent), 400);
-            }
-          }
+
+
+// TRANSFER FIX - only preserve wild if the variety is still wild
+if (typeof window.transferOffspringToParent === "function" && !window._wildTransferPatched) {
+  window._wildTransferPatched = true;
+  const originalTransfer = window.transferOffspringToParent;
+
+  window.transferOffspringToParent = function(genotype, parent) {
+    const res = originalTransfer.apply(this, arguments);
+
+    if (parent === "sire" || parent === "dam") {
+      const varietyInput = document.getElementById(parent + "VarietyInput");
+      const container = document.getElementById(parent + "ImageContainer");
+
+      const val = (varietyInput?.value || "").toLowerCase();
+
+      if (WILD_VARIETY_MAP[val]) {
+        const key = WILD_VARIETY_MAP[val];
+        wildState[parent] = key;
+
+        if (container) {
+          container.dataset.wildKey = key;
+          setTimeout(() => forceApplyWild(parent), 150);
         }
-        return res;
-      };
+      } else {
+        wildState[parent] = null;
+        if (container) delete container.dataset.wildKey;
+      }
     }
+
+    return res;
+  };
+}
+
+
+      
 
     if (typeof window.handleDropdownChange === "function" && !window._wildFavoritesPatched) {
       window._wildFavoritesPatched = true;
