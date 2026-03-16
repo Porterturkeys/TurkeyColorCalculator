@@ -1129,7 +1129,7 @@ const pheno = (strong?.textContent || "").toLowerCase();
 
 if (pheno.includes("hybrid wild")) {
   wildState[parent] = "hybrid";
-} 
+
 
       // Detect if transferred genotype is wild (bb without domestic modifiers)
       const geno = String(genotype || "");
