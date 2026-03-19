@@ -2909,6 +2909,187 @@ wrap.appendChild(creditLine);  // append to wrap instead of title
     console.log("[Auto-Reset] Sire & Dam variety inputs now auto-clear genotypes on empty/change (with wild bb fix)");
 })()
 
+// FINAL NUCLEAR CLEANER for "(Dark Brown Eyes)" in BB White summary chart rows
+// Only affects cells with "Broad Breasted White" — leaves regular whites alone
+(function cleanBBWhiteEyesForever() {
+  if (window._bbWhiteEyesCleanerInstalled) return;
+  window._bbWhiteEyesCleanerInstalled = true;
+
+  function stripEyesFromBBWhite() {
+    const table = document.getElementById("summaryChart");
+    if (!table) return;
+
+    table.querySelectorAll("tbody tr td:nth-child(2)").forEach(cell => {  // phenotype column
+      let text = cell.textContent || "";
+      if (!/Broad\s*Breasted\s*White/i.test(text)) return;  // skip non-BB White
+
+      // Multiple aggressive strips
+      text = text
+        .replace(/\s*\(Dark\s*Brown\s*Eyes\)\s*/gi, '')
+        .replace(/\s*\(Dark\s*Brown\s*Eyes\s*\)?/gi, '')
+        .replace(/Dark\s*Brown\s*Eyes/gi, '')
+        .replace(/\s*\([^)]*Eyes[^)]*\)/gi, '')
+        .replace(/\s*\(eyes\)\s*/gi, '')
+        .replace(/\s*\(Dark\s*Brown\s*Eyes\)$/gi, '');
+
+      // Trim trailing junk
+      text = text.replace(/\s*[,;()]\s*$/, '').trim();
+
+      if (cell.textContent !== text) {
+        cell.textContent = text;
+        console.log('[BB Eyes Clean] Fixed:', text);
+      }
+    });
+  }
+
+  // Run immediately + on key events
+  setTimeout(stripEyesFromBBWhite, 300);
+  setTimeout(stripEyesFromBBWhite, 800);
+  setTimeout(stripEyesFromBBWhite, 1500);
+
+  // Hook calculate
+  if (typeof window.calculateOffspringWrapper === "function") {
+    const origCalc = window.calculateOffspringWrapper;
+    window.calculateOffspringWrapper = function() {
+      const res = origCalc.apply(this, arguments);
+      setTimeout(stripEyesFromBBWhite, 400);
+      setTimeout(stripEyesFromBBWhite, 1200);
+      return res;
+    };
+  }
+
+  // Hook transfer (if it exists)
+  if (typeof window.transferOffspringToParent === "function") {
+    const origTransfer = window.transferOffspringToParent;
+    window.transferOffspringToParent = function(...args) {
+      const res = origTransfer.apply(this, arguments);
+      setTimeout(stripEyesFromBBWhite, 200);
+      setTimeout(stripEyesFromBBWhite, 800);
+      return res;
+    };
+  }
+
+  // MutationObserver on summary chart for late DOM changes
+  const summary = document.getElementById("summaryChart");
+  if (summary) {
+    const obs = new MutationObserver(() => {
+      setTimeout(stripEyesFromBBWhite, 100);
+      setTimeout(stripEyesFromBBWhite, 500);
+    });
+    obs.observe(summary, { childList: true, subtree: true, characterData: true });
+  }
+
+  // One-time run on load + after 3s
+  window.addEventListener("load", () => {
+    setTimeout(stripEyesFromBBWhite, 1000);
+  });
+
+  console.log('[BB White Eyes Cleaner] Activated – watching summary chart');
+})();
+
+/////////
+
+// Firefox-only: balanced fix – full names in chart + correct BB images in offspring lists
+if (navigator.userAgent.toLowerCase().includes('firefox')) {
+  (function firefoxBBFinalFix() {
+    console.log("[FF BB Final Fix] Activated – protecting full names + fixing images");
+
+    function patchOffspringAndChart() {
+      // 1. Offspring lists: text + images
+      ["maleOffspringResults", "femaleOffspringResults"].forEach(id => {
+        const list = document.getElementById(id);
+        if (!list) return;
+
+        list.querySelectorAll("li").forEach(li => {
+          let html = li.innerHTML || '';
+          // Only replace if short "Bronze" (protect existing full names)
+          if (html.includes("Broad Breasted Bronze") || !html.includes("Bronze")) return;
+          html = html.replace(/\bBronze\b/gi, "Broad Breasted Bronze");
+          li.innerHTML = html.trim();
+        });
+
+        // Force correct images (scan src)
+        list.querySelectorAll("img").forEach(img => {
+          const src = img.src.toLowerCase();
+          if (src.includes("mbronze.jpg")) {
+            img.src = "https://portersturkeys.github.io/Pictures/MBroadBreastedBronze.jpg";
+          } else if (src.includes("fbronze.jpg")) {
+            img.src = "https://portersturkeys.github.io/Pictures/FBroadBreastedBronze.jpg";
+          } else if (src.includes("pbronze.jpg")) {
+            img.src = "https://portersturkeys.github.io/Pictures/PBroadBreastedBronze.jpg";
+          }
+        });
+      });
+
+      // 2. Summary chart: only replace short "Bronze" (protect full name)
+      const table = document.getElementById("summaryChart");
+      if (table) {
+        table.querySelectorAll("td").forEach(td => {
+          let text = td.textContent || "";
+          // Skip if already has full name
+          if (text.includes("Broad Breasted Bronze")) return;
+          // Only fix plain "Bronze"
+          if (text.includes("Bronze") && !text.includes("Broad")) {
+            td.textContent = text.replace(/\bBronze\b/gi, "Broad Breasted Bronze").trim();
+          }
+        });
+      }
+
+      // Force Firefox reflow/repaint
+      const dummy = document.createElement("div");
+      dummy.style.position = "absolute";
+      dummy.style.top = "-9999px";
+      document.body.appendChild(dummy);
+      dummy.offsetHeight; // trigger reflow
+      document.body.removeChild(dummy);
+    }
+
+    // Staggered + repeated calls
+    function schedulePatches() {
+      [300, 800, 1400, 2200].forEach(delay => {
+        setTimeout(patchOffspringAndChart, delay);
+      });
+    }
+
+    // Hook calculate
+    if (typeof window.calculateOffspringWrapper === "function") {
+      const orig = window.calculateOffspringWrapper;
+      window.calculateOffspringWrapper = function() {
+        const res = orig.apply(this, arguments);
+        schedulePatches();
+        return res;
+      };
+    }
+
+    // Hook transfer
+    if (typeof window.transferOffspringToParent === "function") {
+      const origTransfer = window.transferOffspringToParent;
+      window.transferOffspringToParent = function(...args) {
+        const res = origTransfer.apply(this, arguments);
+        setTimeout(schedulePatches, 400);
+        return res;
+      };
+    }
+
+    // Watch both lists and chart
+    const targets = [
+      document.getElementById("maleOffspringResults"),
+      document.getElementById("femaleOffspringResults"),
+      document.getElementById("summaryChart")
+    ].filter(Boolean);
+
+    targets.forEach(target => {
+      if (target) {
+        const obs = new MutationObserver(schedulePatches);
+        obs.observe(target, { childList: true, subtree: true, characterData: true });
+      }
+    });
+
+    // Initial + load safety
+    setTimeout(schedulePatches, 1000);
+    window.addEventListener("load", () => setTimeout(schedulePatches, 2000));
+  })();
+}
 
 
 
