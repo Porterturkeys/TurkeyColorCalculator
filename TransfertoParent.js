@@ -164,23 +164,15 @@ document.getElementById('damAlleleE').value = 'E-';
 }
 }
 
-// Handle the N locus specifically
+// Handle the N locus using complete genotype parts
 if (parent === 'sire') {
-if (!genotype.includes('N') && !genotype.includes('n')) {
-document.getElementById('sireAlleleN').value = 'NN';
-} else if (genotype.includes('nn')) {
-document.getElementById('sireAlleleN').value = 'nn';
+  document.getElementById('sireAlleleN').value =
+    genotypeParts.includes('nn') ? 'nn' :
+    genotypeParts.includes('Nn') ? 'Nn' :
+    'NN';
 } else {
-document.getElementById('sireAlleleN').value = 'Nn';
-}
-} else {
-if (!genotype.includes('N') && !genotype.includes('n') && !genotype.includes('n-')) {
-document.getElementById('damAlleleN').value = 'N-';
-} else if (genotype.includes('n-')) {
-document.getElementById('damAlleleN').value = 'n-';
-} else {
-document.getElementById('damAlleleN').value = 'N-';
-}
+  document.getElementById('damAlleleN').value =
+    genotypeParts.includes('n-') ? 'n-' : 'N-';
 }
 
 if (parent === 'sire') {
@@ -188,9 +180,6 @@ updateSireGenotype();
 } else {
 updateDamGenotype();
 }
-
-
-
 
 // ---- Sync variety input to the newly transferred offspring  ----
 // ALSO: enable observer syncing for this parent from now on
