@@ -3143,6 +3143,274 @@ if (navigator.userAgent.toLowerCase().includes('firefox')) {
   })();
 }
 
+///////////////////////////////////
+
+;(function () {
+    "use strict";
+
+    const CHANGE_LIMIT = 10;
+    const COOKIE_HOURS = 90 * 24;
+
+    const ALLELES =
+        ".sire-genotypes select, .dam-genotypes select";
+
+    const VARIETIES =
+        "#sireVarietyInput, #damVarietyInput";
+
+    const COUNT_KEY = "trialAlleleChangeCount";
+    const BASELINE_KEY = "trialAlleleCalcBaseline";
+
+    const previousValues = new Map();
+    const acceptedNames = { sire: "", dam: "" };
+    const lastAppliedNames = { sire: "", dam: "" };
+
+    let activeParent = "";
+
+    function readCount(key) {
+        const value = Number(getCookie(key) || 0);
+        return Number.isFinite(value) && value >= 0
+            ? Math.floor(value)
+            : 0;
+    }
+
+    function hasPaidAccess() {
+        const expires = Number(getCookie("paidUntil") || 0);
+        return Number.isFinite(expires) && Date.now() < expires;
+    }
+
+    function parentOf(element) {
+        if (element.id === "sireVarietyInput") return "sire";
+        if (element.id === "damVarietyInput") return "dam";
+
+        return element.closest(".sire-genotypes")
+            ? "sire"
+            : "dam";
+    }
+
+    function normalizeName(value) {
+        return String(value || "").trim().toLowerCase();
+    }
+
+    function syncCalculations() {
+        const calculations = readCount("calcCount");
+        const baseline = getCookie(BASELINE_KEY);
+
+        if (baseline === null ||
+            baseline === undefined ||
+            baseline === "") {
+            setCookie(BASELINE_KEY, calculations, COOKIE_HOURS);
+        } else if (calculations !== readCount(BASELINE_KEY)) {
+            setCookie(COUNT_KEY, 0, COOKIE_HOURS);
+            setCookie(BASELINE_KEY, calculations, COOKIE_HOURS);
+        }
+
+        return calculations;
+    }
+
+    function stopEvent(event) {
+        if (event.cancelable) event.preventDefault();
+        event.stopImmediatePropagation();
+    }
+
+    function closeSuggestions() {
+        document.querySelectorAll(".variety-dd").forEach(list => {
+            list.style.display = "none";
+            list.innerHTML = "";
+        });
+    }
+
+    function showLimitNotice(calculations) {
+        if (typeof playSound === "function") {
+            try {
+                playSound("errorSound");
+            } catch (error) {
+                console.warn("Limit sound unavailable:", error);
+            }
+        }
+
+        if (calculations < 2) {
+            alert(
+                "You have reached the free allowance of " +
+                CHANGE_LIMIT +
+                " allele changes or variety selections between calculations.\n\n" +
+                "Click Calculate Offspring to calculate your selected " +
+                "pairing and continue, or purchase access for unlimited use."
+            );
+        }
+
+        showDonationPopup();
+    }
+
+    function allowChange(event, restore, duplicate) {
+        if (hasPaidAccess()) return true;
+
+        const calculations = syncCalculations();
+        const changes = readCount(COUNT_KEY);
+
+        if (calculations >= 2 || changes >= CHANGE_LIMIT) {
+            stopEvent(event);
+            restore();
+            closeSuggestions();
+            showLimitNotice(calculations);
+            return false;
+        }
+
+        if (!duplicate) {
+            setCookie(COUNT_KEY, changes + 1, COOKIE_HOURS);
+        }
+
+        return true;
+    }
+
+    function allowVariety(parent, label, event) {
+        const input = document.getElementById(parent + "VarietyInput");
+        if (!input) return false;
+
+        const duplicate =
+            normalizeName(label) === lastAppliedNames[parent];
+
+        if (!allowChange(event, function () {
+            input.value = acceptedNames[parent];
+        }, duplicate)) {
+            return false;
+        }
+
+        acceptedNames[parent] = String(label || "").trim();
+        lastAppliedNames[parent] = normalizeName(label);
+        return true;
+    }
+
+    function rememberBeforeUse(event) {
+        const element = event.target;
+        if (!element.matches) return;
+
+        if (element.matches(ALLELES)) {
+            previousValues.set(element.id, element.value);
+        }
+
+        if (element.matches(VARIETIES)) {
+            activeParent = parentOf(element);
+        }
+    }
+
+    window.addEventListener(
+        "pointerdown", rememberBeforeUse, true
+    );
+
+    window.addEventListener(
+        "focusin", rememberBeforeUse, true
+    );
+
+    // Manual allele dropdown changes.
+    window.addEventListener("change", function (event) {
+        const select = event.target;
+
+        if (!select.matches || !select.matches(ALLELES)) return;
+
+        const oldValue = previousValues.get(select.id);
+        const duplicate = oldValue === select.value;
+
+        if (!allowChange(event, function () {
+            if (oldValue !== undefined) select.value = oldValue;
+        }, duplicate)) {
+            return;
+        }
+
+        previousValues.set(select.id, select.value);
+
+        // A manual edit means the previous variety is no longer
+        // necessarily the currently selected genotype.
+        lastAppliedNames[parentOf(select)] = "";
+    }, true);
+
+    // A complete typed variety can apply immediately in your script.
+    // Check it before the external input handlers run.
+    window.addEventListener("input", function (event) {
+        const input = event.target;
+
+        if (!input.matches || !input.matches(VARIETIES)) return;
+
+        const parent = parentOf(input);
+        activeParent = parent;
+
+        const raw = input.value.trim();
+        if (!raw) {
+            lastAppliedNames[parent] = "";
+            return;
+        }
+
+        if (typeof window.findFirstGenotypeForPhenotype !== "function") {
+            return;
+        }
+
+        const genotype = window.findFirstGenotypeForPhenotype(raw);
+
+        // Ordinary keystrokes and incomplete names do not count.
+        if (genotype) {
+            allowVariety(parent, raw, event);
+        }
+    }, true);
+
+    // Mouse or touch selection from the suggestion list.
+    window.addEventListener("click", function (event) {
+        const row = event.target.closest
+            ? event.target.closest(".variety-dd-item")
+            : null;
+
+        if (!row || !activeParent) return;
+
+        allowVariety(activeParent, row.textContent, event);
+    }, true);
+
+    // Keyboard selection using arrows followed by Enter.
+    window.addEventListener("keydown", function (event) {
+        const input = event.target;
+
+        if (event.key !== "Enter" ||
+            !input.matches ||
+            !input.matches(VARIETIES)) {
+            return;
+        }
+
+        const parent = parentOf(input);
+        activeParent = parent;
+
+        const openLists = Array.from(
+            document.querySelectorAll(".variety-dd")
+        ).filter(list => list.style.display !== "none");
+
+        const activeRow = openLists
+            .map(list => list.querySelector(".variety-dd-item.active"))
+            .find(Boolean);
+
+        if (activeRow) {
+            allowVariety(parent, activeRow.textContent, event);
+        }
+    }, true);
+
+    function initialize() {
+        document.querySelectorAll(ALLELES).forEach(select => {
+            previousValues.set(select.id, select.value);
+        });
+
+        ["sire", "dam"].forEach(parent => {
+            const input = document.getElementById(
+                parent + "VarietyInput"
+            );
+
+            acceptedNames[parent] = input ? input.value : "";
+        });
+
+        syncCalculations();
+    }
+
+    if (document.readyState === "complete") {
+        initialize();
+    } else {
+        window.addEventListener("load", initialize);
+    }
+})();
+
 
 
 
